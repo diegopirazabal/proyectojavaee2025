@@ -10,6 +10,7 @@
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
+WARP.md
 .idea
 # Package Files #
 *.jar
