@@ -14,7 +14,8 @@ import jakarta.ejb.Startup;
         properties = {
                 "serverName=centerbeam.proxy.rlwy.net",
                 "portNumber=22214",
-                "databaseName=railway"
+                "databaseName=railway",
+                "sslMode=require"
         }
 )
 public class MockDnicDataSourceConfig {
