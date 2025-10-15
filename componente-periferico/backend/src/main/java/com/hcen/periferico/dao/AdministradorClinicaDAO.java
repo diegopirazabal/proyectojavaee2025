@@ -1,6 +1,6 @@
 package com.hcen.periferico.dao;
 
-import com.hcen.core.domain.AdministradorClinica;
+import com.hcen.core.domain.administrador_clinica;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
@@ -18,7 +18,7 @@ public class AdministradorClinicaDAO {
     @PersistenceContext(unitName = "hcen-periferico-pu")
     private EntityManager em;
 
-    public AdministradorClinica save(AdministradorClinica admin) {
+    public administrador_clinica save(administrador_clinica admin) {
         if (admin.getId() == null) {
             em.persist(admin);
             return admin;
@@ -27,16 +27,16 @@ public class AdministradorClinicaDAO {
         }
     }
 
-    public Optional<AdministradorClinica> findById(UUID id) {
-        AdministradorClinica admin = em.find(AdministradorClinica.class, id);
+    public Optional<administrador_clinica> findById(UUID id) {
+        administrador_clinica admin = em.find(administrador_clinica.class, id);
         return Optional.ofNullable(admin);
     }
 
-    public Optional<AdministradorClinica> findByUsernameAndClinica(String username, String clinicaRut) {
+    public Optional<administrador_clinica> findByUsernameAndClinica(String username, String clinicaRut) {
         try {
-            TypedQuery<AdministradorClinica> query = em.createQuery(
-                "SELECT a FROM AdministradorClinica a WHERE a.username = :username AND a.clinica = :clinica",
-                AdministradorClinica.class
+            TypedQuery<administrador_clinica> query = em.createQuery(
+                "SELECT a FROM administrador_clinica a WHERE a.username = :username AND a.clinica = :clinica",
+                administrador_clinica.class
             );
             query.setParameter("username", username);
             query.setParameter("clinica", clinicaRut);
@@ -46,19 +46,19 @@ public class AdministradorClinicaDAO {
         }
     }
 
-    public List<AdministradorClinica> findByClinica(String clinicaRut) {
-        TypedQuery<AdministradorClinica> query = em.createQuery(
-            "SELECT a FROM AdministradorClinica a WHERE a.clinica = :clinica ORDER BY a.nombre, a.apellidos",
-            AdministradorClinica.class
+    public List<administrador_clinica> findByClinica(String clinicaRut) {
+        TypedQuery<administrador_clinica> query = em.createQuery(
+            "SELECT a FROM administrador_clinica a WHERE a.clinica = :clinica ORDER BY a.nombre, a.apellidos",
+            administrador_clinica.class
         );
         query.setParameter("clinica", clinicaRut);
         return query.getResultList();
     }
 
-    public List<AdministradorClinica> findByUsername(String username) {
-        TypedQuery<AdministradorClinica> query = em.createQuery(
-            "SELECT a FROM AdministradorClinica a WHERE a.username = :username",
-            AdministradorClinica.class
+    public List<administrador_clinica> findByUsername(String username) {
+        TypedQuery<administrador_clinica> query = em.createQuery(
+            "SELECT a FROM administrador_clinica a WHERE a.username = :username",
+            administrador_clinica.class
         );
         query.setParameter("username", username);
         return query.getResultList();
@@ -66,7 +66,7 @@ public class AdministradorClinicaDAO {
 
     public boolean existsByUsernameAndClinica(String username, String clinicaRut) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(a) FROM AdministradorClinica a WHERE a.username = :username AND a.clinica = :clinica",
+            "SELECT COUNT(a) FROM administrador_clinica a WHERE a.username = :username AND a.clinica = :clinica",
             Long.class
         );
         query.setParameter("username", username);
@@ -74,7 +74,7 @@ public class AdministradorClinicaDAO {
         return query.getSingleResult() > 0;
     }
 
-    public void delete(AdministradorClinica admin) {
+    public void delete(administrador_clinica admin) {
         if (!em.contains(admin)) {
             admin = em.merge(admin);
         }
@@ -85,10 +85,10 @@ public class AdministradorClinicaDAO {
         findById(id).ifPresent(this::delete);
     }
 
-    public List<AdministradorClinica> findAll() {
-        TypedQuery<AdministradorClinica> query = em.createQuery(
-            "SELECT a FROM AdministradorClinica a ORDER BY a.clinica, a.nombre, a.apellidos",
-            AdministradorClinica.class
+    public List<administrador_clinica> findAll() {
+        TypedQuery<administrador_clinica> query = em.createQuery(
+            "SELECT a FROM administrador_clinica a ORDER BY a.clinica, a.nombre, a.apellidos",
+            administrador_clinica.class
         );
         return query.getResultList();
     }

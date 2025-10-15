@@ -1,6 +1,6 @@
 package com.hcen.periferico.dao;
 
-import com.hcen.core.domain.ConfiguracionClinica;
+import com.hcen.core.domain.configuracion_clinica;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
@@ -17,7 +17,7 @@ public class ConfiguracionClinicaDAO {
     @PersistenceContext(unitName = "hcen-periferico-pu")
     private EntityManager em;
 
-    public ConfiguracionClinica save(ConfiguracionClinica config) {
+    public configuracion_clinica save(configuracion_clinica config) {
         if (config.getId() == null) {
             em.persist(config);
             return config;
@@ -26,16 +26,16 @@ public class ConfiguracionClinicaDAO {
         }
     }
 
-    public Optional<ConfiguracionClinica> findById(UUID id) {
-        ConfiguracionClinica config = em.find(ConfiguracionClinica.class, id);
+    public Optional<configuracion_clinica> findById(UUID id) {
+        configuracion_clinica config = em.find(configuracion_clinica.class, id);
         return Optional.ofNullable(config);
     }
 
-    public Optional<ConfiguracionClinica> findByClinicaRut(String clinicaRut) {
+    public Optional<configuracion_clinica> findByClinicaRut(String clinicaRut) {
         try {
-            TypedQuery<ConfiguracionClinica> query = em.createQuery(
-                "SELECT c FROM ConfiguracionClinica c WHERE c.clinicaRut = :rut",
-                ConfiguracionClinica.class
+            TypedQuery<configuracion_clinica> query = em.createQuery(
+                "SELECT c FROM configuracion_clinica c WHERE c.clinicaRut = :rut",
+                configuracion_clinica.class
             );
             query.setParameter("rut", clinicaRut);
             return Optional.of(query.getSingleResult());
@@ -46,14 +46,14 @@ public class ConfiguracionClinicaDAO {
 
     public boolean existsByClinicaRut(String clinicaRut) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(c) FROM ConfiguracionClinica c WHERE c.clinicaRut = :rut",
+            "SELECT COUNT(c) FROM configuracion_clinica c WHERE c.clinicaRut = :rut",
             Long.class
         );
         query.setParameter("rut", clinicaRut);
         return query.getSingleResult() > 0;
     }
 
-    public void delete(ConfiguracionClinica config) {
+    public void delete(configuracion_clinica config) {
         if (!em.contains(config)) {
             config = em.merge(config);
         }
@@ -64,17 +64,17 @@ public class ConfiguracionClinicaDAO {
         findById(id).ifPresent(this::delete);
     }
 
-    public List<ConfiguracionClinica> findAll() {
-        TypedQuery<ConfiguracionClinica> query = em.createQuery(
-            "SELECT c FROM ConfiguracionClinica c ORDER BY c.clinicaRut",
-            ConfiguracionClinica.class
+    public List<configuracion_clinica> findAll() {
+        TypedQuery<configuracion_clinica> query = em.createQuery(
+            "SELECT c FROM configuracion_clinica c ORDER BY c.clinicaRut",
+            configuracion_clinica.class
         );
         return query.getResultList();
     }
 
-    public ConfiguracionClinica getOrCreateDefault(String clinicaRut) {
+    public configuracion_clinica getOrCreateDefault(String clinicaRut) {
         return findByClinicaRut(clinicaRut).orElseGet(() -> {
-            ConfiguracionClinica config = new ConfiguracionClinica(clinicaRut);
+            configuracion_clinica config = new configuracion_clinica(clinicaRut);
             // Valores por defecto
             config.setColorPrimario("#007bff");
             config.setColorSecundario("#6c757d");

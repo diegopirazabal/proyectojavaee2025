@@ -1,6 +1,6 @@
 package com.hcen.periferico.service;
 
-import com.hcen.core.domain.AdministradorClinica;
+import com.hcen.core.domain.administrador_clinica;
 import com.hcen.periferico.dao.AdministradorClinicaDAO;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
@@ -21,11 +21,11 @@ public class AuthenticationService {
      * @param clinicaRut RUT de la clínica (para multi-tenancy)
      * @return El administrador autenticado o null si falla la autenticación
      */
-    public AdministradorClinica authenticate(String username, String password, String clinicaRut) {
-        Optional<AdministradorClinica> adminOpt = adminDAO.findByUsernameAndClinica(username, clinicaRut);
+    public administrador_clinica authenticate(String username, String password, String clinicaRut) {
+        Optional<administrador_clinica> adminOpt = adminDAO.findByUsernameAndClinica(username, clinicaRut);
 
         if (adminOpt.isPresent()) {
-            AdministradorClinica admin = adminOpt.get();
+            administrador_clinica admin = adminOpt.get();
             if (verifyPassword(password, admin.getPassword())) {
                 return admin;
             }
@@ -36,7 +36,7 @@ public class AuthenticationService {
     /**
      * Crea un nuevo administrador de clínica
      */
-    public AdministradorClinica createAdmin(String username, String password, String nombre,
+    public administrador_clinica createAdmin(String username, String password, String nombre,
                                            String apellidos, String clinicaRut) {
         // Verificar que no exista ya un administrador con ese username en esa clínica
         if (adminDAO.existsByUsernameAndClinica(username, clinicaRut)) {
@@ -51,7 +51,7 @@ public class AuthenticationService {
         }
 
         String hashedPassword = hashPassword(password);
-        AdministradorClinica admin = new AdministradorClinica(username, hashedPassword, nombre, apellidos, clinicaRut);
+        administrador_clinica admin = new administrador_clinica(username, hashedPassword, nombre, apellidos, clinicaRut);
 
         return adminDAO.save(admin);
     }
@@ -59,7 +59,7 @@ public class AuthenticationService {
     /**
      * Cambia la contraseña de un administrador
      */
-    public boolean changePassword(AdministradorClinica admin, String currentPassword, String newPassword) {
+    public boolean changePassword(administrador_clinica admin, String currentPassword, String newPassword) {
         if (verifyPassword(currentPassword, admin.getPassword())) {
             if (!isValidPassword(newPassword)) {
                 throw new IllegalArgumentException(
@@ -76,7 +76,7 @@ public class AuthenticationService {
     /**
      * Resetea la contraseña de un administrador (sin verificar la anterior)
      */
-    public void resetPassword(AdministradorClinica admin, String newPassword) {
+    public void resetPassword(administrador_clinica admin, String newPassword) {
         if (!isValidPassword(newPassword)) {
             throw new IllegalArgumentException(
                 "La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números"

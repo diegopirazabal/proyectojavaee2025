@@ -1,52 +1,32 @@
-package com.hcen.core.domain;
+package com.hcen.periferico.dto;
 
-import jakarta.persistence.*;
-import java.util.Objects;
+import java.io.Serializable;
 import java.util.UUID;
 
-@Entity
-@Table(name = "CONFIGURACION_CLINICA")
-public class ConfiguracionClinica {
+public class configuracion_clinica_dto implements Serializable {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "ID", columnDefinition = "UUID")
+    private static final long serialVersionUID = 1L;
+
     private UUID id;
-
-    @Column(name = "CLINICA_RUT", length = 20, nullable = false, unique = true)
     private String clinicaRut;
-
-    // Personalización de Look & Feel
-    @Column(name = "COLOR_PRIMARIO", length = 7)
     private String colorPrimario;
-
-    @Column(name = "COLOR_SECUNDARIO", length = 7)
     private String colorSecundario;
-
-    @Column(name = "LOGO_URL", length = 500)
     private String logoUrl;
-
-    @Column(name = "NOMBRE_SISTEMA", length = 150)
     private String nombreSistema;
-
-    @Column(name = "TEMA", length = 50)
     private String tema;
-
-    // Configuración funcional
-    @Column(name = "NODO_PERIFERICO_HABILITADO", nullable = false)
-    private Boolean nodoPerifericoHabilitado = false;
+    private Boolean nodoPerifericoHabilitado;
 
     // Constructores
-    public ConfiguracionClinica() {
-    }
-
-    public ConfiguracionClinica(String clinicaRut) {
-        this.clinicaRut = clinicaRut;
+    public configuracion_clinica_dto() {
     }
 
     // Getters y Setters
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getClinicaRut() {
@@ -103,15 +83,5 @@ public class ConfiguracionClinica {
 
     public void setNodoPerifericoHabilitado(Boolean nodoPerifericoHabilitado) {
         this.nodoPerifericoHabilitado = nodoPerifericoHabilitado;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return (this == o) || (o instanceof ConfiguracionClinica c && Objects.equals(id, c.id));
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
     }
 }

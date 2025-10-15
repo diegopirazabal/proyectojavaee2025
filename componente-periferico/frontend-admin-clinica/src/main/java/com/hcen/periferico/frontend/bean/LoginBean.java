@@ -1,10 +1,8 @@
 package com.hcen.periferico.frontend.bean;
 
-import com.hcen.core.domain.AdministradorClinica;
-import com.hcen.periferico.dao.AdministradorClinicaDAO;
-import com.hcen.periferico.service.AuthenticationService;
+import com.hcen.periferico.frontend.dto.administrador_clinica_dto;
+import com.hcen.periferico.frontend.service.APIService;
 import jakarta.annotation.PostConstruct;
-import jakarta.ejb.EJB;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
@@ -19,8 +17,8 @@ public class LoginBean implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @EJB
-    private AuthenticationService authService;
+    @Inject
+    private APIService apiService;
 
     @Inject
     private SessionBean sessionBean;
@@ -60,7 +58,7 @@ public class LoginBean implements Serializable {
             }
 
             // Intentar autenticar
-            AdministradorClinica admin = authService.authenticate(
+            administrador_clinica_dto admin = apiService.authenticate(
                 username.trim(),
                 password,
                 clinicaRut.trim()

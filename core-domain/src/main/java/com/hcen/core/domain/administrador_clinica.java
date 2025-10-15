@@ -7,7 +7,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "ADMINISTRADOR_CLINICA",
        uniqueConstraints = @UniqueConstraint(columnNames = {"USERNAME", "CLINICA_RUT"}))
-public class AdministradorClinica {
+public class administrador_clinica {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -30,10 +30,10 @@ public class AdministradorClinica {
     private String clinica;
 
     // Constructores
-    public AdministradorClinica() {
+    public administrador_clinica() {
     }
 
-    public AdministradorClinica(String username, String password, String nombre,
+    public administrador_clinica(String username, String password, String nombre,
                                String apellidos, String clinica) {
         this.username = username;
         this.password = password;
@@ -93,7 +93,7 @@ public class AdministradorClinica {
 
     @Override
     public boolean equals(Object o) {
-        return (this == o) || (o instanceof AdministradorClinica a && Objects.equals(id, a.id));
+        return (this == o) || (o instanceof administrador_clinica a && Objects.equals(id, a.id));
     }
 
     @Override

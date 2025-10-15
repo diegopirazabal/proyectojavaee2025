@@ -1,9 +1,8 @@
 package com.hcen.periferico.frontend.bean;
 
-import com.hcen.core.domain.ProfesionalSalud;
-import com.hcen.periferico.service.ProfesionalService;
+import com.hcen.periferico.frontend.dto.profesional_salud_dto;
+import com.hcen.periferico.frontend.service.APIService;
 import jakarta.annotation.PostConstruct;
-import jakarta.ejb.EJB;
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
@@ -19,27 +18,27 @@ public class ProfesionalBean implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @EJB
-    private ProfesionalService profesionalService;
+    @Inject
+    private APIService apiService;
 
     @Inject
     private SessionBean sessionBean;
 
-    private List<ProfesionalSalud> profesionales;
-    private ProfesionalSalud selectedProfesional;
-    private ProfesionalSalud newProfesional;
+    private List<profesional_salud_dto> profesionales;
+    private profesional_salud_dto selectedProfesional;
+    private profesional_salud_dto newProfesional;
 
     private String searchTerm;
 
     @PostConstruct
     public void init() {
         loadProfesionales();
-        newProfesional = new ProfesionalSalud();
+        newProfesional = new profesional_salud_dto();
     }
 
     public void loadProfesionales() {
         try {
-            profesionales = profesionalService.getAllProfesionales();
+            profesionales = apiService.getAllProfesionales();
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar profesionales: " + e.getMessage());
             e.printStackTrace();
@@ -51,7 +50,7 @@ public class ProfesionalBean implements Serializable {
             if (searchTerm == null || searchTerm.trim().isEmpty()) {
                 loadProfesionales();
             } else {
-                profesionales = profesionalService.searchProfesionales(searchTerm);
+                profesionales = apiService.searchProfesionales(searchTerm);
             }
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error en la búsqueda: " + e.getMessage());
@@ -61,7 +60,7 @@ public class ProfesionalBean implements Serializable {
 
     public void saveProfesional() {
         try {
-            profesionalService.saveProfesional(
+            apiService.saveProfesional(
                 newProfesional.getCi(),
                 newProfesional.getNombre(),
                 newProfesional.getApellidos(),
@@ -71,7 +70,7 @@ public class ProfesionalBean implements Serializable {
 
             addMessage(FacesMessage.SEVERITY_INFO, "Profesional guardado exitosamente");
             loadProfesionales();
-            newProfesional = new ProfesionalSalud(); // Reset form
+            newProfesional = new profesional_salud_dto(); // Reset form
         } catch (IllegalArgumentException e) {
             addMessage(FacesMessage.SEVERITY_ERROR, e.getMessage());
         } catch (Exception e) {
@@ -87,7 +86,7 @@ public class ProfesionalBean implements Serializable {
                 return;
             }
 
-            profesionalService.saveProfesional(
+            apiService.saveProfesional(
                 selectedProfesional.getCi(),
                 selectedProfesional.getNombre(),
                 selectedProfesional.getApellidos(),
@@ -105,9 +104,9 @@ public class ProfesionalBean implements Serializable {
         }
     }
 
-    public void deleteProfesional(ProfesionalSalud profesional) {
+    public void deleteProfesional(profesional_salud_dto profesional) {
         try {
-            profesionalService.deleteProfesional(profesional.getCi());
+            apiService.deleteProfesional(profesional.getCi());
             addMessage(FacesMessage.SEVERITY_INFO, "Profesional eliminado exitosamente");
             loadProfesionales();
         } catch (Exception e) {
@@ -117,7 +116,7 @@ public class ProfesionalBean implements Serializable {
     }
 
     public void prepareNew() {
-        newProfesional = new ProfesionalSalud();
+        newProfesional = new profesional_salud_dto();
     }
 
     private void addMessage(FacesMessage.Severity severity, String message) {
@@ -126,27 +125,27 @@ public class ProfesionalBean implements Serializable {
     }
 
     // Getters y Setters
-    public List<ProfesionalSalud> getProfesionales() {
+    public List<profesional_salud_dto> getProfesionales() {
         return profesionales;
     }
 
-    public void setProfesionales(List<ProfesionalSalud> profesionales) {
+    public void setProfesionales(List<profesional_salud_dto> profesionales) {
         this.profesionales = profesionales;
     }
 
-    public ProfesionalSalud getSelectedProfesional() {
+    public profesional_salud_dto getSelectedProfesional() {
         return selectedProfesional;
     }
 
-    public void setSelectedProfesional(ProfesionalSalud selectedProfesional) {
+    public void setSelectedProfesional(profesional_salud_dto selectedProfesional) {
         this.selectedProfesional = selectedProfesional;
     }
 
-    public ProfesionalSalud getNewProfesional() {
+    public profesional_salud_dto getNewProfesional() {
         return newProfesional;
     }
 
-    public void setNewProfesional(ProfesionalSalud newProfesional) {
+    public void setNewProfesional(profesional_salud_dto newProfesional) {
         this.newProfesional = newProfesional;
     }
 

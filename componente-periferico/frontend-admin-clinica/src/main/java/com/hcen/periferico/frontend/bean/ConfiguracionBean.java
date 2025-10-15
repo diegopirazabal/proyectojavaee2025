@@ -1,9 +1,8 @@
 package com.hcen.periferico.frontend.bean;
 
-import com.hcen.core.domain.ConfiguracionClinica;
-import com.hcen.periferico.service.ConfiguracionService;
+import com.hcen.periferico.frontend.dto.configuracion_clinica_dto;
+import com.hcen.periferico.frontend.service.APIService;
 import jakarta.annotation.PostConstruct;
-import jakarta.ejb.EJB;
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
@@ -18,13 +17,13 @@ public class ConfiguracionBean implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    @EJB
-    private ConfiguracionService configuracionService;
+    @Inject
+    private APIService apiService;
 
     @Inject
     private SessionBean sessionBean;
 
-    private ConfiguracionClinica configuracion;
+    private configuracion_clinica_dto configuracion;
 
     // Campos temporales para edición
     private String colorPrimario;
@@ -43,14 +42,16 @@ public class ConfiguracionBean implements Serializable {
         try {
             String clinicaRut = sessionBean.getClinicaRut();
             if (clinicaRut != null) {
-                configuracion = configuracionService.getConfiguracion(clinicaRut);
-                // Cargar valores en campos temporales
-                colorPrimario = configuracion.getColorPrimario();
-                colorSecundario = configuracion.getColorSecundario();
-                logoUrl = configuracion.getLogoUrl();
-                nombreSistema = configuracion.getNombreSistema();
-                tema = configuracion.getTema();
-                nodoPerifericoHabilitado = configuracion.getNodoPerifericoHabilitado();
+                configuracion = apiService.getConfiguracion(clinicaRut);
+                if (configuracion != null) {
+                    // Cargar valores en campos temporales
+                    colorPrimario = configuracion.getColorPrimario();
+                    colorSecundario = configuracion.getColorSecundario();
+                    logoUrl = configuracion.getLogoUrl();
+                    nombreSistema = configuracion.getNombreSistema();
+                    tema = configuracion.getTema();
+                    nodoPerifericoHabilitado = configuracion.getNodoPerifericoHabilitado();
+                }
             }
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar configuración: " + e.getMessage());
@@ -66,7 +67,7 @@ public class ConfiguracionBean implements Serializable {
                 return;
             }
 
-            configuracion = configuracionService.actualizarLookAndFeel(
+            configuracion = apiService.updateLookAndFeel(
                 clinicaRut,
                 colorPrimario,
                 colorSecundario,
@@ -90,7 +91,7 @@ public class ConfiguracionBean implements Serializable {
                 return;
             }
 
-            configuracion = configuracionService.toggleNodoPeriferico(
+            configuracion = apiService.toggleNodoPeriferico(
                 clinicaRut,
                 nodoPerifericoHabilitado != null ? nodoPerifericoHabilitado : false
             );
@@ -114,7 +115,7 @@ public class ConfiguracionBean implements Serializable {
                 return;
             }
 
-            configuracion = configuracionService.resetToDefault(clinicaRut);
+            configuracion = apiService.resetConfiguracion(clinicaRut);
             loadConfiguracion(); // Recargar campos
 
             addMessage(FacesMessage.SEVERITY_INFO, "Configuración restablecida a valores por defecto");
@@ -130,11 +131,11 @@ public class ConfiguracionBean implements Serializable {
     }
 
     // Getters y Setters
-    public ConfiguracionClinica getConfiguracion() {
+    public configuracion_clinica_dto getConfiguracion() {
         return configuracion;
     }
 
-    public void setConfiguracion(ConfiguracionClinica configuracion) {
+    public void setConfiguracion(configuracion_clinica_dto configuracion) {
         this.configuracion = configuracion;
     }
 

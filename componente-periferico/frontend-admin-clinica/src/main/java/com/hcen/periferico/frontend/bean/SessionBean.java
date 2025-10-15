@@ -1,7 +1,7 @@
 package com.hcen.periferico.frontend.bean;
 
-import com.hcen.core.domain.AdministradorClinica;
-import com.hcen.core.domain.ConfiguracionClinica;
+import com.hcen.periferico.frontend.dto.administrador_clinica_dto;
+import com.hcen.periferico.frontend.dto.configuracion_clinica_dto;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.context.FacesContext;
@@ -15,8 +15,8 @@ public class SessionBean implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private AdministradorClinica administradorLogueado;
-    private ConfiguracionClinica configuracion;
+    private administrador_clinica_dto administradorLogueado;
+    private configuracion_clinica_dto configuracion;
 
     @PostConstruct
     public void init() {
@@ -27,7 +27,7 @@ public class SessionBean implements Serializable {
         return administradorLogueado != null;
     }
 
-    public void login(AdministradorClinica admin) {
+    public void login(administrador_clinica_dto admin) {
         this.administradorLogueado = admin;
     }
 
@@ -49,19 +49,19 @@ public class SessionBean implements Serializable {
     }
 
     // Getters y Setters
-    public AdministradorClinica getAdministradorLogueado() {
+    public administrador_clinica_dto getAdministradorLogueado() {
         return administradorLogueado;
     }
 
-    public void setAdministradorLogueado(AdministradorClinica administradorLogueado) {
+    public void setAdministradorLogueado(administrador_clinica_dto administradorLogueado) {
         this.administradorLogueado = administradorLogueado;
     }
 
-    public ConfiguracionClinica getConfiguracion() {
+    public configuracion_clinica_dto getConfiguracion() {
         return configuracion;
     }
 
-    public void setConfiguracion(ConfiguracionClinica configuracion) {
+    public void setConfiguracion(configuracion_clinica_dto configuracion) {
         this.configuracion = configuracion;
     }
 }

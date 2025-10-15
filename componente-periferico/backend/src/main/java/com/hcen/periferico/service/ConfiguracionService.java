@@ -1,6 +1,6 @@
 package com.hcen.periferico.service;
 
-import com.hcen.core.domain.ConfiguracionClinica;
+import com.hcen.core.domain.configuracion_clinica;
 import com.hcen.periferico.dao.ConfiguracionClinicaDAO;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
@@ -16,17 +16,17 @@ public class ConfiguracionService {
     /**
      * Obtiene la configuración de una clínica, creándola si no existe
      */
-    public ConfiguracionClinica getConfiguracion(String clinicaRut) {
+    public configuracion_clinica getConfiguracion(String clinicaRut) {
         return configuracionDAO.getOrCreateDefault(clinicaRut);
     }
 
     /**
      * Actualiza la configuración de look & feel de una clínica
      */
-    public ConfiguracionClinica actualizarLookAndFeel(String clinicaRut, String colorPrimario,
+    public configuracion_clinica actualizarLookAndFeel(String clinicaRut, String colorPrimario,
                                                       String colorSecundario, String logoUrl,
                                                       String nombreSistema, String tema) {
-        ConfiguracionClinica config = getConfiguracion(clinicaRut);
+        configuracion_clinica config = getConfiguracion(clinicaRut);
 
         if (colorPrimario != null && isValidColor(colorPrimario)) {
             config.setColorPrimario(colorPrimario);
@@ -50,8 +50,8 @@ public class ConfiguracionService {
     /**
      * Habilita o deshabilita la conexión como nodo periférico
      */
-    public ConfiguracionClinica toggleNodoPeriferico(String clinicaRut, boolean habilitado) {
-        ConfiguracionClinica config = getConfiguracion(clinicaRut);
+    public configuracion_clinica toggleNodoPeriferico(String clinicaRut, boolean habilitado) {
+        configuracion_clinica config = getConfiguracion(clinicaRut);
         config.setNodoPerifericoHabilitado(habilitado);
         return configuracionDAO.save(config);
     }
@@ -66,10 +66,10 @@ public class ConfiguracionService {
     /**
      * Resetea la configuración a valores por defecto
      */
-    public ConfiguracionClinica resetToDefault(String clinicaRut) {
-        Optional<ConfiguracionClinica> existing = configuracionDAO.findByClinicaRut(clinicaRut);
+    public configuracion_clinica resetToDefault(String clinicaRut) {
+        Optional<configuracion_clinica> existing = configuracionDAO.findByClinicaRut(clinicaRut);
         if (existing.isPresent()) {
-            ConfiguracionClinica config = existing.get();
+            configuracion_clinica config = existing.get();
             config.setColorPrimario("#007bff");
             config.setColorSecundario("#6c757d");
             config.setLogoUrl(null);
