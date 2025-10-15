@@ -8,10 +8,14 @@ import jakarta.ejb.Startup;
 @Startup
 @DataSourceDefinition(
         name = "java:app/jdbc/mock-dnic",
-        className = "org.postgresql.ds.PGSimpleDataSource",
-        url = "jdbc:postgresql://centerbeam.proxy.rlwy.net:22214/railway",
+        className = "org.postgresql.xa.PGXADataSource",
         user = "postgres",
-        password = "mFkefhPbCoGVFElQhfZhwonwwTLuRPaa"
+        password = "mFkefhPbCoGVFElQhfZhwonwwTLuRPaa",
+        properties = {
+                "serverName=centerbeam.proxy.rlwy.net",
+                "portNumber=22214",
+                "databaseName=railway"
+        }
 )
 public class MockDnicDataSourceConfig {
 
