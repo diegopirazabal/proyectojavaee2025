@@ -22,11 +22,25 @@ public class AuthenticationService {
      * @return El administrador autenticado o null si falla la autenticación
      */
     public administrador_clinica authenticate(String username, String password, String clinicaRut) {
+        System.out.println("[AUTH DEBUG] Intentando autenticar:");
+        System.out.println("  Username: " + username);
+        System.out.println("  Clinica RUT: " + clinicaRut);
+        System.out.println("  Password length: " + (password != null ? password.length() : "null"));
+
         Optional<administrador_clinica> adminOpt = adminDAO.findByUsernameAndClinica(username, clinicaRut);
+
+        System.out.println("[AUTH DEBUG] Usuario encontrado: " + adminOpt.isPresent());
 
         if (adminOpt.isPresent()) {
             administrador_clinica admin = adminOpt.get();
-            if (verifyPassword(password, admin.getPassword())) {
+            System.out.println("[AUTH DEBUG] Usuario DB: " + admin.getUsername());
+            System.out.println("[AUTH DEBUG] Clinica DB: " + admin.getClinica());
+            System.out.println("[AUTH DEBUG] Password hash DB: " + admin.getPassword().substring(0, 20) + "...");
+
+            boolean passwordMatch = verifyPassword(password, admin.getPassword());
+            System.out.println("[AUTH DEBUG] Password match: " + passwordMatch);
+
+            if (passwordMatch) {
                 return admin;
             }
         }

@@ -7,17 +7,19 @@
 
     <persistence-unit name="hcen-periferico-pu" transaction-type="JTA">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <jta-data-source>java:jboss/datasources/HcenPerifericoDS</jta-data-source>
 
         <!-- Entidades del core-domain -->
-        <class>com.hcen.core.domain.AdministradorClinica</class>
-        <class>com.hcen.core.domain.ConfiguracionClinica</class>
-        <class>com.hcen.core.domain.Clinica</class>
-        <class>com.hcen.core.domain.ProfesionalSalud</class>
-        <class>com.hcen.core.domain.UsuarioSalud</class>
-        <class>com.hcen.core.domain.HistoriaClinica</class>
-        <class>com.hcen.core.domain.DocumentoClinico</class>
-        <class>com.hcen.core.domain.PoliticaAcceso</class>
+        <class>com.hcen.core.domain.administrador_clinica</class>
+        <class>com.hcen.core.domain.administrador_hcen</class>
+        <class>com.hcen.core.domain.clinica</class>
+        <class>com.hcen.core.domain.configuracion_clinica</class>
+        <class>com.hcen.core.domain.documento_clinico</class>
+        <class>com.hcen.core.domain.historia_clinica</class>
+        <class>com.hcen.core.domain.notificacion</class>
+        <class>com.hcen.core.domain.politica_acceso</class>
+        <class>com.hcen.core.domain.profesional_salud</class>
+        <class>com.hcen.core.domain.usuario_salud</class>
 
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
