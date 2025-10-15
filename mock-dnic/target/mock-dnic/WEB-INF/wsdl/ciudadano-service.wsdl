@@ -47,8 +47,16 @@
                 </xs:sequence>
             </xs:complexType>
 
+            <xs:complexType name="ciudadano_no_encontrado_fault">
+                <xs:sequence>
+                    <xs:element name="tipoDoc" type="tns:TipoDocumento"/>
+                    <xs:element name="nroDoc" type="tns:NumeroDocumento"/>
+                </xs:sequence>
+            </xs:complexType>
+
             <xs:element name="solicitud_ciudadano" type="tns:solicitud_ciudadano"/>
             <xs:element name="respuesta_ciudadano" type="tns:respuesta_ciudadano"/>
+            <xs:element name="ciudadano_no_encontrado" type="tns:ciudadano_no_encontrado_fault"/>
 
         </xs:schema>
     </wsdl:types>
@@ -61,10 +69,15 @@
         <wsdl:part name="respuesta_ciudadano" element="tns:respuesta_ciudadano"/>
     </wsdl:message>
 
+    <wsdl:message name="ciudadano_no_encontrado_fault_message">
+        <wsdl:part name="ciudadano_no_encontrado" element="tns:ciudadano_no_encontrado"/>
+    </wsdl:message>
+
     <wsdl:portType name="ciudadano_port_type">
         <wsdl:operation name="obtener_ciudadano">
             <wsdl:input message="tns:obtener_ciudadano_entrada"/>
             <wsdl:output message="tns:obtener_ciudadano_salida"/>
+            <wsdl:fault name="ciudadano_no_encontrado" message="tns:ciudadano_no_encontrado_fault_message"/>
         </wsdl:operation>
     </wsdl:portType>
 
@@ -78,6 +91,9 @@
             <wsdl:output>
                 <soap:body use="literal"/>
             </wsdl:output>
+            <wsdl:fault name="ciudadano_no_encontrado">
+                <soap:fault name="ciudadano_no_encontrado" use="literal"/>
+            </wsdl:fault>
         </wsdl:operation>
     </wsdl:binding>
 

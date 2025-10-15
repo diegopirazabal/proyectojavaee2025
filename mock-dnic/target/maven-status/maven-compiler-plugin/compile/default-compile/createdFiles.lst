@@ -5,3 +5,4 @@ com/hcen/mockdnic/dominio/ciudadano_id.class
 com/hcen/mockdnic/dominio/Ciudadano.class
 com/hcen/mockdnic/ws/dto/solicitud_ciudadano.class
 com/hcen/mockdnic/ws/dto/respuesta_ciudadano.class
+com/hcen/mockdnic/ws/dto/ciudadano_no_encontrado_fault.class
