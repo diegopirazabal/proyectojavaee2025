@@ -5,7 +5,7 @@ import java.util.*;
 
 @Entity
 @Table(name = "PROFESIONAL_SALUD")
-public class ProfesionalSalud {
+public class profesional_salud {
 
     @Id
     @Column(name = "CI")
@@ -25,11 +25,11 @@ public class ProfesionalSalud {
 
     // Clínicas en las que trabaja
     @ManyToMany(mappedBy = "profesionales")
-    private Set<Clinica> clinicas = new HashSet<>();
+    private Set<clinica> clinicas = new HashSet<>();
 
     // Documentos firmados
     @OneToMany(mappedBy = "profesionalFirmante")
-    private List<DocumentoClinico> documentosFirmados = new ArrayList<>();
+    private List<documento_clinico> documentosFirmados = new ArrayList<>();
 
     public Integer getCi() { return ci; }
     public void setCi(Integer ci) { this.ci = ci; }
@@ -41,11 +41,11 @@ public class ProfesionalSalud {
     public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-    public Set<Clinica> getClinicas() { return clinicas; }
-    public void setClinicas(Set<Clinica> clinicas) { this.clinicas = clinicas; }
-    public List<DocumentoClinico> getDocumentosFirmados() { return documentosFirmados; }
-    public void setDocumentosFirmados(List<DocumentoClinico> documentosFirmados) { this.documentosFirmados = documentosFirmados; }
+    public Set<clinica> getClinicas() { return clinicas; }
+    public void setClinicas(Set<clinica> clinicas) { this.clinicas = clinicas; }
+    public List<documento_clinico> getDocumentosFirmados() { return documentosFirmados; }
+    public void setDocumentosFirmados(List<documento_clinico> documentosFirmados) { this.documentosFirmados = documentosFirmados; }
 
-    @Override public boolean equals(Object o){ return (this==o) || (o instanceof ProfesionalSalud p && Objects.equals(ci,p.ci)); }
+    @Override public boolean equals(Object o){ return (this==o) || (o instanceof profesional_salud p && Objects.equals(ci,p.ci)); }
     @Override public int hashCode(){ return Objects.hash(ci); }
 }

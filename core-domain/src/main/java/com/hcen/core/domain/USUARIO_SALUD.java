@@ -6,7 +6,7 @@ import java.util.*;
 
 @Entity
 @Table(name = "USUARIO_SALUD")
-public class UsuarioSalud {
+public class usuario_salud {
 
     @Id
     @Column(name = "CI")
@@ -30,22 +30,22 @@ public class UsuarioSalud {
 
     // Historia Clínica
     @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private HistoriaClinica historiaClinica;
+    private historia_clinica historiaClinica;
 
     // Notificaciones
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Notificacion> notificaciones = new ArrayList<>();
+    private List<notificacion> notificaciones = new ArrayList<>();
 
     // Clínicas
     @ManyToMany
     @JoinTable(name = "USUARIO_CLINICA",
             joinColumns = @JoinColumn(name = "USUARIO_CI"),
             inverseJoinColumns = @JoinColumn(name = "CLINICA_ID"))
-    private Set<Clinica> clinicas = new HashSet<>();
+    private Set<clinica> clinicas = new HashSet<>();
 
     // Políticas de acceso
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PoliticaAcceso> politicasAcceso = new ArrayList<>();
+    private List<politica_acceso> politicasAcceso = new ArrayList<>();
 
     // GETTERS Y SETTERS
 
@@ -61,19 +61,19 @@ public class UsuarioSalud {
     public void setEmail(String email) { this.email = email; }
     public String getDireccion() { return direccion; }
     public void setDireccion(String direccion) { this.direccion = direccion; }
-    public HistoriaClinica getHistoriaClinica() { return historiaClinica; }
-    public void setHistoriaClinica(HistoriaClinica historiaClinica) {
+    public historia_clinica getHistoriaClinica() { return historiaClinica; }
+    public void setHistoriaClinica(historia_clinica historiaClinica) {
         this.historiaClinica = historiaClinica;
         if (historiaClinica != null) historiaClinica.setUsuario(this);
     }
-    public List<Notificacion> getNotificaciones() { return notificaciones; }
-    public void setNotificaciones(List<Notificacion> notificaciones) { this.notificaciones = notificaciones; }
-    public Set<Clinica> getClinicas() { return clinicas; }
-    public void setClinicas(Set<Clinica> clinicas) { this.clinicas = clinicas; }
-    public List<PoliticaAcceso> getPoliticasAcceso() { return politicasAcceso; }
-    public void setPoliticasAcceso(List<PoliticaAcceso> politicasAcceso) { this.politicasAcceso = politicasAcceso; }
+    public List<notificacion> getNotificaciones() { return notificaciones; }
+    public void setNotificaciones(List<notificacion> notificaciones) { this.notificaciones = notificaciones; }
+    public Set<clinica> getClinicas() { return clinicas; }
+    public void setClinicas(Set<clinica> clinicas) { this.clinicas = clinicas; }
+    public List<politica_acceso> getPoliticasAcceso() { return politicasAcceso; }
+    public void setPoliticasAcceso(List<politica_acceso> politicasAcceso) { this.politicasAcceso = politicasAcceso; }
 
     // equals/hashCode por PK
-    @Override public boolean equals(Object o){ return (this==o) || (o instanceof UsuarioSalud u && Objects.equals(ci,u.ci)); }
+    @Override public boolean equals(Object o){ return (this==o) || (o instanceof usuario_salud u && Objects.equals(ci,u.ci)); }
     @Override public int hashCode(){ return Objects.hash(ci); }
 }

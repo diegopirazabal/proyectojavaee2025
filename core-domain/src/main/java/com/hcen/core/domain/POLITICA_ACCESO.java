@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "POLITICA_ACCESO")
-public class PoliticaAcceso {
+public class politica_acceso {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -32,7 +32,7 @@ public class PoliticaAcceso {
     // Usuario
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "USUARIO_CI", nullable = false)
-    private UsuarioSalud usuario;
+    private usuario_salud usuario;
 
     public UUID getId() { return id; }
     public String getTipoAcceso() { return tipoAcceso; }
@@ -45,9 +45,9 @@ public class PoliticaAcceso {
     public void setFecVencimiento(LocalDateTime fecVencimiento) { this.fecVencimiento = fecVencimiento; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
-    public UsuarioSalud getUsuario() { return usuario; }
-    public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
+    public usuario_salud getUsuario() { return usuario; }
+    public void setUsuario(usuario_salud usuario) { this.usuario = usuario; }
 
-    @Override public boolean equals(Object o){ return (this==o) || (o instanceof PoliticaAcceso p && Objects.equals(id,p.id)); }
+    @Override public boolean equals(Object o){ return (this==o) || (o instanceof politica_acceso p && Objects.equals(id,p.id)); }
     @Override public int hashCode(){ return Objects.hash(id); }
 }

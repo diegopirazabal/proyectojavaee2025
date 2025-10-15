@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "CLINICA")
-public class Clinica {
+public class clinica {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -37,18 +37,18 @@ public class Clinica {
 
     // Usuarios (afiliados/atendidos)
     @ManyToMany(mappedBy = "clinicas")
-    private Set<UsuarioSalud> usuarios = new HashSet<>();
+    private Set<usuario_salud> usuarios = new HashSet<>();
 
     // Profesionales
     @ManyToMany
     @JoinTable(name = "CLINICA_PROFESIONAL",
             joinColumns = @JoinColumn(name = "CLINICA_ID"),
             inverseJoinColumns = @JoinColumn(name = "PROFESIONAL_CI"))
-    private Set<ProfesionalSalud> profesionales = new HashSet<>();
+    private Set<profesional_salud> profesionales = new HashSet<>();
 
     // Administradores
     @ManyToMany(mappedBy = "clinicasGestionadas")
-    private Set<AdministradorHcen> administradores = new HashSet<>();
+    private Set<administrador_hcen> administradores = new HashSet<>();
 
     public UUID getId() { return id; }
     public String getRut() { return rut; }
@@ -65,13 +65,13 @@ public class Clinica {
     public void setEstado(String estado) { this.estado = estado; }
     public UUID getTenantId() { return tenantId; }
     public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
-    public Set<UsuarioSalud> getUsuarios() { return usuarios; }
-    public void setUsuarios(Set<UsuarioSalud> usuarios) { this.usuarios = usuarios; }
-    public Set<ProfesionalSalud> getProfesionales() { return profesionales; }
-    public void setProfesionales(Set<ProfesionalSalud> profesionales) { this.profesionales = profesionales; }
-    public Set<AdministradorHcen> getAdministradores() { return administradores; }
-    public void setAdministradores(Set<AdministradorHcen> administradores) { this.administradores = administradores; }
+    public Set<usuario_salud> getUsuarios() { return usuarios; }
+    public void setUsuarios(Set<usuario_salud> usuarios) { this.usuarios = usuarios; }
+    public Set<profesional_salud> getProfesionales() { return profesionales; }
+    public void setProfesionales(Set<profesional_salud> profesionales) { this.profesionales = profesionales; }
+    public Set<administrador_hcen> getAdministradores() { return administradores; }
+    public void setAdministradores(Set<administrador_hcen> administradores) { this.administradores = administradores; }
 
-    @Override public boolean equals(Object o){ return (this==o) || (o instanceof Clinica c && Objects.equals(id,c.id)); }
+    @Override public boolean equals(Object o){ return (this==o) || (o instanceof clinica c && Objects.equals(id,c.id)); }
     @Override public int hashCode(){ return Objects.hash(id); }
 }

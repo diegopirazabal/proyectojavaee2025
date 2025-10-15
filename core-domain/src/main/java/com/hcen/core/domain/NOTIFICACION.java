@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "NOTIFICACION")
-public class Notificacion {
+public class notificacion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -29,7 +29,7 @@ public class Notificacion {
     // Usuario FK not null
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "USUARIO_CI", nullable = false)
-    private UsuarioSalud usuario;
+    private usuario_salud usuario;
 
     public UUID getId() { return id; }
     public String getTipo() { return tipo; }
@@ -40,9 +40,9 @@ public class Notificacion {
     public void setFecCreacion(LocalDateTime fecCreacion) { this.fecCreacion = fecCreacion; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
-    public UsuarioSalud getUsuario() { return usuario; }
-    public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
+    public usuario_salud getUsuario() { return usuario; }
+    public void setUsuario(usuario_salud usuario) { this.usuario = usuario; }
 
-    @Override public boolean equals(Object o){ return (this==o) || (o instanceof Notificacion n && Objects.equals(id,n.id)); }
+    @Override public boolean equals(Object o){ return (this==o) || (o instanceof notificacion n && Objects.equals(id,n.id)); }
     @Override public int hashCode(){ return Objects.hash(id); }
 }

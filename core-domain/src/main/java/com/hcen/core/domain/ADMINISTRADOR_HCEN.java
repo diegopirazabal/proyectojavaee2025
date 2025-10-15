@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "ADMINISTRADOR_HCEN")
-public class AdministradorHcen {
+public class administrador_hcen {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -28,7 +28,7 @@ public class AdministradorHcen {
     @JoinTable(name = "ADMINISTRADOR_CLINICA",
             joinColumns = @JoinColumn(name = "ADMIN_ID"),
             inverseJoinColumns = @JoinColumn(name = "CLINICA_ID"))
-    private Set<Clinica> clinicasGestionadas = new HashSet<>();
+    private Set<clinica> clinicasGestionadas = new HashSet<>();
 
     public UUID getId() { return id; }
     public String getUsuario() { return usuario; }
@@ -37,9 +37,9 @@ public class AdministradorHcen {
     public void setEmail(String email) { this.email = email; }
     public LocalDateTime getFecCreacion() { return fecCreacion; }
     public void setFecCreacion(LocalDateTime fecCreacion) { this.fecCreacion = fecCreacion; }
-    public Set<Clinica> getClinicasGestionadas() { return clinicasGestionadas; }
-    public void setClinicasGestionadas(Set<Clinica> clinicasGestionadas) { this.clinicasGestionadas = clinicasGestionadas; }
+    public Set<clinica> getClinicasGestionadas() { return clinicasGestionadas; }
+    public void setClinicasGestionadas(Set<clinica> clinicasGestionadas) { this.clinicasGestionadas = clinicasGestionadas; }
 
-    @Override public boolean equals(Object o){ return (this==o) || (o instanceof AdministradorHcen a && Objects.equals(id,a.id)); }
+    @Override public boolean equals(Object o){ return (this==o) || (o instanceof administrador_hcen a && Objects.equals(id,a.id)); }
     @Override public int hashCode(){ return Objects.hash(id); }
 }
