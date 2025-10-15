@@ -1,6 +1,6 @@
 package com.hcen.mockdnic.ws;
 
-import com.hcen.mockdnic.dominio.ciudadano;
+import com.hcen.mockdnic.dominio.Ciudadano;
 import com.hcen.mockdnic.dominio.ciudadano_id;
 import com.hcen.mockdnic.excepciones.ciudadano_no_encontrado_exception;
 import com.hcen.mockdnic.ws.dto.respuesta_ciudadano;
@@ -35,14 +35,14 @@ public class ciudadano_servicio_web {
             solicitud_ciudadano solicitud) throws ciudadano_no_encontrado_exception {
 
         ciudadano_id id = new ciudadano_id(solicitud.getTipoDocumento(), solicitud.getNumeroDocumento());
-        ciudadano ciudadano = entidad.find(ciudadano.class, id);
+        Ciudadano ciudadano = entidad.find(Ciudadano.class, id);
         if (ciudadano == null) {
             throw new ciudadano_no_encontrado_exception(solicitud.getTipoDocumento(), solicitud.getNumeroDocumento());
         }
         return convertir(ciudadano);
     }
 
-    private respuesta_ciudadano convertir(ciudadano ciudadano) {
+    private respuesta_ciudadano convertir(Ciudadano ciudadano) {
         respuesta_ciudadano respuesta = new respuesta_ciudadano();
         respuesta.setTipoDocumento(ciudadano.getTipoDocumento());
         respuesta.setNumeroDocumento(ciudadano.getNumeroDocumento());
