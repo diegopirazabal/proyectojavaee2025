@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.util.Objects;
 
 @Embeddable
-public class CiudadanoId implements Serializable {
+public class ciudadano_id implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -18,10 +18,10 @@ public class CiudadanoId implements Serializable {
     @Column(name = "nro_doc", length = 8, nullable = false)
     private String numeroDocumento;
 
-    public CiudadanoId() {
+    public ciudadano_id() {
     }
 
-    public CiudadanoId(String tipoDocumento, String numeroDocumento) {
+    public ciudadano_id(String tipoDocumento, String numeroDocumento) {
         this.tipoDocumento = tipoDocumento;
         this.numeroDocumento = numeroDocumento;
     }
@@ -50,7 +50,7 @@ public class CiudadanoId implements Serializable {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        CiudadanoId that = (CiudadanoId) o;
+        ciudadano_id that = (ciudadano_id) o;
         return Objects.equals(tipoDocumento, that.tipoDocumento)
                 && Objects.equals(numeroDocumento, that.numeroDocumento);
     }

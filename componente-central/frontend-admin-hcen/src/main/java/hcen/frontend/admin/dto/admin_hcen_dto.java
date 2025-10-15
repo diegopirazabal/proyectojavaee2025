@@ -3,7 +3,7 @@ package hcen.frontend.admin.dto;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-public class AdminHCENDTO implements Serializable {
+public class admin_hcen_dto implements Serializable {
     
     private Long id;
     private String username;
@@ -14,9 +14,9 @@ public class AdminHCENDTO implements Serializable {
     private LocalDateTime createdAt;
     private LocalDateTime lastLogin;
     
-    public AdminHCENDTO() {}
+    public admin_hcen_dto() {}
     
-    public AdminHCENDTO(Long id, String username, String firstName, String lastName, 
+    public admin_hcen_dto(Long id, String username, String firstName, String lastName, 
                        String email, Boolean active, LocalDateTime createdAt, LocalDateTime lastLogin) {
         this.id = id;
         this.username = username;

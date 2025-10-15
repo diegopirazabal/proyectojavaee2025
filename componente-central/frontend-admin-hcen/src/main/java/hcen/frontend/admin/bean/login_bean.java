@@ -1,7 +1,7 @@
 package hcen.frontend.admin.bean;
 
-import hcen.frontend.admin.dto.AdminHCENDTO;
-import hcen.frontend.admin.service.APIService;
+import hcen.frontend.admin.dto.admin_hcen_dto;
+import hcen.frontend.admin.service.api_service;
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
@@ -11,19 +11,19 @@ import java.io.Serializable;
 
 @Named
 @SessionScoped
-public class LoginBean implements Serializable {
+public class login_bean implements Serializable {
     
     private String username;
     private String password;
-    private AdminHCENDTO loggedAdmin;
+    private admin_hcen_dto loggedAdmin;
     private boolean loggedIn = false;
     
     @Inject
-    private APIService apiService;
+    private api_service apiService;
     
     public String login() {
         try {
-            AdminHCENDTO admin = apiService.authenticate(username, password);
+            admin_hcen_dto admin = apiService.authenticate(username, password);
             
             if (admin != null) {
                 this.loggedAdmin = admin;
@@ -91,11 +91,11 @@ public class LoginBean implements Serializable {
         this.password = password;
     }
     
-    public AdminHCENDTO getLoggedAdmin() {
+    public admin_hcen_dto getLoggedAdmin() {
         return loggedAdmin;
     }
     
-    public void setLoggedAdmin(AdminHCENDTO loggedAdmin) {
+    public void setLoggedAdmin(admin_hcen_dto loggedAdmin) {
         this.loggedAdmin = loggedAdmin;
     }
     

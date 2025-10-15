@@ -6,7 +6,7 @@ import java.util.*;
 
 @Entity
 @Table(name = "HISTORIA_CLINICA")
-public class HistoriaClinica {
+public class historia_clinica {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -22,22 +22,22 @@ public class HistoriaClinica {
     // Usuario
     @OneToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "USUARIO_CI", nullable = false, unique = true)
-    private UsuarioSalud usuario;
+    private usuario_salud usuario;
 
     // Documentos clínicos
     @OneToMany(mappedBy = "historiaClinica", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<DocumentoClinico> documentos = new ArrayList<>();
+    private List<documento_clinico> documentos = new ArrayList<>();
 
     public UUID getId() { return id; }
     public LocalDateTime getFecCreacion() { return fecCreacion; }
     public void setFecCreacion(LocalDateTime fecCreacion) { this.fecCreacion = fecCreacion; }
     public LocalDateTime getFecActualizacion() { return fecActualizacion; }
     public void setFecActualizacion(LocalDateTime fecActualizacion) { this.fecActualizacion = fecActualizacion; }
-    public UsuarioSalud getUsuario() { return usuario; }
-    public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
-    public List<DocumentoClinico> getDocumentos() { return documentos; }
-    public void setDocumentos(List<DocumentoClinico> documentos) { this.documentos = documentos; }
+    public usuario_salud getUsuario() { return usuario; }
+    public void setUsuario(usuario_salud usuario) { this.usuario = usuario; }
+    public List<documento_clinico> getDocumentos() { return documentos; }
+    public void setDocumentos(List<documento_clinico> documentos) { this.documentos = documentos; }
 
-    @Override public boolean equals(Object o){ return (this==o) || (o instanceof HistoriaClinica h && Objects.equals(id,h.id)); }
+    @Override public boolean equals(Object o){ return (this==o) || (o instanceof historia_clinica h && Objects.equals(id,h.id)); }
     @Override public int hashCode(){ return Objects.hash(id); }
 }
