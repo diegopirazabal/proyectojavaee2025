@@ -8,10 +8,10 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "ciudadanos")
-public class Ciudadano {
+public class ciudadano {
 
     @EmbeddedId
-    private CiudadanoId id;
+    private ciudadano_id id;
 
     @Column(name = "nombre1", nullable = false, length = 80)
     private String primerNombre;
@@ -37,11 +37,11 @@ public class Ciudadano {
     @Column(name = "nombre_en_cedula", nullable = false, length = 200)
     private String nombreEnCedula;
 
-    public CiudadanoId getId() {
+    public ciudadano_id getId() {
         return id;
     }
 
-    public void setId(CiudadanoId id) {
+    public void setId(ciudadano_id id) {
         this.id = id;
     }
 

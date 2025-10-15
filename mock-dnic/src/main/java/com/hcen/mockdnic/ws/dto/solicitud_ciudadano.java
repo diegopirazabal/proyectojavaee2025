@@ -9,8 +9,8 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlRootElement(name = "SolicitudCiudadano", namespace = "http://hcen.com/soap/ciudadano")
-public class SolicitudCiudadano {
+@XmlRootElement(name = "solicitud_ciudadano", namespace = "http://hcen.com/soap/ciudadano")
+public class solicitud_ciudadano {
 
     @XmlElement(name = "tipoDoc", required = true, namespace = "http://hcen.com/soap/ciudadano")
     @NotBlank

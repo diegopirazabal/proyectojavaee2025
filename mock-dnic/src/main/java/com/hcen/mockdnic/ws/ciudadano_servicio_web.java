@@ -1,10 +1,10 @@
 package com.hcen.mockdnic.ws;
 
-import com.hcen.mockdnic.dominio.Ciudadano;
-import com.hcen.mockdnic.dominio.CiudadanoId;
-import com.hcen.mockdnic.excepciones.CiudadanoNoEncontradoException;
-import com.hcen.mockdnic.ws.dto.RespuestaCiudadano;
-import com.hcen.mockdnic.ws.dto.SolicitudCiudadano;
+import com.hcen.mockdnic.dominio.ciudadano;
+import com.hcen.mockdnic.dominio.ciudadano_id;
+import com.hcen.mockdnic.excepciones.ciudadano_no_encontrado_exception;
+import com.hcen.mockdnic.ws.dto.respuesta_ciudadano;
+import com.hcen.mockdnic.ws.dto.solicitud_ciudadano;
 import jakarta.ejb.Stateless;
 import jakarta.ejb.TransactionAttribute;
 import jakarta.ejb.TransactionAttributeType;
@@ -18,32 +18,32 @@ import jakarta.persistence.PersistenceContext;
 @Stateless
 @WebService(
         serviceName = "ciudadano-service",
-        portName = "CiudadanoPort",
+        portName = "ciudadano_port",
         targetNamespace = "http://hcen.com/soap/ciudadano",
         wsdlLocation = "WEB-INF/wsdl/ciudadano-service.wsdl"
 )
-public class CiudadanoServicioWeb {
+public class ciudadano_servicio_web {
 
     @PersistenceContext(unitName = "mock-dnic-pu")
     private EntityManager entidad;
 
-    @WebMethod(operationName = "obtenerCiudadano")
-    @WebResult(name = "RespuestaCiudadano", targetNamespace = "http://hcen.com/soap/ciudadano")
+    @WebMethod(operationName = "obtener_ciudadano")
+    @WebResult(name = "respuesta_ciudadano", targetNamespace = "http://hcen.com/soap/ciudadano")
     @TransactionAttribute(TransactionAttributeType.SUPPORTS)
-    public RespuestaCiudadano obtenerCiudadano(
-            @WebParam(name = "SolicitudCiudadano", targetNamespace = "http://hcen.com/soap/ciudadano")
-            SolicitudCiudadano solicitud) throws CiudadanoNoEncontradoException {
+    public respuesta_ciudadano obtener_ciudadano(
+            @WebParam(name = "solicitud_ciudadano", targetNamespace = "http://hcen.com/soap/ciudadano")
+            solicitud_ciudadano solicitud) throws ciudadano_no_encontrado_exception {
 
-        CiudadanoId id = new CiudadanoId(solicitud.getTipoDocumento(), solicitud.getNumeroDocumento());
-        Ciudadano ciudadano = entidad.find(Ciudadano.class, id);
+        ciudadano_id id = new ciudadano_id(solicitud.getTipoDocumento(), solicitud.getNumeroDocumento());
+        ciudadano ciudadano = entidad.find(ciudadano.class, id);
         if (ciudadano == null) {
-            throw new CiudadanoNoEncontradoException(solicitud.getTipoDocumento(), solicitud.getNumeroDocumento());
+            throw new ciudadano_no_encontrado_exception(solicitud.getTipoDocumento(), solicitud.getNumeroDocumento());
         }
         return convertir(ciudadano);
     }
 
-    private RespuestaCiudadano convertir(Ciudadano ciudadano) {
-        RespuestaCiudadano respuesta = new RespuestaCiudadano();
+    private respuesta_ciudadano convertir(ciudadano ciudadano) {
+        respuesta_ciudadano respuesta = new respuesta_ciudadano();
         respuesta.setTipoDocumento(ciudadano.getTipoDocumento());
         respuesta.setNumeroDocumento(ciudadano.getNumeroDocumento());
         respuesta.setPrimerNombre(ciudadano.getPrimerNombre());

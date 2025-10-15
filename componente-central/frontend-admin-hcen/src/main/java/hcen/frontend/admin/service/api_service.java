@@ -1,6 +1,6 @@
 package hcen.frontend.admin.service;
 
-import hcen.frontend.admin.dto.AdminHCENDTO;
+import hcen.frontend.admin.dto.admin_hcen_dto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -17,11 +17,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @ApplicationScoped
-public class APIService {
+public class api_service {
     
     private static final String BACKEND_URL = "http://localhost:8080/hcen-central/api";
     
-    public AdminHCENDTO authenticate(String username, String password) {
+    public admin_hcen_dto authenticate(String username, String password) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost request = new HttpPost(BACKEND_URL + "/auth/login");
             
@@ -45,11 +45,11 @@ public class APIService {
         return null;
     }
     
-    private AdminHCENDTO parseAdminFromJson(String jsonString) {
+    private admin_hcen_dto parseAdminFromJson(String jsonString) {
         try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
             JsonObject jsonObject = reader.readObject();
             
-            AdminHCENDTO admin = new AdminHCENDTO();
+            admin_hcen_dto admin = new admin_hcen_dto();
             admin.setId(jsonObject.getJsonNumber("id").longValue());
             admin.setUsername(jsonObject.getString("username"));
             admin.setFirstName(jsonObject.getString("firstName"));

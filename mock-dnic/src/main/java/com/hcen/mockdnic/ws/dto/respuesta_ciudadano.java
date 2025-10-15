@@ -6,8 +6,8 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlRootElement(name = "RespuestaCiudadano", namespace = "http://hcen.com/soap/ciudadano")
-public class RespuestaCiudadano {
+@XmlRootElement(name = "respuesta_ciudadano", namespace = "http://hcen.com/soap/ciudadano")
+public class respuesta_ciudadano {
 
     @XmlElement(name = "tipoDoc", required = true, namespace = "http://hcen.com/soap/ciudadano")
     private String tipoDocumento;

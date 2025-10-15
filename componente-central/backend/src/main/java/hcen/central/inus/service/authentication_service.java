@@ -1,23 +1,23 @@
 package hcen.central.inus.service;
 
-import hcen.central.inus.dao.AdminHCENDAO;
-import hcen.central.inus.entity.AdminHCEN;
+import hcen.central.inus.dao.admin_hcen_dao;
+import hcen.central.inus.entity.admin_hcen;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import org.mindrot.jbcrypt.BCrypt;
 import java.util.Optional;
 
 @Stateless
-public class AuthenticationService {
+public class authentication_service {
     
     @EJB
-    private AdminHCENDAO adminDAO;
+    private admin_hcen_dao adminDAO;
     
-    public AdminHCEN authenticate(String username, String password) {
-        Optional<AdminHCEN> adminOpt = adminDAO.findByUsername(username);
+    public admin_hcen authenticate(String username, String password) {
+        Optional<admin_hcen> adminOpt = adminDAO.findByUsername(username);
         
         if (adminOpt.isPresent()) {
-            AdminHCEN admin = adminOpt.get();
+            admin_hcen admin = adminOpt.get();
             if (admin.getActive() && verifyPassword(password, admin.getPasswordHash())) {
                 adminDAO.updateLastLogin(admin.getId());
                 return admin;
@@ -26,7 +26,7 @@ public class AuthenticationService {
         return null;
     }
     
-    public AdminHCEN createAdmin(String username, String password, String firstName, 
+    public admin_hcen createAdmin(String username, String password, String firstName, 
                                 String lastName, String email) {
         
         if (adminDAO.existsByUsername(username)) {
@@ -38,16 +38,16 @@ public class AuthenticationService {
         }
         
         String hashedPassword = hashPassword(password);
-        AdminHCEN admin = new AdminHCEN(username, hashedPassword, firstName, lastName, email);
+        admin_hcen admin = new admin_hcen(username, hashedPassword, firstName, lastName, email);
         
         return adminDAO.save(admin);
     }
     
     public boolean changePassword(Long adminId, String currentPassword, String newPassword) {
-        Optional<AdminHCEN> adminOpt = adminDAO.findById(adminId);
+        Optional<admin_hcen> adminOpt = adminDAO.findById(adminId);
         
         if (adminOpt.isPresent()) {
-            AdminHCEN admin = adminOpt.get();
+            admin_hcen admin = adminOpt.get();
             if (verifyPassword(currentPassword, admin.getPasswordHash())) {
                 admin.setPasswordHash(hashPassword(newPassword));
                 adminDAO.save(admin);
@@ -58,10 +58,10 @@ public class AuthenticationService {
     }
     
     public void resetPassword(Long adminId, String newPassword) {
-        Optional<AdminHCEN> adminOpt = adminDAO.findById(adminId);
+        Optional<admin_hcen> adminOpt = adminDAO.findById(adminId);
         
         if (adminOpt.isPresent()) {
-            AdminHCEN admin = adminOpt.get();
+            admin_hcen admin = adminOpt.get();
             admin.setPasswordHash(hashPassword(newPassword));
             adminDAO.save(admin);
         }

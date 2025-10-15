@@ -6,7 +6,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "admin_hcen")
-public class AdminHCEN {
+public class admin_hcen {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,9 +41,9 @@ public class AdminHCEN {
         createdAt = LocalDateTime.now();
     }
     
-    public AdminHCEN() {}
+    public admin_hcen() {}
     
-    public AdminHCEN(String username, String passwordHash, String firstName, String lastName, String email) {
+    public admin_hcen(String username, String passwordHash, String firstName, String lastName, String email) {
         this.username = username;
         this.passwordHash = passwordHash;
         this.firstName = firstName;
@@ -132,7 +132,7 @@ public class AdminHCEN {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        AdminHCEN adminHCEN = (AdminHCEN) o;
+        admin_hcen adminHCEN = (admin_hcen) o;
         return Objects.equals(id, adminHCEN.id) && 
                Objects.equals(username, adminHCEN.username);
     }
@@ -144,7 +144,7 @@ public class AdminHCEN {
     
     @Override
     public String toString() {
-        return "AdminHCEN{" +
+        return "admin_hcen{" +
                 "id=" + id +
                 ", username='" + username + '\'' +
                 ", firstName='" + firstName + '\'' +
