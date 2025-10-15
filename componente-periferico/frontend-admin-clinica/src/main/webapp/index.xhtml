@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="jakarta.faces.core">
+
+<h:head>
+    <title>Login - Portal Admin Clínica</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</h:head>
+
+<h:body>
+    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f5f5f5;">
+        <p:panel header="Portal Admin Clínica - HCEN" style="width: 400px;">
+            <h:form id="loginForm">
+                <p:messages id="messages" showDetail="false" closable="true"/>
+
+                <div class="p-fluid">
+                    <div class="p-field" style="margin-bottom: 1rem;">
+                        <p:outputLabel for="username" value="Usuario"/>
+                        <p:inputText id="username"
+                                    value="#{loginBean.username}"
+                                    required="true"
+                                    requiredMessage="El usuario es requerido"/>
+                    </div>
+
+                    <div class="p-field" style="margin-bottom: 1rem;">
+                        <p:outputLabel for="password" value="Contraseña"/>
+                        <p:password id="password"
+                                   value="#{loginBean.password}"
+                                   required="true"
+                                   feedback="false"
+                                   requiredMessage="La contraseña es requerida"/>
+                    </div>
+
+                    <div class="p-field" style="margin-bottom: 1rem;">
+                        <p:outputLabel for="clinicaRut" value="RUT Clínica"/>
+                        <p:inputText id="clinicaRut"
+                                    value="#{loginBean.clinicaRut}"
+                                    required="true"
+                                    requiredMessage="El RUT de la clínica es requerido"
+                                    placeholder="Ej: 211234560018"/>
+                    </div>
+
+                    <p:commandButton value="Iniciar Sesión"
+                                    action="#{loginBean.login}"
+                                    update="messages"
+                                    icon="pi pi-sign-in"
+                                    styleClass="p-button-primary"
+                                    style="width: 100%;"/>
+                </div>
+            </h:form>
+
+            <f:facet name="footer">
+                <div style="text-align: center; font-size: 0.9em; color: #666;">
+                    Sistema de Gestión de Clínicas - HCEN
+                </div>
+            </f:facet>
+        </p:panel>
+    </div>
+</h:body>
+</html>
