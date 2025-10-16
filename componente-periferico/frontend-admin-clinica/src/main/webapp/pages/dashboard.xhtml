@@ -12,7 +12,7 @@
 
 <h:body>
     <f:metadata>
-        <f:event type="preRenderView" listener="#{sessionBean.isLoggedIn() ? '' : '/index.xhtml?faces-redirect=true'}"/>
+        <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
     </f:metadata>
 
     <h:form>

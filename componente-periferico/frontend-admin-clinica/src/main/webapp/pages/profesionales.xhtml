@@ -10,6 +10,10 @@
 </h:head>
 
 <h:body>
+    <f:metadata>
+        <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
+    </f:metadata>
+
     <h:form>
         <p:menubar>
             <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>
@@ -48,12 +52,12 @@
                         <p:commandButton value="Buscar"
                                         icon="pi pi-search"
                                         action="#{profesionalBean.search}"
-                                        update="profesionalesTable,messages"
+                                        update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages"
                                         style="margin-left: 0.5rem;"/>
                         <p:commandButton value="Mostrar Todos"
                                         icon="pi pi-refresh"
                                         action="#{profesionalBean.loadProfesionales}"
-                                        update="profesionalesTable,messages"
+                                        update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages"
                                         style="margin-left: 0.5rem;"/>
                     </p:toolbarGroup>
                 </p:toolbar>
@@ -102,7 +106,7 @@
                                         title="Eliminar"
                                         styleClass="p-button-danger"
                                         action="#{profesionalBean.deleteProfesional(prof)}"
-                                        update="profesionalesTable,messages"
+                                        update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages"
                                         style="margin-left: 0.5rem;">
                             <p:confirm header="Confirmar" message="¿Está seguro de eliminar este profesional?"
                                       icon="pi pi-exclamation-triangle"/>
@@ -148,7 +152,7 @@
                     <p:commandButton value="Guardar"
                                     icon="pi pi-check"
                                     action="#{profesionalBean.saveProfesional}"
-                                    update="profesionalesTable,messages,newProfesionalPanel"
+                                    update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages,:profesionalesForm:newProfesionalPanel"
                                     oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dlgNuevoProfesional').hide();"/>
                     <p:commandButton value="Cancelar"
                                     icon="pi pi-times"
@@ -194,7 +198,7 @@
                     <p:commandButton value="Actualizar"
                                     icon="pi pi-check"
                                     action="#{profesionalBean.updateProfesional}"
-                                    update="profesionalesTable,messages"
+                                    update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages"
                                     oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dlgEditProfesional').hide();"/>
                     <p:commandButton value="Cancelar"
                                     icon="pi pi-times"
