@@ -10,10 +10,10 @@ import jakarta.ejb.Startup;
         name = "java:app/jdbc/mock-dnic",
         className = "org.postgresql.xa.PGXADataSource",
         user = "postgres",
-        password = "mFkefhPbCoGVFElQhfZhwonwwTLuRPaa",
+        password = "VTWnkUIpNDPHYlAlosnmynNncAmzVaDR",
         properties = {
-                "serverName=centerbeam.proxy.rlwy.net",
-                "portNumber=22214",
+                "serverName=mainline.proxy.rlwy.net",
+                "portNumber=11249",
                 "databaseName=railway",
                 "sslMode=require"
         }
