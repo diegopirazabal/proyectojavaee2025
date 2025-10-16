@@ -7,7 +7,7 @@ import jakarta.ejb.Startup;
 @Singleton
 @Startup
 @DataSourceDefinition(
-        name = "java:app/jdbc/mock-dnic",
+        name = "java:app/jdbc/MockDnicDS",
         className = "org.postgresql.xa.PGXADataSource",
         user = "postgres",
         password = "VTWnkUIpNDPHYlAlosnmynNncAmzVaDR",
