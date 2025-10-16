@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="jakarta.faces.core">
+
+<h:head>
+    <title>Gestión de Profesionales - Portal Admin Clínica</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</h:head>
+
+<h:body>
+    <h:form>
+        <p:menubar>
+            <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>
+            <p:menuitem value="Profesionales" icon="pi pi-users" outcome="/pages/profesionales.xhtml"/>
+            <p:menuitem value="Configuración" icon="pi pi-cog" outcome="/pages/configuracion.xhtml"/>
+
+            <f:facet name="options">
+                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem;"/>
+                <p:commandButton value="Cerrar Sesión"
+                                icon="pi pi-sign-out"
+                                action="#{sessionBean.logout}"
+                                styleClass="p-button-danger"/>
+            </f:facet>
+        </p:menubar>
+    </h:form>
+
+    <div style="padding: 2rem;">
+        <h:form id="profesionalesForm">
+            <p:messages id="messages" showDetail="false" closable="true"/>
+
+            <p:panel header="Gestión de Profesionales de Salud">
+                <p:toolbar style="margin-bottom: 1rem;">
+                    <p:toolbarGroup>
+                        <p:commandButton value="Nuevo Profesional"
+                                        icon="pi pi-plus"
+                                        onclick="PF('dlgNuevoProfesional').show();"
+                                        styleClass="p-button-success"
+                                        update=":profesionalesForm:newProfesionalPanel"
+                                        action="#{profesionalBean.prepareNew}"/>
+                    </p:toolbarGroup>
+
+                    <p:toolbarGroup align="right">
+                        <p:inputText id="searchInput"
+                                    value="#{profesionalBean.searchTerm}"
+                                    placeholder="Buscar por nombre..."/>
+                        <p:commandButton value="Buscar"
+                                        icon="pi pi-search"
+                                        action="#{profesionalBean.search}"
+                                        update="profesionalesTable,messages"
+                                        style="margin-left: 0.5rem;"/>
+                        <p:commandButton value="Mostrar Todos"
+                                        icon="pi pi-refresh"
+                                        action="#{profesionalBean.loadProfesionales}"
+                                        update="profesionalesTable,messages"
+                                        style="margin-left: 0.5rem;"/>
+                    </p:toolbarGroup>
+                </p:toolbar>
+
+                <p:dataTable id="profesionalesTable"
+                            value="#{profesionalBean.profesionales}"
+                            var="prof"
+                            paginator="true"
+                            rows="10"
+                            emptyMessage="No hay profesionales registrados"
+                            selection="#{profesionalBean.selectedProfesional}"
+                            selectionMode="single"
+                            rowKey="#{prof.ci}">
+
+                    <p:column headerText="Cédula" sortBy="#{prof.ci}">
+                        <h:outputText value="#{prof.ci}"/>
+                    </p:column>
+
+                    <p:column headerText="Nombre" sortBy="#{prof.nombre}">
+                        <h:outputText value="#{prof.nombre}"/>
+                    </p:column>
+
+                    <p:column headerText="Apellidos" sortBy="#{prof.apellidos}">
+                        <h:outputText value="#{prof.apellidos}"/>
+                    </p:column>
+
+                    <p:column headerText="Especialidad" sortBy="#{prof.especialidad}">
+                        <h:outputText value="#{prof.especialidad}"/>
+                    </p:column>
+
+                    <p:column headerText="Email">
+                        <h:outputText value="#{prof.email}"/>
+                    </p:column>
+
+                    <p:column headerText="Acciones" style="width: 150px; text-align: center;">
+                        <p:commandButton icon="pi pi-pencil"
+                                        title="Editar"
+                                        styleClass="p-button-warning"
+                                        update=":profesionalesForm:editProfesionalPanel"
+                                        oncomplete="PF('dlgEditProfesional').show();">
+                            <f:setPropertyActionListener value="#{prof}"
+                                                        target="#{profesionalBean.selectedProfesional}"/>
+                        </p:commandButton>
+
+                        <p:commandButton icon="pi pi-trash"
+                                        title="Eliminar"
+                                        styleClass="p-button-danger"
+                                        action="#{profesionalBean.deleteProfesional(prof)}"
+                                        update="profesionalesTable,messages"
+                                        style="margin-left: 0.5rem;">
+                            <p:confirm header="Confirmar" message="¿Está seguro de eliminar este profesional?"
+                                      icon="pi pi-exclamation-triangle"/>
+                        </p:commandButton>
+                    </p:column>
+                </p:dataTable>
+            </p:panel>
+
+            <!-- Diálogo Nuevo Profesional -->
+            <p:dialog id="dlgNuevoProfesional"
+                     header="Nuevo Profesional"
+                     widgetVar="dlgNuevoProfesional"
+                     modal="true"
+                     width="500">
+                <h:panelGrid id="newProfesionalPanel" columns="2" styleClass="p-fluid">
+                    <p:outputLabel for="newCi" value="Cédula*"/>
+                    <p:inputNumber id="newCi"
+                                  value="#{profesionalBean.newProfesional.ci}"
+                                  decimalPlaces="0"
+                                  required="true"/>
+
+                    <p:outputLabel for="newNombre" value="Nombre*"/>
+                    <p:inputText id="newNombre"
+                                value="#{profesionalBean.newProfesional.nombre}"
+                                required="true"/>
+
+                    <p:outputLabel for="newApellidos" value="Apellidos*"/>
+                    <p:inputText id="newApellidos"
+                                value="#{profesionalBean.newProfesional.apellidos}"
+                                required="true"/>
+
+                    <p:outputLabel for="newEspecialidad" value="Especialidad"/>
+                    <p:inputText id="newEspecialidad"
+                                value="#{profesionalBean.newProfesional.especialidad}"/>
+
+                    <p:outputLabel for="newEmail" value="Email"/>
+                    <p:inputText id="newEmail"
+                                value="#{profesionalBean.newProfesional.email}"
+                                type="email"/>
+                </h:panelGrid>
+
+                <f:facet name="footer">
+                    <p:commandButton value="Guardar"
+                                    icon="pi pi-check"
+                                    action="#{profesionalBean.saveProfesional}"
+                                    update="profesionalesTable,messages,newProfesionalPanel"
+                                    oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dlgNuevoProfesional').hide();"/>
+                    <p:commandButton value="Cancelar"
+                                    icon="pi pi-times"
+                                    onclick="PF('dlgNuevoProfesional').hide();"
+                                    styleClass="p-button-secondary"/>
+                </f:facet>
+            </p:dialog>
+
+            <!-- Diálogo Editar Profesional -->
+            <p:dialog id="dlgEditProfesional"
+                     header="Editar Profesional"
+                     widgetVar="dlgEditProfesional"
+                     modal="true"
+                     width="500">
+                <h:panelGrid id="editProfesionalPanel" columns="2" styleClass="p-fluid">
+                    <p:outputLabel for="editCi" value="Cédula"/>
+                    <p:inputNumber id="editCi"
+                                  value="#{profesionalBean.selectedProfesional.ci}"
+                                  disabled="true"
+                                  decimalPlaces="0"/>
+
+                    <p:outputLabel for="editNombre" value="Nombre*"/>
+                    <p:inputText id="editNombre"
+                                value="#{profesionalBean.selectedProfesional.nombre}"
+                                required="true"/>
+
+                    <p:outputLabel for="editApellidos" value="Apellidos*"/>
+                    <p:inputText id="editApellidos"
+                                value="#{profesionalBean.selectedProfesional.apellidos}"
+                                required="true"/>
+
+                    <p:outputLabel for="editEspecialidad" value="Especialidad"/>
+                    <p:inputText id="editEspecialidad"
+                                value="#{profesionalBean.selectedProfesional.especialidad}"/>
+
+                    <p:outputLabel for="editEmail" value="Email"/>
+                    <p:inputText id="editEmail"
+                                value="#{profesionalBean.selectedProfesional.email}"
+                                type="email"/>
+                </h:panelGrid>
+
+                <f:facet name="footer">
+                    <p:commandButton value="Actualizar"
+                                    icon="pi pi-check"
+                                    action="#{profesionalBean.updateProfesional}"
+                                    update="profesionalesTable,messages"
+                                    oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dlgEditProfesional').hide();"/>
+                    <p:commandButton value="Cancelar"
+                                    icon="pi pi-times"
+                                    onclick="PF('dlgEditProfesional').hide();"
+                                    styleClass="p-button-secondary"/>
+                </f:facet>
+            </p:dialog>
+
+            <p:confirmDialog global="true" showEffect="fade" hideEffect="fade">
+                <p:commandButton value="Sí" type="button" styleClass="p-confirm-dialog-yes" icon="pi pi-check"/>
+                <p:commandButton value="No" type="button" styleClass="p-confirm-dialog-no p-button-secondary" icon="pi pi-times"/>
+            </p:confirmDialog>
+        </h:form>
+    </div>
+</h:body>
+</html>
