@@ -82,6 +82,13 @@
             <version>42.6.0</version>
         </dependency>
 
+        <!-- Firebase Admin SDK -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.2.0</version>
+        </dependency>
+
         <!-- Dominio compartido -->
         <dependency>
             <groupId>com.hcen</groupId>
