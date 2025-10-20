@@ -19,11 +19,14 @@ import java.time.format.DateTimeFormatter;
 @ApplicationScoped
 public class api_service {
     
-    private static final String BACKEND_URL = "http://localhost:8080/hcen-central/api";
+    private static final String ENV_VAR_NAME = "HCEN_API_BASE_URL";
+    private static final String SYS_PROP_NAME = "hcen.apiBaseUrl";
+    private static final String DEFAULT_BACKEND_URL = "https://hcen-uy.web.elasticloud.uy/api";
+    private final String backendUrl = resolveBackendUrl();
     
     public admin_hcen_dto authenticate(String username, String password) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost request = new HttpPost(BACKEND_URL + "/auth/login");
+            HttpPost request = new HttpPost(backendUrl + "/auth/login");
             
             JsonObject loginData = Json.createObjectBuilder()
                 .add("username", username)
@@ -47,7 +50,7 @@ public class api_service {
 
     public boolean triggerBroadcastNotification() {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost request = new HttpPost(BACKEND_URL + "/notifications/broadcast-test");
+            HttpPost request = new HttpPost(backendUrl + "/notifications/broadcast-test");
 
             StringEntity entity = new StringEntity("{}", ContentType.APPLICATION_JSON);
             request.setEntity(entity);
@@ -92,12 +95,32 @@ public class api_service {
     
     public boolean isBackendAvailable() {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost request = new HttpPost(BACKEND_URL + "/health");
+            HttpPost request = new HttpPost(backendUrl + "/health");
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() == 200;
             }
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private String resolveBackendUrl() {
+        String envValue = System.getenv(ENV_VAR_NAME);
+        if (envValue != null && !envValue.isBlank()) {
+            return sanitizeBaseUrl(envValue);
+        }
+        String sysPropValue = System.getProperty(SYS_PROP_NAME);
+        if (sysPropValue != null && !sysPropValue.isBlank()) {
+            return sanitizeBaseUrl(sysPropValue);
+        }
+        return sanitizeBaseUrl(DEFAULT_BACKEND_URL);
+    }
+
+    private String sanitizeBaseUrl(String url) {
+        String trimmed = url.trim();
+        if (trimmed.endsWith("/")) {
+            return trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 }
