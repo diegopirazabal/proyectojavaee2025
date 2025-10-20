@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jakarta.ee/jsf/html"
+      xmlns:p="http://primefaces.org/ui">
+<h:head><title>HCEN - Historia Clínica</title></h:head>
+<h:body>
+    <h:form>
+        <p:panel header="Buscar Paciente">
+            <p:inputText value="#{historiaBean.documentoPaciente}" placeholder="Documento" styleClass="mr-2"/>
+            <p:commandButton value="Buscar" action="#{historiaBean.buscarHistoria}" update="historiaTable mensajes"/>
+            <p:messages id="mensajes"/>
+        </p:panel>
+
+        <p:dataTable id="historiaTable" value="#{historiaBean.documentos}" var="doc" style="margin-top:1rem">
+            <p:column headerText="Fecha">
+                <h:outputText value="#{doc.fecha}"/>
+            </p:column>
+            <p:column headerText="Tipo">
+                <h:outputText value="#{doc.tipo}"/>
+            </p:column>
+            <p:column headerText="Origen">
+                <h:outputText value="#{doc.origen}"/> <!-- local / otra clínica -->
+            </p:column>
+            <p:column headerText="Acciones">
+                <p:commandButton value="Ver" action="#{historiaBean.verDocumento(doc)}" ajax="false"/>
+                <p:commandButton value="Solicitar Acceso" action="#{historiaBean.solicitarAcceso(doc)}" update="mensajes"
+                                 rendered="#{!doc.disponible}"/>
+            </p:column>
+        </p:dataTable>
+    </h:form>
+</h:body>
+</html>

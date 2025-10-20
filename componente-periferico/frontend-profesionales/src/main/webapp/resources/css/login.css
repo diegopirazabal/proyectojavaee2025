@@ -1,0 +1,64 @@
+package hcen.frontend.profesionales.service;
+
+import hcen.frontend.profesionales.dto.DocumentoDTO;
+import hcen.frontend.profesionales.dto.SolicitudDTO;
+import jakarta.enterprise.context.ApplicationScoped;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@ApplicationScoped
+public class APIService {
+
+// TODO: parametrizar URLs con MicroProfile Config o env
+private final String BASE_PERIFERICO = "http://localhost:8080/hcen-periferico/api";
+    private final String BASE_CENTRAL    = "http://localhost:8080/hcen-central/api";
+
+    public boolean loginProfesional(String user, String pass) {
+// TODO: POST /auth/login (periférico)
+// Por ahora stub:
+return user != null && !user.isBlank() && pass != null && !pass.isBlank();
+}
+
+    public PerfilProfesional obtenerPerfilProfesional(String username) {
+// TODO: GET /profesionales/{username}
+    return new PerfilProfesional("Profesional "+username, "Medicina General");
+}
+
+    public List<DocumentoDTO> listarDocumentosPaciente(String documento) {
+// TODO: GET periférico: /documentos?paciente=  + resolución remota vía central
+// Stub con mezcla local/externo:
+var list = new ArrayList<DocumentoDTO>();
+    DocumentoDTO a = new DocumentoDTO();
+    a.setId("loc-1"); a.setTipo("Epicrisis"); a.setOrigen("LOCAL");
+    a.setDisponible(true);
+    DocumentoDTO b = new DocumentoDTO();
+    b.setId("ext-99"); b.setTipo("RX Tórax"); b.setOrigen("Clinica XYZ");
+    b.setDisponible(false);
+    list.add(a); list.add(b);
+    return list;
+}
+
+    public void descargarDocumento(String id) {
+// TODO: GET /documentos/{id}/contenido (si es externo, via central con token de acceso)
+}
+
+    public void solicitarAcceso(String docId) {
+// TODO: POST /accesos/solicitudes
+}
+
+    public void altaDocumento(String documentoPaciente, String tipo, byte[] contenido) {
+// TODO: POST /documentos (periférico) + notificar central para RNDC (metadatos)
+}
+
+    public List<SolicitudDTO> listarSolicitudes() {
+// TODO: GET /accesos/solicitudes
+return List.of();
+}
+
+    public void reintentarSolicitud(String id) {
+// TODO: POST /accesos/solicitudes/{id}/reintentar
+}
+
+    public record PerfilProfesional(String nombre, String especialidad) {}
+}

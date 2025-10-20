@@ -1,0 +1,9 @@
+hcen\frontend\profesionales\bean\ProfesionalBean.class
+hcen\frontend\profesionales\bean\SolicitudBean.class
+hcen\frontend\profesionales\bean\DocumentoBean.class
+hcen\frontend\profesionales\bean\HistoriaBean.class
+hcen\frontend\profesionales\service\APIService$PerfilProfesional.class
+hcen\frontend\profesionales\service\APIService.class
+hcen\frontend\profesionales\dto\DocumentoDTO.class
+hcen\frontend\profesionales\bean\LoginBean.class
+hcen\frontend\profesionales\dto\SolicitudDTO.class

@@ -1,0 +1,8 @@
+com\hcen\core\domain\HistoriaClinica.class
+com\hcen\core\domain\AdministradorHcen.class
+com\hcen\core\domain\DocumentoClinico.class
+com\hcen\core\domain\PoliticaAcceso.class
+com\hcen\core\domain\Notificacion.class
+com\hcen\core\domain\Clinica.class
+com\hcen\core\domain\UsuarioSalud.class
+com\hcen\core\domain\ProfesionalSalud.class

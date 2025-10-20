@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0" metadata-complete="true">
+
+    <display-name>HCEN Profesionales</display-name>
+
+    <!-- ===== JSF / PrimeFaces config ===== -->
+    <context-param>
+        <!-- Uploader nativo (Jakarta Servlet 6) -->
+        <param-name>primefaces.UPLOADER</param-name>
+        <param-value>native</param-value>
+    </context-param>
+
+    <!-- Nota: Se removió UploadedFileCleanerListener para evitar conflicto javax/jakarta.
+         En Jakarta EE 10 no es necesario si el contenedor limpia el tmp.
+         Alternativa: configurar limpieza a nivel de servidor. -->
+
+    <!-- ===== Faces Servlet ===== -->
+    <servlet>
+        <servlet-name>Faces Servlet</servlet-name>
+        <servlet-class>jakarta.faces.webapp.FacesServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+
+        <!-- Configuración de subida multipart del contenedor -->
+        <multipart-config>
+            <!-- Directorio temporal; ajusta si lo deseas -->
+            <location>${jboss.server.temp.dir}</location>
+            <!-- 10 MB por archivo -->
+            <max-file-size>10485760</max-file-size>
+            <!-- 20 MB por request -->
+            <max-request-size>20971520</max-request-size>
+            <file-size-threshold>0</file-size-threshold>
+        </multipart-config>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>Faces Servlet</servlet-name>
+        <url-pattern>*.xhtml</url-pattern>
+    </servlet-mapping>
+
+    <!-- ===== Seguridad: páginas bajo /profesional/* requieren rol "profesional" ===== -->
+    <security-constraint>
+        <web-resource-collection>
+            <web-resource-name>Profesional Pages</web-resource-name>
+            <url-pattern>/profesional/*</url-pattern>
+        </web-resource-collection>
+        <auth-constraint>
+            <role-name>profesional</role-name>
+        </auth-constraint>
+    </security-constraint>
+
+    <login-config>
+        <!-- Si cambias a FORM, deberás definir form-login-page / form-error-page -->
+        <auth-method>BASIC</auth-method>
+    </login-config>
+
+    <security-role>
+        <role-name>profesional</role-name>
+    </security-role>
+
+    <!-- (Opcional) Página inicial -->
+    <welcome-file-list>
+        <welcome-file>index.xhtml</welcome-file>
+    </welcome-file-list>
+
+    <!-- Desactivar todos los web-fragments de librerías (evita registrar listeners javax.*) -->
+    <absolute-ordering/>
+
+</web-app>

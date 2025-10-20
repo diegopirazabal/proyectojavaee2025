@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jakarta.ee/jsf/html"
+      xmlns:ui="http://xmlns.jakarta.ee/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui">
+<h:head>
+    <title>HCEN - Dashboard Profesional</title>
+    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/dashboard.css"/>
+</h:head>
+<h:body>
+    <h:form>
+        <h2>Bienvenido, #{profesionalBean.nombre} (#{profesionalBean.especialidad})</h2>
+        <p:menubar>
+            <p:menuitem value="Historia Clínica" outcome="/profesional/historia.xhtml"/>
+            <p:menuitem value="Alta Documento" outcome="/profesional/alta-documento.xhtml"/>
+            <p:menuitem value="Solicitudes de Acceso" outcome="/profesional/solicitudes.xhtml"/>
+            <p:menuitem value="Salir" action="#{loginBean.logout}"/>
+        </p:menubar>
+    </h:form>
+    <p:panel header="Accesos rápidos" style="margin-top:1rem">
+        <p>Buscá un paciente por documento para consultar su historia clínica.</p>
+    </p:panel>
+</h:body>
+</html>

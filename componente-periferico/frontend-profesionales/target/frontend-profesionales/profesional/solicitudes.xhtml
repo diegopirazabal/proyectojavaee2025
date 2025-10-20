@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jakarta.ee/jsf/html"
+      xmlns:p="http://primefaces.org/ui">
+<h:head><title>HCEN - Solicitudes de Acceso</title></h:head>
+<h:body>
+    <h:form id="solicitudesForm">
+        <p:dataTable value="#{solicitudBean.solicitudes}" var="s">
+            <p:column headerText="Paciente"><h:outputText value="#{s.documentoPaciente}"/></p:column>
+            <p:column headerText="Documento"><h:outputText value="#{s.docId}"/></p:column>
+            <p:column headerText="Estado"><h:outputText value="#{s.estado}"/></p:column>
+            <p:column headerText="Acciones">
+                <p:commandButton value="Reintentar" action="#{solicitudBean.reintentar(s)}" update="solicitudesForm"
+                                 rendered="#{s.estado eq 'RECHAZADA'}"/>
+            </p:column>
+        </p:dataTable>
+    </h:form>
+</h:body>
+</html>
