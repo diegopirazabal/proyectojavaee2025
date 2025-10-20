@@ -8,7 +8,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "ciudadanos")
-public class ciudadano {
+public class Ciudadano {
 
     @EmbeddedId
     private ciudadano_id id;

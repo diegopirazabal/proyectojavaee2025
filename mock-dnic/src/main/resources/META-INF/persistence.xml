@@ -6,9 +6,9 @@
 
     <persistence-unit name="mock-dnic-pu" transaction-type="JTA">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <jta-data-source>java:app/jdbc/MockDnicDS</jta-data-source>
 
-        <class>com.hcen.mockdnic.dominio.ciudadano</class>
+        <class>com.hcen.mockdnic.dominio.Ciudadano</class>
 
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>

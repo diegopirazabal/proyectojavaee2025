@@ -26,7 +26,7 @@
             <div class="input-group">
                 <p:outputLabel for="username" value="Usuario:"/>
                 <p:inputText id="username" 
-                            value="#{loginBean.username}" 
+                            value="#{login_bean.username}" 
                             required="true" 
                             requiredMessage="El usuario es requerido"
                             placeholder="Ingrese su usuario"
@@ -36,7 +36,7 @@
             <div class="input-group">
                 <p:outputLabel for="password" value="Contraseña:"/>
                 <p:password id="password" 
-                           value="#{loginBean.password}" 
+                           value="#{login_bean.password}" 
                            required="true" 
                            requiredMessage="La contraseña es requerida"
                            placeholder="Ingrese su contraseña"
@@ -46,7 +46,7 @@
             
             <div class="button-group">
                 <p:commandButton value="Iniciar Sesión" 
-                                action="#{loginBean.login}"
+                                action="#{login_bean.login}"
                                 styleClass="login-button"
                                 update="messages"
                                 icon="pi pi-sign-in"/>
