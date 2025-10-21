@@ -8,6 +8,7 @@ import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import java.io.Serializable;
+import java.time.format.DateTimeFormatter;
 
 @Named
 @SessionScoped
@@ -105,5 +106,16 @@ public class login_bean implements Serializable {
     
     public void setLoggedIn(boolean loggedIn) {
         this.loggedIn = loggedIn;
+    }
+
+    public String getLastLoginDisplay() {
+        if (loggedAdmin == null) {
+            return "";
+        }
+        if (loggedAdmin.getLastLogin() == null) {
+            return "Primer acceso";
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        return loggedAdmin.getLastLogin().format(formatter);
     }
 }
