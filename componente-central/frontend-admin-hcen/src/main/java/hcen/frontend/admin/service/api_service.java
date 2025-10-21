@@ -11,6 +11,7 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import java.io.IOException;
 import java.io.StringReader;
 import java.time.LocalDateTime;
@@ -27,7 +28,7 @@ public class api_service {
     private final String backendUrl = resolveBackendUrl();
     
     public admin_hcen_dto authenticate(String username, String password) {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(backendUrl + "/auth/login");
             
             JsonObject loginData = Json.createObjectBuilder()
@@ -51,7 +52,7 @@ public class api_service {
     }
 
     public boolean triggerBroadcastNotification() {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(backendUrl + "/notifications/broadcast-test");
 
             StringEntity entity = new StringEntity("{}", ContentType.APPLICATION_JSON);
@@ -96,7 +97,7 @@ public class api_service {
     }
     
     public boolean isBackendAvailable() {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(backendUrl + "/health");
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() == 200;
@@ -104,6 +105,13 @@ public class api_service {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private CloseableHttpClient createHttpClient() {
+        // Hostname verification disabled until backend certificate matches deployed hostname
+        return HttpClients.custom()
+                .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                .build();
     }
 
     private String resolveBackendUrl() {
