@@ -6,7 +6,9 @@ package com.example.hcenmobile.util;
 public class Constants {
 
     // API Configuration
-    public static final String BASE_URL = "https://hcen-uy.web.elasticloud.uy/api/";
+    // NOTA: Para emulador Android usar 10.0.2.2 (localhost de la máquina host)
+    // Para dispositivo físico usar la IP local de tu máquina (ej: 192.168.1.X)
+    public static final String BASE_URL = "http://10.0.2.2:8080/hcen-central/api/";
     public static final int CONNECT_TIMEOUT = 30; // seconds
     public static final int READ_TIMEOUT = 30; // seconds
     public static final int WRITE_TIMEOUT = 30; // seconds

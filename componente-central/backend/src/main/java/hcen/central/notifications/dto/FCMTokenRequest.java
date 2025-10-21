@@ -1,34 +1,26 @@
-package com.example.hcenmobile.data.remote.dto;
+package hcen.central.notifications.dto;
 
-import com.google.gson.annotations.SerializedName;
+import java.io.Serializable;
 
 /**
- * DTO para registrar el token FCM en el backend
- * Debe coincidir con FCMTokenRequest del backend
+ * DTO para solicitud de registro de token FCM
+ * Corresponde al schema FCMTokenRequest del OpenAPI
  */
-public class FCMTokenDTO {
+public class FCMTokenRequest implements Serializable {
 
-    @SerializedName("token")
     private String token;
-
-    @SerializedName("deviceId")
     private String deviceId;
-
-    @SerializedName("deviceModel")
     private String deviceModel;
-
-    @SerializedName("osVersion")
     private String osVersion;
 
-    public FCMTokenDTO() {
-    }
+    public FCMTokenRequest() {}
 
-    public FCMTokenDTO(String token, String deviceId, String deviceModel, String osVersion) {
+    public FCMTokenRequest(String token, String deviceId) {
         this.token = token;
         this.deviceId = deviceId;
-        this.deviceModel = deviceModel;
-        this.osVersion = osVersion;
     }
+
+    // Getters y Setters
 
     public String getToken() {
         return token;
@@ -60,5 +52,14 @@ public class FCMTokenDTO {
 
     public void setOsVersion(String osVersion) {
         this.osVersion = osVersion;
+    }
+
+    @Override
+    public String toString() {
+        return "FCMTokenRequest{" +
+                "deviceId='" + deviceId + '\'' +
+                ", deviceModel='" + deviceModel + '\'' +
+                ", osVersion='" + osVersion + '\'' +
+                '}';
     }
 }

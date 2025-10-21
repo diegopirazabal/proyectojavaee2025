@@ -13,10 +13,11 @@
 </h:head>
 
 <h:body>
-    
-    <f:metadata>
-        <f:event type="preRenderView" listener="#{login_bean.checkAuthentication}"/>
-    </f:metadata>
+    <f:view>
+        <f:metadata>
+            <f:event type="preRenderView" listener="#{login_bean.checkAuthentication}"/>
+        </f:metadata>
+    </f:view>
 
     <div class="dashboard-container">
         <!-- Header -->
@@ -26,12 +27,12 @@
                     <h1>HCEN</h1>
                     <span>Portal Administrativo</span>
                 </div>
-                
+
                 <div class="user-section">
                     <p:outputPanel rendered="#{login_bean.loggedIn}">
                         <span class="welcome-text">Bienvenido, #{login_bean.loggedAdmin.fullName}</span>
                         <h:form style="display: inline;">
-                            <p:commandButton value="Cerrar Sesión" 
+                            <p:commandButton value="Cerrar Sesión"
                                            action="#{login_bean.logout}"
                                            styleClass="logout-button"
                                            icon="pi pi-sign-out"/>
@@ -44,13 +45,13 @@
         <!-- Main Content -->
         <main class="dashboard-main">
             <div class="dashboard-content">
-                
+
                 <h:form id="dashboardForm">
                     <p:messages id="messages" showDetail="true" closable="true"/>
-                    
+
                     <!-- Dashboard Cards -->
                     <div class="dashboard-grid">
-                        
+
                         <!-- Admin Info Card -->
                         <div class="dashboard-card">
                             <div class="card-header">
@@ -60,15 +61,15 @@
                                 <p><strong>Usuario:</strong> #{login_bean.loggedAdmin.username}</p>
                                 <p><strong>Nombre:</strong> #{login_bean.loggedAdmin.fullName}</p>
                                 <p><strong>Email:</strong> #{login_bean.loggedAdmin.email}</p>
-                                <p><strong>Estado:</strong> 
+                                <p><strong>Estado:</strong>
                                     <span class="status-active">#{login_bean.loggedAdmin.active ? 'Activo' : 'Inactivo'}</span>
                                 </p>
-                                <p><strong>Último acceso:</strong> 
+                                <p><strong>Último acceso:</strong>
                                     <h:outputText value="#{login_bean.lastLoginDisplay}"/>
                                 </p>
                             </div>
                         </div>
-                        
+
                         <!-- System Status Card -->
                         <div class="dashboard-card">
                             <div class="card-header">
@@ -81,7 +82,7 @@
                                 <p><strong>Servicios Web:</strong> <span class="status-active">Disponibles</span></p>
                             </div>
                         </div>
-                        
+
                         <!-- Quick Actions Card -->
                         <div class="dashboard-card">
                             <div class="card-header">
@@ -92,22 +93,23 @@
                                                styleClass="action-button"
                                                icon="pi pi-bell"
                                                action="#{notification_bean.sendTestNotification}"
-                                               update="messages"/>
+                                               update="messages"
+                                               process="@this"/>
                                 <br/><br/>
-                                <p:commandButton value="Gestionar Clínicas" 
+                                <p:commandButton value="Gestionar Clínicas"
                                                styleClass="action-button"
                                                icon="pi pi-building"/>
                                 <br/><br/>
-                                <p:commandButton value="Ver Reportes" 
+                                <p:commandButton value="Ver Reportes"
                                                styleClass="action-button"
                                                icon="pi pi-chart-bar"/>
                                 <br/><br/>
-                                <p:commandButton value="Configuración" 
+                                <p:commandButton value="Configuración"
                                                styleClass="action-button"
                                                icon="pi pi-cog"/>
                             </div>
                         </div>
-                        
+
                         <!-- Statistics Card -->
                         <div class="dashboard-card">
                             <div class="card-header">
@@ -130,6 +132,7 @@
                                                      icon="pi pi-refresh"
                                                      action="#{dashboard_bean.cargarUsuariosSalud}"
                                                      update="usuariosTable messages"
+                                                     process="@this"
                                                      styleClass="action-button"/>
                                 </div>
                             </div>
@@ -176,6 +179,7 @@
                                                      icon="pi pi-refresh"
                                                      action="#{dashboard_bean.cargarPrestadores}"
                                                      update="prestadoresTable messages"
+                                                     process="@this"
                                                      styleClass="action-button"/>
                                     <p:commandButton type="button"
                                                      value="Agregar Prestador"
@@ -210,7 +214,7 @@
                                 </p:dataTable>
                             </div>
                         </div>
-                        
+
                     </div>
 
                     <!-- Dialogo Alta Prestador -->
@@ -251,15 +255,15 @@
                         </f:facet>
                     </p:dialog>
                 </h:form>
-                
+
             </div>
         </main>
-        
+
         <!-- Footer -->
         <footer class="dashboard-footer">
             <p>© 2025 HCEN - Historia Clínica Electrónica Nacional - Universidad de la República</p>
         </footer>
-        
+
     </div>
 
 </h:body>
