@@ -20,20 +20,27 @@ public class ProfesionalResource {
     private ProfesionalService profesionalService;
 
     @GET
-    public Response getAllProfesionales(@QueryParam("search") String searchTerm) {
+    public Response getAllProfesionales(
+            @QueryParam("search") String searchTerm,
+            @QueryParam("page") @DefaultValue("0") int page) {
         try {
             List<profesional_salud> profesionales;
+            long totalCount;
+
             if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-                profesionales = profesionalService.searchProfesionales(searchTerm);
+                profesionales = profesionalService.searchProfesionalesPaginated(searchTerm, page);
+                totalCount = profesionalService.countProfesionalesBySearch(searchTerm);
             } else {
-                profesionales = profesionalService.getAllProfesionales();
+                profesionales = profesionalService.getProfesionalesPaginated(page);
+                totalCount = profesionalService.countProfesionales();
             }
 
             List<profesional_salud_dto> dtos = profesionales.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
 
-            return Response.ok(dtos).build();
+            PaginatedResponse response = new PaginatedResponse(dtos, totalCount, page, 10);
+            return Response.ok(response).build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(new ErrorResponse("Error al listar profesionales: " + e.getMessage()))
@@ -142,5 +149,38 @@ public class ProfesionalResource {
 
         public String getMessage() { return message; }
         public void setMessage(String message) { this.message = message; }
+    }
+
+    public static class PaginatedResponse {
+        private List<profesional_salud_dto> data;
+        private long totalCount;
+        private int currentPage;
+        private int pageSize;
+        private long totalPages;
+
+        public PaginatedResponse() {}
+
+        public PaginatedResponse(List<profesional_salud_dto> data, long totalCount, int currentPage, int pageSize) {
+            this.data = data;
+            this.totalCount = totalCount;
+            this.currentPage = currentPage;
+            this.pageSize = pageSize;
+            this.totalPages = (long) Math.ceil((double) totalCount / pageSize);
+        }
+
+        public List<profesional_salud_dto> getData() { return data; }
+        public void setData(List<profesional_salud_dto> data) { this.data = data; }
+
+        public long getTotalCount() { return totalCount; }
+        public void setTotalCount(long totalCount) { this.totalCount = totalCount; }
+
+        public int getCurrentPage() { return currentPage; }
+        public void setCurrentPage(int currentPage) { this.currentPage = currentPage; }
+
+        public int getPageSize() { return pageSize; }
+        public void setPageSize(int pageSize) { this.pageSize = pageSize; }
+
+        public long getTotalPages() { return totalPages; }
+        public void setTotalPages(long totalPages) { this.totalPages = totalPages; }
     }
 }

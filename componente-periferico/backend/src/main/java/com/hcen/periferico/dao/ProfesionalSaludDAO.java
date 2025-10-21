@@ -75,4 +75,45 @@ public class ProfesionalSaludDAO {
         query.setParameter("term", "%" + searchTerm + "%");
         return query.getResultList();
     }
+
+    public List<profesional_salud> findAllPaginated(int page, int size) {
+        TypedQuery<profesional_salud> query = em.createQuery(
+            "SELECT p FROM profesional_salud p ORDER BY p.apellidos, p.nombre",
+            profesional_salud.class
+        );
+        query.setFirstResult(page * size);
+        query.setMaxResults(size);
+        return query.getResultList();
+    }
+
+    public List<profesional_salud> findByNombreOrApellidoPaginated(String searchTerm, int page, int size) {
+        TypedQuery<profesional_salud> query = em.createQuery(
+            "SELECT p FROM profesional_salud p WHERE " +
+            "LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term) " +
+            "ORDER BY p.apellidos, p.nombre",
+            profesional_salud.class
+        );
+        query.setParameter("term", "%" + searchTerm + "%");
+        query.setFirstResult(page * size);
+        query.setMaxResults(size);
+        return query.getResultList();
+    }
+
+    public long countAll() {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(p) FROM profesional_salud p",
+            Long.class
+        );
+        return query.getSingleResult();
+    }
+
+    public long countByNombreOrApellido(String searchTerm) {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(p) FROM profesional_salud p WHERE " +
+            "LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term)",
+            Long.class
+        );
+        query.setParameter("term", "%" + searchTerm + "%");
+        return query.getSingleResult();
+    }
 }

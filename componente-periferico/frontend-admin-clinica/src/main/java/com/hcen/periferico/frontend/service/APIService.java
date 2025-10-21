@@ -161,7 +161,8 @@ public class APIService implements Serializable {
 
     public List<profesional_salud_dto> searchProfesionales(String searchTerm) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet(BACKEND_URL + "/profesionales?search=" + searchTerm);
+            String encodedTerm = java.net.URLEncoder.encode(searchTerm, java.nio.charset.StandardCharsets.UTF_8);
+            HttpGet request = new HttpGet(BACKEND_URL + "/profesionales?search=" + encodedTerm);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -280,7 +281,8 @@ public class APIService implements Serializable {
     private List<profesional_salud_dto> parseProfesionalesFromJson(String jsonString) {
         List<profesional_salud_dto> list = new ArrayList<>();
         try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
-            JsonArray jsonArray = reader.readArray();
+            JsonObject paginatedResponse = reader.readObject();
+            JsonArray jsonArray = paginatedResponse.getJsonArray("data");
 
             for (int i = 0; i < jsonArray.size(); i++) {
                 JsonObject jsonObject = jsonArray.getJsonObject(i);

@@ -19,11 +19,11 @@
     </style>
 </h:head>
 
-<h:body>
-    <f:metadata>
-        <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
-    </f:metadata>
+<f:metadata>
+    <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
+</f:metadata>
 
+<h:body>
     <h:form>
         <p:menubar>
             <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>
@@ -140,8 +140,8 @@
             </p:panel>
 
             <p:confirmDialog global="true" showEffect="fade" hideEffect="fade">
-                <p:commandButton value="Sí" type="button" styleClass="p-confirm-dialog-yes" icon="pi pi-check"/>
-                <p:commandButton value="No" type="button" styleClass="p-confirm-dialog-no p-button-secondary" icon="pi pi-times"/>
+                <p:commandButton value="Sí" styleClass="ui-confirmdialog-yes" icon="pi pi-check" process="@this"/>
+                <p:commandButton value="No" styleClass="ui-confirmdialog-no" icon="pi pi-times" process="@this"/>
             </p:confirmDialog>
         </h:form>
     </div>
