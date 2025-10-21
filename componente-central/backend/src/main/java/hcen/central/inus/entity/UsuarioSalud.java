@@ -1,5 +1,6 @@
 package hcen.central.inus.entity;
 
+import hcen.central.inus.enums.TipoDocumento;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.Instant;

@@ -76,7 +76,7 @@ public class OIDCLoginBean implements Serializable {
             
             externalContext.getSessionMap().put("oidc_state", authRequest.getState());
             externalContext.getSessionMap().put("oidc_nonce", authRequest.getNonce());
-            externalContext.getSessionMap().put("oidc_code_verifier", authRequest.getCodeVerifier());
+//            externalContext.getSessionMap().put("oidc_code_verifier", authRequest.getCodeVerifier());
             externalContext.getSessionMap().put("oidc_redirect_uri", redirectUri);
             
             LOGGER.info("Redirigiendo a: " + authRequest.getAuthorizationUrl());

@@ -1,4 +1,4 @@
-package hcen.central.inus.entity;
+package hcen.central.inus.enums;
 
 public enum TipoDocumento {
     CI,
