@@ -26,7 +26,7 @@ import java.util.UUID;
 public class APIService implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private static final String BACKEND_URL = "http://localhost:8080/hcen-periferico/api";
+    private static final String BACKEND_URL = "https://node5823-hcen-uy.web.elasticloud.uy/api";
 
     // ========== AUTENTICACIÓN ==========
 
