@@ -1,35 +1,47 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:h="http://xmlns.jcp.org/jsf/html"
-      xmlns:f="http://xmlns.jcp.org/jsf/core"
-      xmlns:p="http://primefaces.org/ui"
-      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+      xmlns:h="http://xmlns.jakarta.ee/jsf/html"
+      xmlns:f="http://xmlns.jakarta.ee/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
 <h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Login Profesional</title>
+    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/login.css"/>
 </h:head>
 
-<h:body>
-    <h:form id="loginForm">
-        <p:messages id="msgs" closable="true" showDetail="true" />
-        <p:panel header="Ingreso">
-            <div class="p-fluid">
-                <div class="p-field">
+<h:body styleClass="login-body">
+    <div class="login-container">
+        <div class="login-header">
+            <h1>HCEN</h1>
+            <h2>Profesionales</h2>
+            <p>Acceso al portal para profesionales de la salud</p>
+        </div>
+
+        <h:form id="loginForm" styleClass="login-form">
+            <p:messages id="msgs" showDetail="true" showSummary="true" severity="error,fatal"/>
+            <p:panel header="Ingreso" styleClass="login-panel">
+                <div class="input-group">
                     <p:outputLabel for="username" value="Usuario" />
-                    <p:inputText id="username" value="#{loginBean.username}" required="true" />
+                    <p:inputText id="username" value="#{loginBean.username}" required="true" styleClass="login-input"/>
                 </div>
-
-                <div class="p-field">
+                <div class="input-group">
                     <p:outputLabel for="password" value="Contraseña" />
-                    <p:password id="password" value="#{loginBean.password}" required="true" feedback="false" />
+                    <p:password id="password" value="#{loginBean.password}" required="true" feedback="false" styleClass="login-input"/>
                 </div>
+                <div class="button-group">
+                    <p:commandButton id="btnLogin"
+                                     value="Ingresar"
+                                     action="#{loginBean.login}"
+                                     ajax="false"
+                                     styleClass="login-button" />
+                </div>
+            </p:panel>
+        </h:form>
 
-                <p:commandButton id="loginBtn"
-                                 value="Ingresar"
-                                 action="#{loginBean.login}"
-                                 process="@form"
-                                 update="@form" />
-            </div>
-        </p:panel>
-    </h:form>
+        <div class="login-footer">
+            <p>© HCEN</p>
+        </div>
+    </div>
 </h:body>
 </html>

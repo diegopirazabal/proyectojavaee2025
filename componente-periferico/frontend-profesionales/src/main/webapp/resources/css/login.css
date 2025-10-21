@@ -1,64 +1,105 @@
-package hcen.frontend.profesionales.service;
+/* Login Styles (HCEN - Profesionales) - Consolidated */
 
-import hcen.frontend.profesionales.dto.DocumentoDTO;
-import hcen.frontend.profesionales.dto.SolicitudDTO;
-import jakarta.enterprise.context.ApplicationScoped;
-
-import java.util.ArrayList;
-import java.util.List;
-
-@ApplicationScoped
-public class APIService {
-
-// TODO: parametrizar URLs con MicroProfile Config o env
-private final String BASE_PERIFERICO = "http://localhost:8080/hcen-periferico/api";
-    private final String BASE_CENTRAL    = "http://localhost:8080/hcen-central/api";
-
-    public boolean loginProfesional(String user, String pass) {
-// TODO: POST /auth/login (periférico)
-// Por ahora stub:
-return user != null && !user.isBlank() && pass != null && !pass.isBlank();
+:root {
+  --color-bg: #667eea;
+  --color-bg-2: #764ba2;
+  --color-primary: #667eea;
+  --color-primary-700: #764ba2;
+  --color-muted: #6b7280;
 }
 
-    public PerfilProfesional obtenerPerfilProfesional(String username) {
-// TODO: GET /profesionales/{username}
-    return new PerfilProfesional("Profesional "+username, "Medicina General");
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body.login-body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(102,126,234,0.75), rgba(118,75,162,0.75)),
+    url('../img/login-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
-    public List<DocumentoDTO> listarDocumentosPaciente(String documento) {
-// TODO: GET periférico: /documentos?paciente=  + resolución remota vía central
-// Stub con mezcla local/externo:
-var list = new ArrayList<DocumentoDTO>();
-    DocumentoDTO a = new DocumentoDTO();
-    a.setId("loc-1"); a.setTipo("Epicrisis"); a.setOrigen("LOCAL");
-    a.setDisponible(true);
-    DocumentoDTO b = new DocumentoDTO();
-    b.setId("ext-99"); b.setTipo("RX Tórax"); b.setOrigen("Clinica XYZ");
-    b.setDisponible(false);
-    list.add(a); list.add(b);
-    return list;
+.login-container {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
 }
 
-    public void descargarDocumento(String id) {
-// TODO: GET /documentos/{id}/contenido (si es externo, via central con token de acceso)
+.login-header { text-align: center; padding: 3rem 1rem 1rem; }
+.login-header h1 { color: #2c3e50; font-size: 2.5em; margin: 0 0 10px 0; font-weight: bold; }
+.login-header h2 { color: #34495e; font-size: 1.2em; margin: 0 0 5px 0; font-weight: normal; }
+.login-header p  { color: #7f8c8d; font-size: 0.9em; margin: 0 0 30px 0; }
+
+.login-form { background: transparent; border-radius: 0; box-shadow: none; padding: 0; margin: 30px 0; text-align: left; }
+
+.login-panel .ui-panel-titlebar {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-700));
+  color: #fff;
+}
+.login-panel .ui-panel-content { padding-top: 1.25rem; }
+
+.p-field { margin-bottom: 1rem; }
+.p-field label { display: block; margin-bottom: 0.35rem; color: var(--color-muted); }
+
+.input-group { margin-bottom: 20px; text-align: left; }
+.input-group label { display: block; margin-bottom: 5px; color: #2c3e50; font-weight: 500; }
+
+.login-input {
+  width: 100% !important;
+  padding: 12px !important;
+  border: 2px solid #ecf0f1 !important;
+  border-radius: 5px !important;
+  font-size: 16px !important;
+  transition: border-color 0.3s ease !important;
+  box-sizing: border-box;
+}
+.login-input:focus {
+  border-color: #3498db !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1) !important;
 }
 
-    public void solicitarAcceso(String docId) {
-// TODO: POST /accesos/solicitudes
+.button-group { margin-top: 30px; }
+
+.login-button {
+  width: 100% !important;
+  padding: 15px !important;
+  background: linear-gradient(135deg, #3498db, #2980b9) !important;
+  border: none !important;
+  border-radius: 5px !important;
+  color: white !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+}
+.login-button:hover {
+  background: linear-gradient(135deg, #2980b9, #21618c) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3) !important;
 }
 
-    public void altaDocumento(String documentoPaciente, String tipo, byte[] contenido) {
-// TODO: POST /documentos (periférico) + notificar central para RNDC (metadatos)
-}
+.login-footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ecf0f1; text-align: center; }
+.login-footer p { color: #95a5a6; font-size: 0.8em; margin: 5px 0; }
 
-    public List<SolicitudDTO> listarSolicitudes() {
-// TODO: GET /accesos/solicitudes
-return List.of();
-}
+.ui-messages { margin-bottom: 20px !important; }
+.ui-messages-info { background-color: #d4edda !important; border-color: #c3e6cb !important; color: #155724 !important; }
+.ui-messages-error { background-color: #f8d7da !important; border-color: #f5c6cb !important; color: #721c24 !important; }
 
-    public void reintentarSolicitud(String id) {
-// TODO: POST /accesos/solicitudes/{id}/reintentar
-}
-
-    public record PerfilProfesional(String nombre, String especialidad) {}
+@media (max-width: 480px) {
+  .login-container { margin: 20px; padding: 30px 20px; }
+  .login-header h1 { font-size: 2em; }
+  .login-header h2 { font-size: 1.1em; }
 }

@@ -13,6 +13,12 @@
         <param-value>native</param-value>
     </context-param>
 
+    <context-param>
+        <param-name>jakarta.faces.PROJECT_STAGE</param-name>
+        <param-value>Development</param-value>
+    </context-param>
+
+
     <!-- Nota: Se removió UploadedFileCleanerListener para evitar conflicto javax/jakarta.
          En Jakarta EE 10 no es necesario si el contenedor limpia el tmp.
          Alternativa: configurar limpieza a nivel de servidor. -->
@@ -44,7 +50,7 @@
 
 
     <welcome-file-list>
-        <welcome-file>index.xhtml</welcome-file>
+        <welcome-file>login.xhtml</welcome-file>
     </welcome-file-list>
 
 
