@@ -19,6 +19,10 @@
     </style>
 </h:head>
 
+<f:metadata>
+    <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
+</f:metadata>
+
 <h:body>
     <h:form>
         <p:menubar>
@@ -83,15 +87,16 @@
                 </p:panelGrid>
 
                 <f:facet name="footer">
-                    <p:commandButton value="Guardar Cambios"
+                    <p:commandButton id="guardarBtn"
+                                    value="Guardar Cambios"
                                     icon="pi pi-check"
                                     action="#{configuracionBean.guardarLookAndFeel}"
-                                    update="messages,configuracionForm"
+                                    update=":configuracionForm:messages,:configuracionForm"
                                     styleClass="p-button-success"/>
                     <p:commandButton value="Restablecer Valores por Defecto"
                                     icon="pi pi-refresh"
                                     action="#{configuracionBean.resetearConfiguracion}"
-                                    update="messages,configuracionForm"
+                                    update=":configuracionForm:messages,:configuracionForm"
                                     styleClass="p-button-warning"
                                     style="margin-left: 0.5rem;">
                         <p:confirm header="Confirmar"
@@ -128,19 +133,15 @@
                     <p:commandButton value="Aplicar Configuración de Nodo"
                                     icon="pi pi-save"
                                     action="#{configuracionBean.toggleNodoPeriferico}"
-                                    update="messages,configuracionForm"
+                                    update=":configuracionForm:messages,:configuracionForm"
                                     styleClass="p-button-primary"
                                     style="margin-top: 1rem;"/>
                 </div>
-
-                <p:blockUI block="configuracionForm" trigger="guardarBtn">
-                    <p:graphicImage name="images/loading.gif" library="primefaces"/>
-                </p:blockUI>
             </p:panel>
 
             <p:confirmDialog global="true" showEffect="fade" hideEffect="fade">
-                <p:commandButton value="Sí" type="button" styleClass="p-confirm-dialog-yes" icon="pi pi-check"/>
-                <p:commandButton value="No" type="button" styleClass="p-confirm-dialog-no p-button-secondary" icon="pi pi-times"/>
+                <p:commandButton value="Sí" styleClass="ui-confirmdialog-yes" icon="pi pi-check" process="@this"/>
+                <p:commandButton value="No" styleClass="ui-confirmdialog-no" icon="pi pi-times" process="@this"/>
             </p:confirmDialog>
         </h:form>
     </div>

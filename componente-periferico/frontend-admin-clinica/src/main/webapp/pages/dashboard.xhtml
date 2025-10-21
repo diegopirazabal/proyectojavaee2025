@@ -10,11 +10,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 </h:head>
 
-<h:body>
-    <f:metadata>
-        <f:event type="preRenderView" listener="#{sessionBean.isLoggedIn() ? '' : '/index.xhtml?faces-redirect=true'}"/>
-    </f:metadata>
+<f:metadata>
+    <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
+</f:metadata>
 
+<h:body>
     <h:form>
         <p:menubar>
             <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>

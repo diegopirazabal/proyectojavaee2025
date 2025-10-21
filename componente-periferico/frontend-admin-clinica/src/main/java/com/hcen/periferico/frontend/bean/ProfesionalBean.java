@@ -27,6 +27,7 @@ public class ProfesionalBean implements Serializable {
     private List<profesional_salud_dto> profesionales;
     private profesional_salud_dto selectedProfesional;
     private profesional_salud_dto newProfesional;
+    private profesional_salud_dto profesionalToDelete;
 
     private String searchTerm;
 
@@ -34,6 +35,7 @@ public class ProfesionalBean implements Serializable {
     public void init() {
         loadProfesionales();
         newProfesional = new profesional_salud_dto();
+        selectedProfesional = new profesional_salud_dto();
     }
 
     public void loadProfesionales() {
@@ -115,6 +117,13 @@ public class ProfesionalBean implements Serializable {
         }
     }
 
+    public void deleteProfesionalSelected() {
+        if (profesionalToDelete != null) {
+            deleteProfesional(profesionalToDelete);
+            profesionalToDelete = null;
+        }
+    }
+
     public void prepareNew() {
         newProfesional = new profesional_salud_dto();
     }
@@ -155,5 +164,13 @@ public class ProfesionalBean implements Serializable {
 
     public void setSearchTerm(String searchTerm) {
         this.searchTerm = searchTerm;
+    }
+
+    public profesional_salud_dto getProfesionalToDelete() {
+        return profesionalToDelete;
+    }
+
+    public void setProfesionalToDelete(profesional_salud_dto profesionalToDelete) {
+        this.profesionalToDelete = profesionalToDelete;
     }
 }

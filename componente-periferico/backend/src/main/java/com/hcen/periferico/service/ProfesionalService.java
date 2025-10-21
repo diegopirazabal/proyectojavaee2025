@@ -11,6 +11,8 @@ import java.util.Optional;
 @Stateless
 public class ProfesionalService {
 
+    private static final int PAGE_SIZE = 10;
+
     @EJB
     private ProfesionalSaludDAO profesionalDAO;
 
@@ -93,5 +95,39 @@ public class ProfesionalService {
      */
     public boolean existsProfesional(Integer ci) {
         return profesionalDAO.existsByCi(ci);
+    }
+
+    /**
+     * Lista profesionales paginados
+     */
+    public List<profesional_salud> getProfesionalesPaginated(int page) {
+        return profesionalDAO.findAllPaginated(page, PAGE_SIZE);
+    }
+
+    /**
+     * Busca profesionales por nombre o apellido con paginación
+     */
+    public List<profesional_salud> searchProfesionalesPaginated(String searchTerm, int page) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return getProfesionalesPaginated(page);
+        }
+        return profesionalDAO.findByNombreOrApellidoPaginated(searchTerm.trim(), page, PAGE_SIZE);
+    }
+
+    /**
+     * Cuenta total de profesionales
+     */
+    public long countProfesionales() {
+        return profesionalDAO.countAll();
+    }
+
+    /**
+     * Cuenta profesionales que coinciden con el término de búsqueda
+     */
+    public long countProfesionalesBySearch(String searchTerm) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return countProfesionales();
+        }
+        return profesionalDAO.countByNombreOrApellido(searchTerm.trim());
     }
 }
