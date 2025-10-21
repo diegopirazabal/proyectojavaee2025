@@ -64,11 +64,7 @@
                                     <span class="status-active">#{login_bean.loggedAdmin.active ? 'Activo' : 'Inactivo'}</span>
                                 </p>
                                 <p><strong>Último acceso:</strong> 
-                                    <h:outputText value="#{login_bean.loggedAdmin.lastLogin}" 
-                                                 rendered="#{login_bean.loggedAdmin.lastLogin != null}">
-                                        <f:convertDateTime pattern="dd/MM/yyyy HH:mm"/>
-                                    </h:outputText>
-                                    <span rendered="#{login_bean.loggedAdmin.lastLogin == null}">Primer acceso</span>
+                                    <h:outputText value="#{login_bean.lastLoginDisplay}"/>
                                 </p>
                             </div>
                         </div>
