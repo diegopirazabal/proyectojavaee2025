@@ -8,7 +8,20 @@
     <h:outputStylesheet library="css" name="dashboard.css"/>
 </h:head>
 <h:body styleClass="dashboard-body">
+    <f:metadata>
+        <f:event type="preRenderView" listener="#{usuarioSaludLoginBean.checkAuthentication}"/>
+    </f:metadata>
     <div class="dashboard-container">
+        <div class="dashboard-topbar">
+            <span>Portal Salud</span>
+            <h:form id="logoutForm">
+                <p:commandButton value="Cerrar sesión"
+                                 styleClass="logout-button"
+                                 icon="pi pi-sign-out"
+                                 action="#{usuarioSaludLoginBean.logout}"
+                                 ajax="false"/>
+            </h:form>
+        </div>
         <header class="dashboard-header">
             <h1>Mi perfil de salud</h1>
             <p>Consulta la información registrada en el DNIC</p>
@@ -73,8 +86,8 @@
                     <h:outputText value="Fecha de nacimiento"/>
                     <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.fechaNacimientoFormateada}" readonly="true"/>
 
-                    <h:outputText value="Código de nacionalidad"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.codigoNacionalidad}"/>
+                    <h:outputText value="Nacionalidad"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.descripcionNacionalidad}" readonly="true"/>
                 </p:panelGrid>
 
                 <h2>Datos de contacto</h2>
