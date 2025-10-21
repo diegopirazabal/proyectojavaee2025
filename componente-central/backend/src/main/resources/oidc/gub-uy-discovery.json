@@ -1,0 +1,56 @@
+{
+  "issuer": "https://auth-testing.iduruguay.gub.uy/oidc/v1",
+  "authorization_endpoint": "https://auth-testing.iduruguay.gub.uy/oidc/v1/authorize",
+  "token_endpoint": "https://auth-testing.iduruguay.gub.uy/oidc/v1/token",
+  "userinfo_endpoint": "https://auth-testing.iduruguay.gub.uy/oidc/v1/userinfo",
+  "end_session_endpoint": "https://auth-testing.iduruguay.gub.uy/oidc/v1/logout",
+  "id_token_signing_alg_values_supported": [
+    "HS256",
+    "RS256"
+  ],
+  "jwks_uri": "https://auth-testing.iduruguay.gub.uy/oidc/v2/jwks",
+  "scopes_supported": [
+    "openid",
+    "personal_info",
+    "email",
+    "document",
+    "profile"
+  ],
+  "response_types_supported": [
+    "code"
+  ],
+  "acr_values_supported": [
+    "urn:iduruguay:nid:0",
+    "urn:iduruguay:nid:1",
+    "urn:iduruguay:nid:2",
+    "urn:iduruguay:nid:3"
+  ],
+  "subject_types_supported": [
+    "public"
+  ],
+  "service_documentation": "https://centroderecursos.agesic.gub.uy/web/seguridad/wiki/-/wiki/Main/ID+Uruguay+-+Integraci%C3%B3n+con+OpenID+Connect",
+  "claims_parameter_supported": true,
+  "claims_supported": [
+    "nombre_completo",
+    "primer_nombre",
+    "segundo_nombre",
+    "primer_apellido",
+    "segundo_apellido",
+    "uid",
+    "name",
+    "given_name",
+    "family_name",
+    "pais_documento",
+    "tipo_documento",
+    "numero_documento",
+    "email",
+    "email_verified",
+    "rid",
+    "ae",
+    "nid",
+    "name",
+    "given_name",
+    "family_name",
+    "idp"
+  ]
+}

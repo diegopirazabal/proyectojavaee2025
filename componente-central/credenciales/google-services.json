@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1096449303317",
+    "project_id": "hcenmobile",
+    "storage_bucket": "hcenmobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1096449303317:android:d72fc68ff55f258a4b3f1c",
+        "android_client_info": {
+          "package_name": "com.example.hcenmobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5vkug0d29Uct4BMdJ_ISkphwXRcVZLU0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

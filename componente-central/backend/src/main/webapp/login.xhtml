@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+<h:head>
+    <title>Login OIDC - HCEN</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <h:outputStylesheet library="css" name="styles-frontend-loginOidc.css"/>
+</h:head>
+<h:body>
+    <div class="login-container">
+        <div class="logo">🏥</div>
+        <h1>Historia Clínica Electrónica</h1>
+        <p class="subtitle">Sistema Nacional HCEN</p>
+
+        <h:form id="loginForm">
+            <h:commandButton value="🔐 Iniciar sesión con gub.uy" 
+                           styleClass="btn-oidc"
+                           action="#{oidcLoginBean.initiateLogin}"/>
+            
+            <h:messages globalOnly="true" styleClass="error-message" 
+                       rendered="#{not empty facesContext.messageList}"/>
+        </h:form>
+
+        <div class="info-box">
+            <h3>Autenticación con OpenID Connect</h3>
+            <p>
+                Este sistema utiliza la plataforma de identidad digital de gub.uy 
+                para autenticación segura. Serás redirigido a gub.uy para 
+                iniciar sesión con tu cédula de identidad.
+            </p>
+        </div>
+    </div>
+</h:body>
+</html>
