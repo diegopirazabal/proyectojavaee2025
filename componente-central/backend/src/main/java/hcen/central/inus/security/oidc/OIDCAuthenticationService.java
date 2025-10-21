@@ -1,20 +1,20 @@
 package hcen.central.inus.security.oidc;
 
-import hcen.central.inus.dao.OIDCSessionDAO;
 import hcen.central.inus.dao.OIDCUserDAO;
 import hcen.central.inus.dto.JWTTokenResponse;
 import hcen.central.inus.dto.OIDCAuthRequest;
 import hcen.central.inus.dto.OIDCTokenResponse;
 import hcen.central.inus.dto.OIDCUserInfo;
-import hcen.central.inus.entity.OIDCSession;
 import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.security.config.OIDCConfiguration;
 import hcen.central.inus.security.jwt.JWTTokenProvider;
-import hcen.central.inus.security.pkce.PKCEGenerator;
+// import hcen.central.inus.security.pkce.PKCEGenerator; // PKCE removido
 import io.jsonwebtoken.Claims;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 import java.util.logging.Level;
@@ -32,8 +32,8 @@ public class OIDCAuthenticationService {
     @Inject
     private OIDCConfiguration oidcConfig;
 
-    @Inject
-    private PKCEGenerator pkceGenerator;
+    // @Inject
+    // private PKCEGenerator pkceGenerator; // PKCE removido
 
     @Inject
     private OIDCCallbackHandler callbackHandler;
@@ -50,43 +50,35 @@ public class OIDCAuthenticationService {
     @Inject
     private OIDCUserDAO userDAO;
 
-    @Inject
-    private OIDCSessionDAO sessionDAO;
-
     /**
-     * Inicia el flujo de autenticación OIDC
-     * Genera la URL de autorización con PKCE
+     * Inicia el flujo de autenticación OIDC (sin PKCE)
      *
      * @param redirectUri URI de redirección configurada en tu aplicación
-     * @return OIDCAuthRequest con URL, state, nonce, code_verifier y code_challenge
+     * @return OIDCAuthRequest con URL, state y nonce
      */
     public OIDCAuthRequest initiateLogin(String redirectUri) {
-        LOGGER.info("Iniciando flujo de login OIDC");
-
-        // Generar PKCE
-        String codeVerifier = pkceGenerator.generateCodeVerifier();
-        String codeChallenge = pkceGenerator.generateCodeChallenge(codeVerifier);
+        LOGGER.info("Iniciando flujo de login OIDC (sin PKCE)");
 
         // Generar state y nonce para seguridad
         String state = generateRandomString(32);
         String nonce = generateRandomString(32);
 
-        // Construir URL de autorización
-        String authorizationUrl = buildAuthorizationUrl(redirectUri, codeChallenge, state, nonce);
+        // Construir URL de autorización (sin PKCE)
+        String authorizationUrl = buildAuthorizationUrl(redirectUri, state, nonce);
 
         OIDCAuthRequest authRequest = new OIDCAuthRequest();
         authRequest.setAuthorizationUrl(authorizationUrl);
         authRequest.setState(state);
         authRequest.setNonce(nonce);
-        authRequest.setCodeVerifier(codeVerifier);
-        authRequest.setCodeChallenge(codeChallenge);
+        // authRequest.setCodeVerifier(codeVerifier); // PKCE removido
+        // authRequest.setCodeChallenge(codeChallenge); // PKCE removido
 
         LOGGER.info("URL de autorización generada exitosamente");
         return authRequest;
     }
 
     /**
-     * Procesa el callback de gub.uy y completa la autenticación
+     * Procesa el callback de gub.uy y completa la autenticación (sin PKCE)
      * Intercambia code por tokens, valida ID token, obtiene UserInfo,
      * crea/actualiza usuario y genera JWT propios
      *
@@ -94,23 +86,22 @@ public class OIDCAuthenticationService {
      * @param state         State parameter del callback
      * @param expectedState State esperado (guardado en sesión)
      * @param expectedNonce Nonce esperado (guardado en sesión)
-     * @param codeVerifier  Code verifier PKCE (guardado en sesión)
      * @param redirectUri   Redirect URI usado en el inicio
      * @return JWTTokenResponse con los JWT propios de la aplicación
      * @throws Exception si falla algún paso del proceso
      */
     public JWTTokenResponse handleCallback(String code, String state, String expectedState,
-                                            String expectedNonce, String codeVerifier,
+                                            String expectedNonce,
                                             String redirectUri) throws Exception {
-        LOGGER.info("Procesando callback de autenticación OIDC");
+        LOGGER.info("Procesando callback de autenticación OIDC (sin PKCE)");
 
         // 1. Validar state (protección CSRF)
         if (!callbackHandler.validateState(state, expectedState)) {
             throw new SecurityException("State inválido. Posible ataque CSRF.");
         }
 
-        // 2. Intercambiar code por tokens
-        OIDCTokenResponse tokenResponse = callbackHandler.handleCallback(code, state, codeVerifier, redirectUri);
+        // 2. Intercambiar code por tokens (sin PKCE)
+        OIDCTokenResponse tokenResponse = callbackHandler.handleCallback(code, state, null, redirectUri);
 
         // 3. Validar ID Token
         Claims idTokenClaims = tokenValidator.validateIdToken(tokenResponse.getIdToken(), expectedNonce);
@@ -124,11 +115,8 @@ public class OIDCAuthenticationService {
         // 5. Crear o actualizar usuario en la base de datos
         UsuarioSalud user = createOrUpdateUser(userInfo, tokenResponse);
 
-        // 6. Crear sesión OIDC
-        OIDCSession session = createSession(user, tokenResponse);
-
-        // 7. Generar JWT propios de la aplicación
-        JWTTokenResponse jwtResponse = generateApplicationJWT(user, session);
+        // 6. Generar JWT propios de la aplicación (stateless)
+        JWTTokenResponse jwtResponse = generateApplicationJWT(user);
 
         LOGGER.info("Éxito en autenticación completa para usuario: " + userSub);
         return jwtResponse;
@@ -136,34 +124,53 @@ public class OIDCAuthenticationService {
 
     /**
      * Crea o actualiza un usuario en la base de datos
+     * Mapea claims de gub.uy a UsuarioSalud:
+     * - numero_documento -> cedula (PK)
+     * - tipo_documento -> tipoDeDocumento
+     * - nombre_completo -> nombreCompleto
+     * - primer_nombre -> primerNombre
+     * - segundo_nombre -> segundoNombre
+     * - primer_apellido -> primerApellido
+     * - segundo_apellido -> segundoApellido
+     * - email -> email
+     * - email_verified -> emailVerificado
+     * 
+     * Ignoramos: sub, uid, rid, nid, pais_documento, name, given_name, family_name, ae
      */
     private UsuarioSalud createOrUpdateUser(OIDCUserInfo userInfo, OIDCTokenResponse tokenResponse) {
-        String sub = userInfo.getSub();
+        // numero_documento -> cedula
+        String cedula = userInfo.getNumeroDocumento();
+        
+        if (cedula == null || cedula.isEmpty()) {
+            throw new IllegalArgumentException("numero_documento es requerido de gub.uy");
+        }
 
-        // Buscar usuario existente
-        UsuarioSalud user = userDAO.findBySub(sub);
+        // Buscar usuario existente por cédula
+        UsuarioSalud user = userDAO.findByCedula(cedula);
 
         if (user == null) {
             // Crear nuevo usuario
-            LOGGER.info("Creando nuevo usuario con sub: " + sub);
+            LOGGER.info("Creando nuevo usuario con cédula: " + cedula);
             user = new UsuarioSalud();
-            user.setSub(sub);
+            user.setCedula(cedula);
             user.setCreatedAt(Instant.now());
         } else {
-            LOGGER.info("Actualizando usuario existente: " + sub);
+            LOGGER.info("Actualizando usuario existente con cédula: " + cedula);
         }
 
-        // Actualizar información del usuario
+        // Mapear claims de gub.uy a UsuarioSalud
         user.setEmail(userInfo.getEmail());
-        user.setEmailVerified(userInfo.getEmailVerified() != null ? userInfo.getEmailVerified() : false);
-        user.setFullName(userInfo.getFullName());
-        user.setFirstName(userInfo.getFirstName());
-        user.setLastName(userInfo.getLastName());
-        user.setDocumentType(userInfo.getDocumentType());
-        user.setDocumentNumber(userInfo.getDocumentNumber());
-        user.setUid(userInfo.getUid());
-        user.setRid(userInfo.getRid());
-        user.setNid(userInfo.getNid());
+        user.setEmailVerificado(userInfo.getEmailVerified() != null ? userInfo.getEmailVerified() : false);
+        
+        // tipo_documento -> tipoDeDocumento: mapear String de gub.uy a enum
+        user.setTipoDeDocumento(mapTipoDocumento(userInfo.getTipoDocumento()));
+        
+        user.setNombreCompleto(userInfo.getNombreCompleto());
+        user.setPrimerNombre(userInfo.getPrimerNombre());
+        user.setSegundoNombre(userInfo.getSegundoNombre());
+        user.setPrimerApellido(userInfo.getPrimerApellido());
+        user.setSegundoApellido(userInfo.getSegundoApellido());
+        
         user.setLastLogin(Instant.now());
         user.setActive(true);
         user.setUpdatedAt(Instant.now());
@@ -175,58 +182,28 @@ public class OIDCAuthenticationService {
         return user;
     }
 
-    /**
-     * Crea una sesión OIDC para el usuario
-     */
-    private OIDCSession createSession(UsuarioSalud user, OIDCTokenResponse tokenResponse) {
-        LOGGER.info("Creando sesión OIDC para usuario: " + user.getSub());
-
-        OIDCSession session = new OIDCSession();
-        session.setSessionId(UUID.randomUUID().toString());
-        session.setUserSub(user.getSub());
-        session.setAccessToken(tokenResponse.getAccessToken());
-        session.setIdToken(tokenResponse.getIdToken());
-        session.setRefreshToken(tokenResponse.getRefreshToken());
-        session.setCreatedAt(Instant.now());
-
-        // Calcular expiración del access token
-        if (tokenResponse.getExpiresIn() != null && tokenResponse.getExpiresIn() > 0) {
-            session.setExpiresAt(Instant.now().plusSeconds(tokenResponse.getExpiresIn()));
-        } else {
-            // Default: 1 hora
-            session.setExpiresAt(Instant.now().plusSeconds(3600));
-        }
-
-        session.setActive(true);
-
-        // Guardar sesión
-        session = sessionDAO.save(session);
-        LOGGER.info("Sesión creada con ID: " + session.getSessionId());
-
-        return session;
-    }
 
     /**
-     * Genera JWT propios de la aplicación para el usuario autenticado
+     * Genera JWT propios de la aplicación para el usuario autenticado (stateless)
      */
-    private JWTTokenResponse generateApplicationJWT(UsuarioSalud user, OIDCSession session) {
-        LOGGER.info("Generando JWT propio de la aplicación para usuario: " + user.getSub());
+    private JWTTokenResponse generateApplicationJWT(UsuarioSalud user) {
+        LOGGER.info("Generando JWT propio de la aplicación para usuario con cédula: " + user.getCedula());
 
         // Roles del usuario (por ahora, rol básico "USER")
         List<String> roles = Arrays.asList("USER");
 
-        // Generar access token JWT
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getSub(), roles);
+        // Generar access token JWT usando la cédula como subject
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getCedula(), roles);
 
         // Generar refresh token JWT
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getSub());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getCedula());
 
         JWTTokenResponse jwtResponse = new JWTTokenResponse(
                 accessToken,
                 refreshToken,
                 "Bearer",
                 3600, // expires_in en segundos
-                user.getSub(),
+                user.getCedula(), // Usar cédula como userSub
                 roles
         );
 
@@ -246,63 +223,108 @@ public class OIDCAuthenticationService {
 
         // Validar refresh token
         Claims claims = jwtTokenProvider.validateRefreshToken(refreshToken);
-        String userSub = claims.getSubject();
+        String cedula = claims.getSubject();
 
-        // Buscar usuario
-        UsuarioSalud user = userDAO.findBySub(userSub);
+        // Buscar usuario por cédula
+        UsuarioSalud user = userDAO.findByCedula(cedula);
         if (user == null || !user.isActive()) {
             throw new SecurityException("Usuario no encontrado o inactivo");
         }
 
         // Generar nuevos tokens
         List<String> roles = Arrays.asList("USER");
-        String newAccessToken = jwtTokenProvider.generateAccessToken(userSub, roles);
-        String newRefreshToken = jwtTokenProvider.generateRefreshToken(userSub);
+        String newAccessToken = jwtTokenProvider.generateAccessToken(cedula, roles);
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(cedula);
 
         JWTTokenResponse jwtResponse = new JWTTokenResponse(
                 newAccessToken,
                 newRefreshToken,
                 "Bearer",
                 3600,
-                userSub,
+                cedula,
                 roles
         );
 
-        LOGGER.info("JWT refrescado exitosamente para usuario: " + userSub);
+        LOGGER.info("JWT refrescado exitosamente para usuario con cédula: " + cedula);
         return jwtResponse;
     }
 
     /**
-     * Cierra la sesión del usuario
+     * Logout (con JWT stateless, solo informativo)
+     * El cliente debe descartar el JWT
      *
-     * @param userSub Subject del usuario
+     * @param cedula Cédula del usuario
      */
-    public void logout(String userSub) {
-        LOGGER.info("Cerrando sesión para usuario: " + userSub);
-
-        // Invalidar todas las sesiones OIDC del usuario
-        sessionDAO.deleteAllSessionsByUserSub(userSub);
-
-        LOGGER.info("Sesiones cerradas para usuario: " + userSub);
+    public void logout(String cedula) {
+        LOGGER.info("Logout solicitado para usuario con cédula: " + cedula);
+        // Con JWT stateless, el cliente simplemente descarta el token
+        // No hay sesiones del lado del servidor para invalidar
     }
 
     /**
-     * Construye la URL de autorización para redirigir al usuario
+     * Construye la URL de autorización para redirigir al usuario (sin PKCE)
      */
-    private String buildAuthorizationUrl(String redirectUri, String codeChallenge, String state, String nonce) {
-        StringBuilder url = new StringBuilder(oidcConfig.getAuthorizationEndpoint());
-        url.append("?response_type=code");
-        url.append("&client_id=").append(oidcConfig.getClientId());
-        url.append("&redirect_uri=").append(redirectUri);
-        url.append("&scope=").append(oidcConfig.getScope());
-        url.append("&state=").append(state);
-        url.append("&nonce=").append(nonce);
-        url.append("&code_challenge=").append(codeChallenge);
-        url.append("&code_challenge_method=S256");
+    private String buildAuthorizationUrl(String redirectUri, String state, String nonce) {
+        try {
+            StringBuilder url = new StringBuilder(oidcConfig.getAuthorizationEndpoint());
+            url.append("?response_type=code");
+            url.append("&client_id=").append(oidcConfig.getClientId());
+            url.append("&redirect_uri=").append(URLEncoder.encode(redirectUri, StandardCharsets.UTF_8));
+            url.append("&scope=").append(URLEncoder.encode(oidcConfig.getScope(), StandardCharsets.UTF_8));
+            url.append("&state=").append(state);
+            url.append("&nonce=").append(nonce);
+            // PKCE removido: no se envían code_challenge ni code_challenge_method
 
-        return url.toString();
+            return url.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Error construyendo URL de autorización", e);
+        }
     }
 
+    /**
+     * Mapea el tipo de documento de gub.uy (String) al enum TipoDocumento
+     * 
+     * gub.uy devuelve valores como: "CI", "Pasaporte", "DNI", etc.
+     * 
+     * @param tipoDocGubUy String del tipo de documento desde gub.uy
+     * @return TipoDocumento enum correspondiente
+     */
+    private hcen.central.inus.entity.TipoDocumento mapTipoDocumento(String tipoDocGubUy) {
+        if (tipoDocGubUy == null || tipoDocGubUy.isEmpty()) {
+            LOGGER.warning("tipo_documento vacío desde gub.uy, usando CI por defecto");
+            return hcen.central.inus.entity.TipoDocumento.CI;
+        }
+        
+        // Normalizar: convertir a mayúsculas y quitar espacios
+        String tipoNormalizado = tipoDocGubUy.trim().toUpperCase();
+        
+        try {
+            // Mapeo directo si coincide exactamente
+            switch (tipoNormalizado) {
+                case "CI":
+                case "CEDULA":
+                case "CÉDULA":
+                case "CEDULA DE IDENTIDAD":
+                    return hcen.central.inus.entity.TipoDocumento.CI;
+                    
+                case "PASAPORTE":
+                case "PASSPORT":
+                    return hcen.central.inus.entity.TipoDocumento.PASAPORTE;
+                    
+                case "DNI":
+                case "DOCUMENTO NACIONAL DE IDENTIDAD":
+                    return hcen.central.inus.entity.TipoDocumento.DNI;
+                    
+                default:
+                    LOGGER.warning("Tipo de documento desconocido desde gub.uy: '" + tipoDocGubUy + "', usando CI por defecto");
+                    return hcen.central.inus.entity.TipoDocumento.CI;
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error mapeando tipo de documento: " + tipoDocGubUy, e);
+            return hcen.central.inus.entity.TipoDocumento.CI;
+        }
+    }
+    
     /**
      * Genera un string random para state y nonce
      */

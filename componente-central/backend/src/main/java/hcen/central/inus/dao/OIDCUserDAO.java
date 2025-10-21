@@ -41,15 +41,15 @@ public class OIDCUserDAO {
     }
     
     /**
-     * Busca usuario por subject (identificador de gub.uy) - retorna Optional
+     * Busca usuario por cédula - retorna Optional
      */
-    public Optional<UsuarioSalud> findBySubOptional(String sub) {
+    public Optional<UsuarioSalud> findByCedulaOptional(String cedula) {
         try {
             TypedQuery<UsuarioSalud> query = em.createQuery(
-                "SELECT u FROM UsuarioSalud u WHERE u.sub = :sub AND u.active = true",
+                "SELECT u FROM UsuarioSalud u WHERE u.cedula = :cedula AND u.active = true",
                 UsuarioSalud.class
             );
-            query.setParameter("sub", sub);
+            query.setParameter("cedula", cedula);
             return Optional.of(query.getSingleResult());
         } catch (NoResultException e) {
             return Optional.empty();
@@ -57,10 +57,18 @@ public class OIDCUserDAO {
     }
     
     /**
-     * Busca usuario por subject (identificador de gub.uy) - retorna UsuarioSalud o null
+     * Busca usuario por cédula - retorna UsuarioSalud o null
      */
+    public UsuarioSalud findByCedula(String cedula) {
+        return findByCedulaOptional(cedula).orElse(null);
+    }
+    
+    /**
+     * @deprecated Usar findByCedula en su lugar
+     */
+    @Deprecated
     public UsuarioSalud findBySub(String sub) {
-        return findBySubOptional(sub).orElse(null);
+        return findByCedula(sub);
     }
     
     /**
@@ -80,19 +88,10 @@ public class OIDCUserDAO {
     }
     
     /**
-     * Busca usuario por número de documento
+     * Busca usuario por cédula (alias de findByCedulaOptional)
      */
-    public Optional<UsuarioSalud> findByDocumento(String numeroDocumento) {
-        try {
-            TypedQuery<UsuarioSalud> query = em.createQuery(
-                "SELECT u FROM UsuarioSalud u WHERE u.numeroDocumento = :doc AND u.active = true",
-                UsuarioSalud.class
-            );
-            query.setParameter("doc", numeroDocumento);
-            return Optional.of(query.getSingleResult());
-        } catch (NoResultException e) {
-            return Optional.empty();
-        }
+    public Optional<UsuarioSalud> findByDocumento(String cedula) {
+        return findByCedulaOptional(cedula);
     }
     
     /**
@@ -120,8 +119,8 @@ public class OIDCUserDAO {
     /**
      * Actualiza el último login del usuario
      */
-    public void updateLastLogin(String sub) {
-        UsuarioSalud user = findBySub(sub);
+    public void updateLastLogin(String cedula) {
+        UsuarioSalud user = findByCedula(cedula);
         if (user != null) {
             user.setLastLogin(Instant.now());
             em.merge(user);
@@ -131,8 +130,8 @@ public class OIDCUserDAO {
     /**
      * Desactiva un usuario
      */
-    public void deactivate(String sub) {
-        UsuarioSalud user = findBySub(sub);
+    public void deactivate(String cedula) {
+        UsuarioSalud user = findByCedula(cedula);
         if (user != null) {
             user.setActive(false);
             em.merge(user);
@@ -142,12 +141,12 @@ public class OIDCUserDAO {
     /**
      * Activa un usuario
      */
-    public void activate(String sub) {
+    public void activate(String cedula) {
         TypedQuery<UsuarioSalud> query = em.createQuery(
-            "SELECT u FROM UsuarioSalud u WHERE u.sub = :sub",
+            "SELECT u FROM UsuarioSalud u WHERE u.cedula = :cedula",
             UsuarioSalud.class
         );
-        query.setParameter("sub", sub);
+        query.setParameter("cedula", cedula);
         try {
             UsuarioSalud user = query.getSingleResult();
             user.setActive(true);
@@ -158,15 +157,23 @@ public class OIDCUserDAO {
     }
     
     /**
-     * Verifica si existe un usuario con el sub dado
+     * Verifica si existe un usuario con la cédula dada
      */
-    public boolean existsBySub(String sub) {
+    public boolean existsByCedula(String cedula) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(u) FROM UsuarioSalud u WHERE u.sub = :sub",
+            "SELECT COUNT(u) FROM UsuarioSalud u WHERE u.cedula = :cedula",
             Long.class
         );
-        query.setParameter("sub", sub);
+        query.setParameter("cedula", cedula);
         return query.getSingleResult() > 0;
+    }
+    
+    /**
+     * @deprecated Usar existsByCedula en su lugar
+     */
+    @Deprecated
+    public boolean existsBySub(String sub) {
+        return existsByCedula(sub);
     }
     
     /**
@@ -184,8 +191,8 @@ public class OIDCUserDAO {
     /**
      * Elimina un usuario (hard delete)
      */
-    public void delete(String sub) {
-        UsuarioSalud user = findBySub(sub);
+    public void delete(String cedula) {
+        UsuarioSalud user = findByCedula(cedula);
         if (user != null) {
             em.remove(user);
         }

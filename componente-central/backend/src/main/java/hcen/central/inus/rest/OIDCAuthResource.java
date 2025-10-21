@@ -1,12 +1,10 @@
 package hcen.central.inus.rest;
 
-import hcen.central.inus.dao.OIDCSessionDAO;
 import hcen.central.inus.dao.OIDCUserDAO;
 import hcen.central.inus.dto.JWTTokenResponse;
 import hcen.central.inus.dto.OIDCAuthRequest;
 import hcen.central.inus.dto.OIDCTokenResponse;
 import hcen.central.inus.dto.OIDCUserInfo;
-import hcen.central.inus.entity.OIDCSession;
 import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.security.oidc.OIDCAuthenticationService;
 import hcen.central.inus.security.oidc.OIDCCallbackHandler;
@@ -48,9 +46,6 @@ public class OIDCAuthResource {
 
     @Inject
     private OIDCUserDAO userDAO;
-
-    @Inject
-    private OIDCSessionDAO sessionDAO;
     // TODO: QUITAR LUEGO, ES SOLO PARA DESARROLLO - Fin
 
     @Context
@@ -80,11 +75,12 @@ public class OIDCAuthResource {
             // Generar request de autorización
             OIDCAuthRequest authRequest = authService.initiateLogin(redirectUri);
 
-            // Guardar state, nonce y code_verifier en la sesión HTTP
+            // Guardar state y nonce en la sesión HTTP (PKCE removido)
             HttpSession session = httpRequest.getSession(true);
             session.setAttribute("oidc_state", authRequest.getState());
             session.setAttribute("oidc_nonce", authRequest.getNonce());
-            session.setAttribute("oidc_code_verifier", authRequest.getCodeVerifier());
+            // session.setAttribute("oidc_code_verifier", authRequest.getCodeVerifier()); // PKCE removido
+            // session.setAttribute("oidc_code_challenge", authRequest.getCodeChallenge()); // PKCE removido
             session.setAttribute("oidc_redirect_uri", redirectUri);
 
             LOGGER.info("Redirigiendo al authorization endpoint de gub.uy");
@@ -147,18 +143,18 @@ public class OIDCAuthResource {
 
             String expectedState = (String) session.getAttribute("oidc_state");
             String expectedNonce = (String) session.getAttribute("oidc_nonce");
-            String codeVerifier = (String) session.getAttribute("oidc_code_verifier");
+            // String codeVerifier = (String) session.getAttribute("oidc_code_verifier"); // PKCE removido
             String redirectUri = (String) session.getAttribute("oidc_redirect_uri");
 
             // Limpiar atributos de sesión
             session.removeAttribute("oidc_state");
             session.removeAttribute("oidc_nonce");
-            session.removeAttribute("oidc_code_verifier");
+            // session.removeAttribute("oidc_code_verifier"); // PKCE removido
             session.removeAttribute("oidc_redirect_uri");
 
-            // Procesar callback y obtener tokens
+            // Procesar callback y obtener tokens (sin PKCE)
             JWTTokenResponse tokenResponse = authService.handleCallback(
-                    code, state, expectedState, expectedNonce, codeVerifier, redirectUri
+                    code, state, expectedState, expectedNonce, redirectUri
             );
 
             LOGGER.info("Éxito en callback OIDC");
@@ -166,36 +162,26 @@ public class OIDCAuthResource {
             // TODO: QUITAR LUEGO, ES SOLO PARA DESARROLLO - Inicio
             // Guardar datos en sesión HTTP para el frontend JSF de desarrollo
             try {
-                String userSub = tokenResponse.getUserSub();
+                String cedula = tokenResponse.getUserSub();
                 
                 // Obtener usuario de la BD
-                UsuarioSalud user = userDAO.findBySub(userSub);
+                UsuarioSalud user = userDAO.findByCedula(cedula);
                 
-                // Obtener sesión OIDC de la BD (la más reciente)
-                List<OIDCSession> sessions = sessionDAO.findByUserSub(userSub);
-                OIDCSession oidcSession = sessions.isEmpty() ? null : sessions.get(0);
-                
-                if (user != null && oidcSession != null) {
+                if (user != null) {
                     // Crear DTO de UserInfo desde entidad
                     OIDCUserInfo userInfo = new OIDCUserInfo();
-                    userInfo.setSub(user.getSub());
+                    userInfo.setNumeroDocumento(user.getCedula());
                     userInfo.setEmail(user.getEmail());
-                    userInfo.setEmailVerified(user.isEmailVerified());
-                    userInfo.setFullName(user.getFullName());
-                    userInfo.setFirstName(user.getFirstName());
-                    userInfo.setLastName(user.getLastName());
-                    userInfo.setDocumentType(user.getDocumentType());
-                    userInfo.setDocumentNumber(user.getDocumentNumber());
-                    userInfo.setUid(user.getUid());
-                    userInfo.setRid(user.getRid());
-                    userInfo.setNid(user.getNid());
+                    userInfo.setEmailVerified(user.isEmailVerificado());
+                    userInfo.setNombreCompleto(user.getNombreCompleto());
+                    userInfo.setPrimerNombre(user.getPrimerNombre());
+                    userInfo.setSegundoNombre(user.getSegundoNombre());
+                    userInfo.setPrimerApellido(user.getPrimerApellido());
+                    userInfo.setSegundoApellido(user.getSegundoApellido());
                     
                     // Guardar en sesión HTTP
                     session.setAttribute("userInfo", userInfo);
                     session.setAttribute("jwtToken", tokenResponse);
-                    session.setAttribute("rawIdToken", oidcSession.getIdToken());
-                    session.setAttribute("sessionId", oidcSession.getSessionId());
-                    session.setAttribute("sessionCreated", java.util.Date.from(oidcSession.getCreatedAt()));
                     
                     LOGGER.info("Datos guardados en sesión HTTP para desarrollo");
                     
