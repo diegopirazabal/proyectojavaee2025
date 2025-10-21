@@ -1,5 +1,8 @@
 package hcen.central.inus.bean;
 
+
+//Este objeto existe solamente por ahora para pruebas !
+
 import hcen.central.inus.dto.JWTTokenResponse;
 import hcen.central.inus.dto.OIDCUserInfo;
 import hcen.central.inus.security.jwt.JWTTokenProvider;
