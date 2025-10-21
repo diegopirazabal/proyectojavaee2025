@@ -57,6 +57,20 @@ public class admin_hcen_dao {
             return Optional.empty();
         }
     }
+
+    public Optional<admin_hcen> findByUsernameIncludingInactive(String username) {
+        try {
+            TypedQuery<admin_hcen> query = em.createQuery(
+                "SELECT a FROM admin_hcen a WHERE a.username = :username", 
+                admin_hcen.class
+            );
+            query.setParameter("username", username);
+            admin_hcen admin = query.getSingleResult();
+            return Optional.of(admin);
+        } catch (NoResultException e) {
+            return Optional.empty();
+        }
+    }
     
     public List<admin_hcen> findAll() {
         TypedQuery<admin_hcen> query = em.createQuery(
