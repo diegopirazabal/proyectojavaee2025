@@ -11,7 +11,6 @@
 <h:body>
     <h:form id="loginForm">
         <p:messages id="msgs" closable="true" showDetail="true" />
-
         <p:panel header="Ingreso">
             <div class="p-fluid">
                 <div class="p-field">
@@ -26,7 +25,7 @@
 
                 <p:commandButton id="loginBtn"
                                  value="Ingresar"
-                                 action="#{loginBean.doLogin}"
+                                 action="#{loginBean.login}"
                                  process="@form"
                                  update="@form" />
             </div>

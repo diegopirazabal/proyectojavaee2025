@@ -43,7 +43,7 @@
             <classifier>jakarta</classifier>
         </dependency>
 
-        <!-- (Opcional) PrimeFaces Extensions (Jakarta) -->
+
         <dependency>
             <groupId>org.primefaces.extensions</groupId>
             <artifactId>primefaces-extensions</artifactId>
@@ -51,7 +51,7 @@
             <classifier>jakarta</classifier>
         </dependency>
 
-        <!-- (Opcional si lo usás) OmniFaces 4.x (Jakarta) -->
+
         <dependency>
             <groupId>org.omnifaces</groupId>
             <artifactId>omnifaces</artifactId>
@@ -62,7 +62,7 @@
     <build>
         <finalName>frontend-profesionales</finalName>
         <plugins>
-            <!-- Enforcer para impedir javax.* en runtime -->
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
@@ -77,7 +77,7 @@
                             <rules>
                                 <bannedDependencies>
                                     <excludes>
-                                        <!-- nada de javax.* empaquetado -->
+
                                         <exclude>javax.servlet:*</exclude>
                                         <exclude>javax.faces:*</exclude>
                                         <exclude>com.sun.faces:*</exclude>

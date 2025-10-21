@@ -24,7 +24,7 @@ public class LoginBean implements Serializable {
     @Inject
     private APIService api;
 
-    /** Debe llamarse igual que en login.xhtml: action="#{loginBean.login}" */
+
     public String login() {
         // TODO: reemplazar por auth real contra backend periférico
         if (api.loginProfesional(username, password)) {

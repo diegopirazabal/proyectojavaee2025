@@ -40,32 +40,14 @@
         <url-pattern>*.xhtml</url-pattern>
     </servlet-mapping>
 
-    <!-- ===== Seguridad: páginas bajo /profesional/* requieren rol "profesional" ===== -->
-    <security-constraint>
-        <web-resource-collection>
-            <web-resource-name>Profesional Pages</web-resource-name>
-            <url-pattern>/profesional/*</url-pattern>
-        </web-resource-collection>
-        <auth-constraint>
-            <role-name>profesional</role-name>
-        </auth-constraint>
-    </security-constraint>
 
-    <login-config>
-        <!-- Si cambias a FORM, deberás definir form-login-page / form-error-page -->
-        <auth-method>BASIC</auth-method>
-    </login-config>
 
-    <security-role>
-        <role-name>profesional</role-name>
-    </security-role>
 
-    <!-- (Opcional) Página inicial -->
     <welcome-file-list>
         <welcome-file>index.xhtml</welcome-file>
     </welcome-file-list>
 
-    <!-- Desactivar todos los web-fragments de librerías (evita registrar listeners javax.*) -->
+
     <absolute-ordering/>
 
 </web-app>
