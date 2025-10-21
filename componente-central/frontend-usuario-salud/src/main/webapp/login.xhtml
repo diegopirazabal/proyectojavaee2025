@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+<h:head>
+    <title>Portal Salud - Ingreso</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <h:outputStylesheet library="css" name="login.css"/>
+</h:head>
+<h:body styleClass="login-body">
+<f:metadata>
+    <f:event type="preRenderView" listener="#{usuarioSaludLoginBean.redirectIfLoggedIn}"/>
+</f:metadata>
+<div class="login-container">
+    <header class="login-header">
+        <h1>Portal Salud</h1>
+        <p>Consulta tu información registrada en HCEN</p>
+    </header>
+
+    <section class="login-content">
+        <p class="login-hint">
+            Accede con las credenciales temporales <strong>user</strong> / <strong>user</strong>.
+        </p>
+
+        <h:form id="loginForm" styleClass="login-form">
+            <p:messages id="messages" showDetail="true" closable="true"/>
+
+            <div class="input-group">
+                <p:outputLabel for="username" value="Usuario"/>
+                <p:inputText id="username"
+                             value="#{usuarioSaludLoginBean.username}"
+                             required="true"
+                             requiredMessage="Debe ingresar un usuario"
+                             placeholder="Ingresa tu usuario"
+                             styleClass="login-input"/>
+            </div>
+
+            <div class="input-group">
+                <p:outputLabel for="password" value="Contraseña"/>
+                <p:password id="password"
+                            value="#{usuarioSaludLoginBean.password}"
+                            required="true"
+                            requiredMessage="Debe ingresar una contraseña"
+                            feedback="false"
+                            placeholder="Ingresa tu contraseña"
+                            styleClass="login-input"/>
+            </div>
+
+            <p:commandButton value="Ingresar"
+                             action="#{usuarioSaludLoginBean.login}"
+                             update="messages"
+                             styleClass="login-button"
+                             icon="pi pi-sign-in"/>
+        </h:form>
+    </section>
+
+    <footer class="login-footer">
+        <p>Historia Clínica Electrónica Nacional</p>
+        <p>© 2025 HCEN - Todos los derechos reservados</p>
+    </footer>
+</div>
+</h:body>
+</html>

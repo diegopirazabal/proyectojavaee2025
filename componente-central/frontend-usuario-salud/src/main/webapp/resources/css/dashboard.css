@@ -15,6 +15,36 @@
     padding: 2.5rem 3rem;
 }
 
+.dashboard-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e4eaf5;
+    padding-bottom: 1rem;
+}
+
+.dashboard-topbar span {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #1f2d3d;
+}
+
+.logout-button {
+    background: transparent;
+    color: #1f2d3d;
+    border: 1px solid #c7d5ee;
+    border-radius: 20px;
+    padding: 0.35rem 1.2rem;
+    font-weight: 600;
+}
+
+.logout-button:hover {
+    background: #eef4ff;
+    border-color: #2364d2;
+    color: #2364d2;
+}
+
 .dashboard-header {
     text-align: center;
     margin-bottom: 2rem;
@@ -107,6 +137,16 @@
 @media (max-width: 768px) {
     .dashboard-container {
         padding: 1.5rem;
+    }
+
+    .dashboard-topbar {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .dashboard-topbar span {
+        text-align: center;
     }
 
     .lookup-form .lookup-grid {

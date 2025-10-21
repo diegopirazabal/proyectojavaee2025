@@ -94,6 +94,18 @@ public class CiudadanoDetalle implements Serializable {
         this.codigoNacionalidad = codigoNacionalidad;
     }
 
+    public String getDescripcionNacionalidad() {
+        if (codigoNacionalidad == null) {
+            return "";
+        }
+        return switch (codigoNacionalidad.trim()) {
+            case "1" -> "URUGUAYA";
+            case "2" -> "EXTRANJERA";
+            case "3" -> "DESCONOCIDA";
+            default -> codigoNacionalidad;
+        };
+    }
+
     public String getNombreEnCedula() {
         return nombreEnCedula;
     }
