@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+<h:head>
+    <title>Dashboard - HCEN</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <h:outputStylesheet library="css" name="styles-frontend-loginOidc.css"/>
+</h:head>
+<h:body>
+    <div class="dashboard-container">
+        <!-- Header con info del usuario -->
+        <div class="user-header">
+            <div class="user-info">
+                <div class="user-avatar">👤</div>
+                <div class="user-details">
+                    <h2>#{oidcDashboardBean.userInfo.fullName}</h2>
+                    <p>#{oidcDashboardBean.userInfo.email}</p>
+                </div>
+            </div>
+            <h:form>
+                <h:commandButton value="Cerrar sesión" 
+                               styleClass="btn-logout"
+                               action="#{oidcDashboardBean.logout}"/>
+            </h:form>
+        </div>
+
+        <!-- Información del Usuario -->
+        <div class="section">
+            <h3>📋 Información del Usuario (gub.uy)</h3>
+            <div class="data-card">
+                <div class="data-row">
+                    <span class="data-label">Subject (sub):</span>
+                    <span class="data-value">#{oidcDashboardBean.userInfo.sub}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Nombre completo:</span>
+                    <span class="data-value">#{oidcDashboardBean.userInfo.fullName}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Email:</span>
+                    <span class="data-value">#{oidcDashboardBean.userInfo.email}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Email verificado:</span>
+                    <span class="data-value">
+                        <span class="badge #{oidcDashboardBean.userInfo.emailVerified ? 'badge-success' : 'badge-info'}">
+                            #{oidcDashboardBean.userInfo.emailVerified ? 'Sí' : 'No'}
+                        </span>
+                    </span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Documento:</span>
+                    <span class="data-value">#{oidcDashboardBean.userInfo.documentType} #{oidcDashboardBean.userInfo.documentNumber}</span>
+                </div>
+                <ui:fragment rendered="#{not empty oidcDashboardBean.userInfo.uid}">
+                    <div class="data-row">
+                        <span class="data-label">UID:</span>
+                        <span class="data-value">#{oidcDashboardBean.userInfo.uid}</span>
+                    </div>
+                </ui:fragment>
+            </div>
+        </div>
+
+        <!-- JWT Token Local -->
+        <div class="section">
+            <h3>🔑 JWT Token Local (Sistema HCEN)</h3>
+            <div class="data-card">
+                <div class="data-row">
+                    <span class="data-label">Access Token:</span>
+                    <span class="data-value">
+                        <span class="badge badge-success">Activo</span>
+                    </span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Token Type:</span>
+                    <span class="data-value">#{oidcDashboardBean.jwtToken.tokenType}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Expira en:</span>
+                    <span class="data-value">#{oidcDashboardBean.jwtToken.expiresIn} segundos</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Roles:</span>
+                    <span class="data-value">
+                        <ui:repeat value="#{oidcDashboardBean.jwtToken.roles}" var="role">
+                            <span class="badge badge-info">#{role}</span>#{' '}
+                        </ui:repeat>
+                    </span>
+                </div>
+            </div>
+            
+            <h:panelGroup rendered="#{not empty oidcDashboardBean.jwtToken.accessToken}">
+                <p style="margin-top: 10px; margin-bottom: 5px; font-weight: 600; color: #555;">
+                    Access Token JWT (primeros 100 caracteres):
+                </p>
+                <div class="token-display">
+                    #{oidcDashboardBean.truncatedAccessToken}...
+                </div>
+            </h:panelGroup>
+        </div>
+
+        <!-- ID Token de gub.uy -->
+        <div class="section">
+            <h3>🌐 ID Token de gub.uy</h3>
+            <div class="data-card">
+                <div class="data-row">
+                    <span class="data-label">Issuer:</span>
+                    <span class="data-value">#{oidcDashboardBean.idTokenClaims.issuer}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Audience:</span>
+                    <span class="data-value">#{oidcDashboardBean.idTokenClaims.audience}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Issued At:</span>
+                    <span class="data-value">#{oidcDashboardBean.formattedIssuedAt}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Expiration:</span>
+                    <span class="data-value">#{oidcDashboardBean.formattedExpiration}</span>
+                </div>
+            </div>
+            
+            <h:panelGroup rendered="#{not empty oidcDashboardBean.rawIdToken}">
+                <p style="margin-top: 10px; margin-bottom: 5px; font-weight: 600; color: #555;">
+                    ID Token completo (primeros 100 caracteres):
+                </p>
+                <div class="token-display">
+                    #{oidcDashboardBean.truncatedIdToken}...
+                </div>
+            </h:panelGroup>
+        </div>
+
+        <!-- Información de Sesión -->
+        <div class="section">
+            <h3>⏱️ Información de Sesión</h3>
+            <div class="data-card">
+                <div class="data-row">
+                    <span class="data-label">Session ID:</span>
+                    <span class="data-value">#{oidcDashboardBean.sessionId}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Creada:</span>
+                    <span class="data-value">#{oidcDashboardBean.formattedSessionCreated}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Estado:</span>
+                    <span class="data-value">
+                        <span class="badge badge-success">Activa</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</h:body>
+</html>

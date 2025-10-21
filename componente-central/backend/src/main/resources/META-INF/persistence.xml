@@ -10,6 +10,8 @@
         <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
         
         <class>hcen.central.inus.entity.AdminHCEN</class>
+        <class>hcen.central.inus.entity.OIDCUser</class>
+        <class>hcen.central.inus.entity.OIDCSession</class>
         
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
