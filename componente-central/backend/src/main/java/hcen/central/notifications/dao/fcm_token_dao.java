@@ -163,4 +163,15 @@ public class fcm_token_dao {
         query.setParameter("usuarioId", usuarioId);
         return query.getSingleResult();
     }
+
+    /**
+     * Obtener todos los tokens activos del sistema (para notificaciones broadcast)
+     */
+    public List<FCMToken> findAllActiveTokens() {
+        TypedQuery<FCMToken> query = em.createQuery(
+            "SELECT t FROM FCMToken t WHERE t.active = true ORDER BY t.createdAt DESC",
+            FCMToken.class
+        );
+        return query.getResultList();
+    }
 }

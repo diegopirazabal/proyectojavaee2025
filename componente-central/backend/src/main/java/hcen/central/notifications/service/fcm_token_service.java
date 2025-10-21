@@ -144,4 +144,14 @@ public class fcm_token_service {
         }
         return dao.countActiveTokensByUsuarioId(usuarioId);
     }
+
+    /**
+     * Obtener todos los tokens activos del sistema
+     * Usado para notificaciones broadcast a todos los usuarios
+     */
+    public List<FCMToken> getAllActiveTokens() {
+        List<FCMToken> tokens = dao.findAllActiveTokens();
+        logger.info("Obtenidos " + tokens.size() + " tokens activos del sistema");
+        return tokens;
+    }
 }

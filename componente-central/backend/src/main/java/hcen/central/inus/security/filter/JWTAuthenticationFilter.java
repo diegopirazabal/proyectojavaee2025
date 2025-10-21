@@ -37,7 +37,11 @@ public class JWTAuthenticationFilter implements Filter {
     private static final List<String> PUBLIC_PATHS = Arrays.asList(
             "/api/auth/login",
             "/api/auth/callback",
-            "/api/auth/refresh"
+            "/api/auth/refresh",
+            "/api/fcm/register",              // Registro de token FCM desde mobile
+            "/api/fcm/unregister",            // Eliminación de token FCM
+            "/api/notifications/broadcast-test",  // Envío de notificación de prueba desde AdminHCEN
+            "/api/usuarios-salud"             // Listado de usuarios (usado por AdminHCEN)
     );
 
     @Override

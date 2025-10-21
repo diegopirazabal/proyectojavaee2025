@@ -154,12 +154,17 @@ public class MainActivity extends AppCompatActivity {
      */
     private void registrarTokenEnBackend(String token) {
         SharedPreferences prefs = getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE);
-        // Usar la C.I. guardada como userId
-        String userId = prefs.getString(Constants.PREF_USER_CI, "unknown");
-        String deviceInfo = Build.MODEL + " (" + Build.VERSION.RELEASE + ")";
+
+        // Obtener información del dispositivo
+        String deviceId = android.provider.Settings.Secure.getString(
+                getContentResolver(),
+                android.provider.Settings.Secure.ANDROID_ID
+        );
+        String deviceModel = Build.MODEL;
+        String osVersion = "Android " + Build.VERSION.RELEASE;
 
         NotificacionRepository repository = NotificacionRepository.getInstance(getApplicationContext());
-        repository.registrarTokenFCM(token, userId, deviceInfo,
+        repository.registrarTokenFCM(token, deviceId, deviceModel, osVersion,
                 new NotificacionRepository.TokenCallback() {
             @Override
             public void onSuccess() {

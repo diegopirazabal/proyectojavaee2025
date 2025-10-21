@@ -4,25 +4,30 @@ import com.google.gson.annotations.SerializedName;
 
 /**
  * DTO para registrar el token FCM en el backend
+ * Debe coincidir con FCMTokenRequest del backend
  */
 public class FCMTokenDTO {
 
     @SerializedName("token")
     private String token;
 
-    @SerializedName("userId")
-    private String userId;
+    @SerializedName("deviceId")
+    private String deviceId;
 
-    @SerializedName("deviceInfo")
-    private String deviceInfo;
+    @SerializedName("deviceModel")
+    private String deviceModel;
+
+    @SerializedName("osVersion")
+    private String osVersion;
 
     public FCMTokenDTO() {
     }
 
-    public FCMTokenDTO(String token, String userId, String deviceInfo) {
+    public FCMTokenDTO(String token, String deviceId, String deviceModel, String osVersion) {
         this.token = token;
-        this.userId = userId;
-        this.deviceInfo = deviceInfo;
+        this.deviceId = deviceId;
+        this.deviceModel = deviceModel;
+        this.osVersion = osVersion;
     }
 
     public String getToken() {
@@ -33,19 +38,27 @@ public class FCMTokenDTO {
         this.token = token;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getDeviceId() {
+        return deviceId;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
     }
 
-    public String getDeviceInfo() {
-        return deviceInfo;
+    public String getDeviceModel() {
+        return deviceModel;
     }
 
-    public void setDeviceInfo(String deviceInfo) {
-        this.deviceInfo = deviceInfo;
+    public void setDeviceModel(String deviceModel) {
+        this.deviceModel = deviceModel;
+    }
+
+    public String getOsVersion() {
+        return osVersion;
+    }
+
+    public void setOsVersion(String osVersion) {
+        this.osVersion = osVersion;
     }
 }
