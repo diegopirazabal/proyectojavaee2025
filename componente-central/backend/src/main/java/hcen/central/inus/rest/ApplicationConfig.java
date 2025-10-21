@@ -7,7 +7,7 @@ import jakarta.ws.rs.core.Application;
  * Configuración de JAX-RS Application
  * Define el path base para todos los endpoints REST
  */
-@ApplicationPath("/api")
+@ApplicationPath("/")
 public class ApplicationConfig extends Application {
     // No necesita métodos adicionales
     // Todos los recursos con @Path serán descubiertos automáticamente
