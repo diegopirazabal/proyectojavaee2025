@@ -1,8 +1,0 @@
-/home/diego/Developer/proyectojavaee2025/mock-dnic/src/main/java/com/hcen/mockdnic/config/MockDnicDataSourceConfig.java
-/home/diego/Developer/proyectojavaee2025/mock-dnic/src/main/java/com/hcen/mockdnic/dominio/Ciudadano.java
-/home/diego/Developer/proyectojavaee2025/mock-dnic/src/main/java/com/hcen/mockdnic/dominio/ciudadano_id.java
-/home/diego/Developer/proyectojavaee2025/mock-dnic/src/main/java/com/hcen/mockdnic/excepciones/ciudadano_no_encontrado_exception.java
-/home/diego/Developer/proyectojavaee2025/mock-dnic/src/main/java/com/hcen/mockdnic/ws/ciudadano_servicio_web.java
-/home/diego/Developer/proyectojavaee2025/mock-dnic/src/main/java/com/hcen/mockdnic/ws/dto/ciudadano_no_encontrado_fault.java
-/home/diego/Developer/proyectojavaee2025/mock-dnic/src/main/java/com/hcen/mockdnic/ws/dto/respuesta_ciudadano.java
-/home/diego/Developer/proyectojavaee2025/mock-dnic/src/main/java/com/hcen/mockdnic/ws/dto/solicitud_ciudadano.java
