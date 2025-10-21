@@ -8,6 +8,7 @@ import jakarta.ejb.EJB;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
 
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,8 +37,34 @@ public class DefaultAdminInitializer {
     @PostConstruct
     public void ensureDefaultAdmin() {
         try {
-            if (adminDao.existsByUsername(DEFAULT_USERNAME)) {
-                LOGGER.fine(() -> "Default HCEN admin already present.");
+            Optional<admin_hcen> existingAdminOpt = adminDao.findByUsernameIncludingInactive(DEFAULT_USERNAME);
+
+            if (existingAdminOpt.isPresent()) {
+                admin_hcen existingAdmin = existingAdminOpt.get();
+                boolean reactivated = false;
+                boolean passwordRepaired = false;
+
+                if (!Boolean.TRUE.equals(existingAdmin.getActive())) {
+                    existingAdmin.setActive(true);
+                    adminDao.save(existingAdmin);
+                    reactivated = true;
+                }
+
+                if (needsPasswordRepair(existingAdmin.getPasswordHash())) {
+                    if (existingAdmin.getId() == null) {
+                        adminDao.save(existingAdmin);
+                    }
+                    authenticationService.resetPassword(existingAdmin.getId(), DEFAULT_PASSWORD);
+                    passwordRepaired = true;
+                }
+
+                if (reactivated || passwordRepaired) {
+                    LOGGER.info(String.format(
+                            "Default HCEN admin normalized (reactivated=%s, passwordReset=%s).",
+                            reactivated, passwordRepaired));
+                } else {
+                    LOGGER.fine(() -> "Default HCEN admin already present.");
+                }
                 return;
             }
 
@@ -54,5 +81,15 @@ public class DefaultAdminInitializer {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to provision default HCEN admin user.", e);
         }
+    }
+
+    private boolean needsPasswordRepair(String passwordHash) {
+        if (passwordHash == null || passwordHash.isBlank()) {
+            return true;
+        }
+
+        return !(passwordHash.startsWith("$2a$")
+                || passwordHash.startsWith("$2b$")
+                || passwordHash.startsWith("$2y$"));
     }
 }

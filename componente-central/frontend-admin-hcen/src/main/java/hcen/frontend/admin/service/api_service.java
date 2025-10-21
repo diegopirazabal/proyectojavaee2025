@@ -70,6 +70,10 @@ public class api_service {
         }
         return false;
     }
+
+    public String getOidcLoginUrl() {
+        return backendUrl + "/auth/login";
+    }
     
     private admin_hcen_dto parseAdminFromJson(String jsonString) {
         try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
