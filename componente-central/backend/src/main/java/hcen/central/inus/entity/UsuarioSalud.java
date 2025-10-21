@@ -9,7 +9,7 @@ import java.util.Objects;
  * Maps gub.uy users to local database
  */
 @Entity
-public class OIDCUser {
+public class UsuarioSalud {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,9 +51,9 @@ public class OIDCUser {
         updatedAt = Instant.now();
     }
     
-    public OIDCUser() {}
+    public UsuarioSalud() {}
     
-    public OIDCUser(String sub, String email, String fullName) {
+    public UsuarioSalud(String sub, String email, String fullName) {
         this.sub = sub;
         this.email = email;
         this.fullName = fullName;
@@ -113,8 +113,8 @@ public class OIDCUser {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        OIDCUser oidcUser = (OIDCUser) o;
-        return Objects.equals(sub, oidcUser.sub);
+        UsuarioSalud usuarioSalud = (UsuarioSalud) o;
+        return Objects.equals(sub, usuarioSalud.sub);
     }
     
     @Override
@@ -124,7 +124,7 @@ public class OIDCUser {
     
     @Override
     public String toString() {
-        return "OIDCUser{" +
+        return "UsuarioSalud{" +
                 "id=" + id +
                 ", sub='" + sub + '\'' +
                 ", email='" + email + '\'' +

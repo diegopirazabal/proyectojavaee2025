@@ -7,7 +7,7 @@ import hcen.central.inus.dto.OIDCAuthRequest;
 import hcen.central.inus.dto.OIDCTokenResponse;
 import hcen.central.inus.dto.OIDCUserInfo;
 import hcen.central.inus.entity.OIDCSession;
-import hcen.central.inus.entity.OIDCUser;
+import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.security.oidc.OIDCAuthenticationService;
 import hcen.central.inus.security.oidc.OIDCCallbackHandler;
 import hcen.central.inus.security.oidc.OIDCUserInfoService;
@@ -169,7 +169,7 @@ public class OIDCAuthResource {
                 String userSub = tokenResponse.getUserSub();
                 
                 // Obtener usuario de la BD
-                OIDCUser user = userDAO.findBySub(userSub);
+                UsuarioSalud user = userDAO.findBySub(userSub);
                 
                 // Obtener sesión OIDC de la BD (la más reciente)
                 List<OIDCSession> sessions = sessionDAO.findByUserSub(userSub);
@@ -338,7 +338,7 @@ public class OIDCAuthResource {
             // TODO: Validar token y extraer userSub
             // Claims claims = jwtTokenProvider.validateAccessToken(token);
             // String userSub = claims.getSubject();
-            // OIDCUser user = userDAO.findBySub(userSub);
+            // UsuarioSalud user = userDAO.findBySub(userSub);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Endpoint /me - TODO: Implementar validación JWT y retornar info del usuario");

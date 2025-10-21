@@ -7,7 +7,7 @@ import hcen.central.inus.dto.OIDCAuthRequest;
 import hcen.central.inus.dto.OIDCTokenResponse;
 import hcen.central.inus.dto.OIDCUserInfo;
 import hcen.central.inus.entity.OIDCSession;
-import hcen.central.inus.entity.OIDCUser;
+import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.security.config.OIDCConfiguration;
 import hcen.central.inus.security.jwt.JWTTokenProvider;
 import hcen.central.inus.security.pkce.PKCEGenerator;
@@ -122,7 +122,7 @@ public class OIDCAuthenticationService {
         OIDCUserInfo userInfo = userInfoService.getUserInfo(tokenResponse.getAccessToken());
 
         // 5. Crear o actualizar usuario en la base de datos
-        OIDCUser user = createOrUpdateUser(userInfo, tokenResponse);
+        UsuarioSalud user = createOrUpdateUser(userInfo, tokenResponse);
 
         // 6. Crear sesión OIDC
         OIDCSession session = createSession(user, tokenResponse);
@@ -137,16 +137,16 @@ public class OIDCAuthenticationService {
     /**
      * Crea o actualiza un usuario en la base de datos
      */
-    private OIDCUser createOrUpdateUser(OIDCUserInfo userInfo, OIDCTokenResponse tokenResponse) {
+    private UsuarioSalud createOrUpdateUser(OIDCUserInfo userInfo, OIDCTokenResponse tokenResponse) {
         String sub = userInfo.getSub();
 
         // Buscar usuario existente
-        OIDCUser user = userDAO.findBySub(sub);
+        UsuarioSalud user = userDAO.findBySub(sub);
 
         if (user == null) {
             // Crear nuevo usuario
             LOGGER.info("Creando nuevo usuario con sub: " + sub);
-            user = new OIDCUser();
+            user = new UsuarioSalud();
             user.setSub(sub);
             user.setCreatedAt(Instant.now());
         } else {
@@ -178,7 +178,7 @@ public class OIDCAuthenticationService {
     /**
      * Crea una sesión OIDC para el usuario
      */
-    private OIDCSession createSession(OIDCUser user, OIDCTokenResponse tokenResponse) {
+    private OIDCSession createSession(UsuarioSalud user, OIDCTokenResponse tokenResponse) {
         LOGGER.info("Creando sesión OIDC para usuario: " + user.getSub());
 
         OIDCSession session = new OIDCSession();
@@ -209,7 +209,7 @@ public class OIDCAuthenticationService {
     /**
      * Genera JWT propios de la aplicación para el usuario autenticado
      */
-    private JWTTokenResponse generateApplicationJWT(OIDCUser user, OIDCSession session) {
+    private JWTTokenResponse generateApplicationJWT(UsuarioSalud user, OIDCSession session) {
         LOGGER.info("Generando JWT propio de la aplicación para usuario: " + user.getSub());
 
         // Roles del usuario (por ahora, rol básico "USER")
@@ -249,7 +249,7 @@ public class OIDCAuthenticationService {
         String userSub = claims.getSubject();
 
         // Buscar usuario
-        OIDCUser user = userDAO.findBySub(userSub);
+        UsuarioSalud user = userDAO.findBySub(userSub);
         if (user == null || !user.isActive()) {
             throw new SecurityException("Usuario no encontrado o inactivo");
         }

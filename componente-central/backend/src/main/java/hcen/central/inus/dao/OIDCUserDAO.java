@@ -1,6 +1,6 @@
 package hcen.central.inus.dao;
 
-import hcen.central.inus.entity.OIDCUser;
+import hcen.central.inus.entity.UsuarioSalud;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
@@ -12,7 +12,7 @@ import java.util.Optional;
 
 /**
  * DAO para persistencia de usuarios autenticados via OIDC
- * Operaciones CRUD sobre OIDCUser
+ * Operaciones CRUD sobre UsuarioSalud
  */
 @Stateless
 public class OIDCUserDAO {
@@ -23,7 +23,7 @@ public class OIDCUserDAO {
     /**
      * Guarda o actualiza un usuario OIDC
      */
-    public OIDCUser save(OIDCUser user) {
+    public UsuarioSalud save(UsuarioSalud user) {
         if (user.getId() == null) {
             em.persist(user);
             return user;
@@ -35,19 +35,19 @@ public class OIDCUserDAO {
     /**
      * Busca usuario por ID
      */
-    public Optional<OIDCUser> findById(Long id) {
-        OIDCUser user = em.find(OIDCUser.class, id);
+    public Optional<UsuarioSalud> findById(Long id) {
+        UsuarioSalud user = em.find(UsuarioSalud.class, id);
         return Optional.ofNullable(user);
     }
     
     /**
      * Busca usuario por subject (identificador de gub.uy) - retorna Optional
      */
-    public Optional<OIDCUser> findBySubOptional(String sub) {
+    public Optional<UsuarioSalud> findBySubOptional(String sub) {
         try {
-            TypedQuery<OIDCUser> query = em.createQuery(
-                "SELECT u FROM OIDCUser u WHERE u.sub = :sub AND u.active = true",
-                OIDCUser.class
+            TypedQuery<UsuarioSalud> query = em.createQuery(
+                "SELECT u FROM UsuarioSalud u WHERE u.sub = :sub AND u.active = true",
+                UsuarioSalud.class
             );
             query.setParameter("sub", sub);
             return Optional.of(query.getSingleResult());
@@ -57,20 +57,20 @@ public class OIDCUserDAO {
     }
     
     /**
-     * Busca usuario por subject (identificador de gub.uy) - retorna OIDCUser o null
+     * Busca usuario por subject (identificador de gub.uy) - retorna UsuarioSalud o null
      */
-    public OIDCUser findBySub(String sub) {
+    public UsuarioSalud findBySub(String sub) {
         return findBySubOptional(sub).orElse(null);
     }
     
     /**
      * Busca usuario por email
      */
-    public Optional<OIDCUser> findByEmail(String email) {
+    public Optional<UsuarioSalud> findByEmail(String email) {
         try {
-            TypedQuery<OIDCUser> query = em.createQuery(
-                "SELECT u FROM OIDCUser u WHERE u.email = :email AND u.active = true",
-                OIDCUser.class
+            TypedQuery<UsuarioSalud> query = em.createQuery(
+                "SELECT u FROM UsuarioSalud u WHERE u.email = :email AND u.active = true",
+                UsuarioSalud.class
             );
             query.setParameter("email", email);
             return Optional.of(query.getSingleResult());
@@ -82,11 +82,11 @@ public class OIDCUserDAO {
     /**
      * Busca usuario por número de documento
      */
-    public Optional<OIDCUser> findByDocumento(String numeroDocumento) {
+    public Optional<UsuarioSalud> findByDocumento(String numeroDocumento) {
         try {
-            TypedQuery<OIDCUser> query = em.createQuery(
-                "SELECT u FROM OIDCUser u WHERE u.numeroDocumento = :doc AND u.active = true",
-                OIDCUser.class
+            TypedQuery<UsuarioSalud> query = em.createQuery(
+                "SELECT u FROM UsuarioSalud u WHERE u.numeroDocumento = :doc AND u.active = true",
+                UsuarioSalud.class
             );
             query.setParameter("doc", numeroDocumento);
             return Optional.of(query.getSingleResult());
@@ -98,10 +98,10 @@ public class OIDCUserDAO {
     /**
      * Lista todos los usuarios activos
      */
-    public List<OIDCUser> findAll() {
-        TypedQuery<OIDCUser> query = em.createQuery(
-            "SELECT u FROM OIDCUser u WHERE u.active = true ORDER BY u.createdAt DESC",
-            OIDCUser.class
+    public List<UsuarioSalud> findAll() {
+        TypedQuery<UsuarioSalud> query = em.createQuery(
+            "SELECT u FROM UsuarioSalud u WHERE u.active = true ORDER BY u.createdAt DESC",
+            UsuarioSalud.class
         );
         return query.getResultList();
     }
@@ -109,10 +109,10 @@ public class OIDCUserDAO {
     /**
      * Lista todos los usuarios (incluyendo inactivos)
      */
-    public List<OIDCUser> findAllIncludingInactive() {
-        TypedQuery<OIDCUser> query = em.createQuery(
-            "SELECT u FROM OIDCUser u ORDER BY u.createdAt DESC",
-            OIDCUser.class
+    public List<UsuarioSalud> findAllIncludingInactive() {
+        TypedQuery<UsuarioSalud> query = em.createQuery(
+            "SELECT u FROM UsuarioSalud u ORDER BY u.createdAt DESC",
+            UsuarioSalud.class
         );
         return query.getResultList();
     }
@@ -121,7 +121,7 @@ public class OIDCUserDAO {
      * Actualiza el último login del usuario
      */
     public void updateLastLogin(String sub) {
-        OIDCUser user = findBySub(sub);
+        UsuarioSalud user = findBySub(sub);
         if (user != null) {
             user.setLastLogin(Instant.now());
             em.merge(user);
@@ -132,7 +132,7 @@ public class OIDCUserDAO {
      * Desactiva un usuario
      */
     public void deactivate(String sub) {
-        OIDCUser user = findBySub(sub);
+        UsuarioSalud user = findBySub(sub);
         if (user != null) {
             user.setActive(false);
             em.merge(user);
@@ -143,13 +143,13 @@ public class OIDCUserDAO {
      * Activa un usuario
      */
     public void activate(String sub) {
-        TypedQuery<OIDCUser> query = em.createQuery(
-            "SELECT u FROM OIDCUser u WHERE u.sub = :sub",
-            OIDCUser.class
+        TypedQuery<UsuarioSalud> query = em.createQuery(
+            "SELECT u FROM UsuarioSalud u WHERE u.sub = :sub",
+            UsuarioSalud.class
         );
         query.setParameter("sub", sub);
         try {
-            OIDCUser user = query.getSingleResult();
+            UsuarioSalud user = query.getSingleResult();
             user.setActive(true);
             em.merge(user);
         } catch (NoResultException e) {
@@ -162,7 +162,7 @@ public class OIDCUserDAO {
      */
     public boolean existsBySub(String sub) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(u) FROM OIDCUser u WHERE u.sub = :sub",
+            "SELECT COUNT(u) FROM UsuarioSalud u WHERE u.sub = :sub",
             Long.class
         );
         query.setParameter("sub", sub);
@@ -174,7 +174,7 @@ public class OIDCUserDAO {
      */
     public boolean existsByEmail(String email) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(u) FROM OIDCUser u WHERE u.email = :email",
+            "SELECT COUNT(u) FROM UsuarioSalud u WHERE u.email = :email",
             Long.class
         );
         query.setParameter("email", email);
@@ -185,7 +185,7 @@ public class OIDCUserDAO {
      * Elimina un usuario (hard delete)
      */
     public void delete(String sub) {
-        OIDCUser user = findBySub(sub);
+        UsuarioSalud user = findBySub(sub);
         if (user != null) {
             em.remove(user);
         }

@@ -5,7 +5,7 @@ package hcen.central.inus.security.exceptions;
  * 
  * Casos de uso:
  * - Usuario autenticado en gub.uy pero no existe en base de datos local
- * - Subject (sub) del token no corresponde a ningún OIDCUser
+ * - Subject (sub) del token no corresponde a ningún UsuarioSalud
  * - Usuario fue desactivado o eliminado del sistema
  * - Email/username no encontrado en OIDCUserDAO
  * 
