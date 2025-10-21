@@ -12,6 +12,10 @@
 
 WARP.md
 .idea
+
+# Maven build directories
+target/
+**/target/
 # Package Files #
 *.jar
 *.war
