@@ -4,10 +4,15 @@ import hcen.frontend.admin.dto.admin_hcen_dto;
 import hcen.frontend.admin.service.api_service;
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.application.FacesMessage;
+import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.io.Serializable;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -17,6 +22,10 @@ public class login_bean implements Serializable {
 
     private static final String TEMP_ADMIN_USERNAME = "admin";
     private static final String TEMP_ADMIN_PASSWORD = "admin";
+    private static final String TEMP_USER_USERNAME = "user";
+    private static final String TEMP_USER_PASSWORD = "user";
+    private static final String TEMP_USER_DOC_TYPE = "DO";
+    private static final String TEMP_USER_DOC_NUMBER = "85335898";
     
     private String username;
     private String password;
@@ -41,6 +50,11 @@ public class login_bean implements Serializable {
                         "Login exitoso como administrador temporal"));
 
                 return "admin/dashboard?faces-redirect=true";
+            }
+
+            if (isTemporaryUsuarioSaludCredentials()) {
+                redirectToUsuarioSaludDashboard(context);
+                return null;
             }
 
             admin_hcen_dto admin = apiService.authenticate(username, password);
@@ -146,6 +160,10 @@ public class login_bean implements Serializable {
         return TEMP_ADMIN_USERNAME.equals(username) && TEMP_ADMIN_PASSWORD.equals(password);
     }
 
+    private boolean isTemporaryUsuarioSaludCredentials() {
+        return TEMP_USER_USERNAME.equals(username) && TEMP_USER_PASSWORD.equals(password);
+    }
+
     private admin_hcen_dto createTemporaryAdmin() {
         admin_hcen_dto admin = new admin_hcen_dto();
         admin.setId(0L);
@@ -159,5 +177,35 @@ public class login_bean implements Serializable {
         admin.setCreatedAt(now);
         admin.setLastLogin(now);
         return admin;
+    }
+
+    private void redirectToUsuarioSaludDashboard(FacesContext context) throws IOException {
+        ExternalContext externalContext = context.getExternalContext();
+        String targetUrl = buildUsuarioSaludDashboardUrl(externalContext);
+        externalContext.redirect(targetUrl);
+    }
+
+    private String buildUsuarioSaludDashboardUrl(ExternalContext externalContext) {
+        HttpServletRequest request = (HttpServletRequest) externalContext.getRequest();
+        StringBuilder urlBuilder = new StringBuilder();
+        urlBuilder.append(request.getScheme())
+            .append("://")
+            .append(request.getServerName());
+
+        boolean isDefaultPort = ("http".equals(request.getScheme()) && request.getServerPort() == 80)
+            || ("https".equals(request.getScheme()) && request.getServerPort() == 443);
+        if (!isDefaultPort) {
+            urlBuilder.append(":").append(request.getServerPort());
+        }
+
+        urlBuilder.append("/frontend-usuario-salud/dashboard.xhtml");
+        urlBuilder.append("?docType=").append(encodeUrlComponent(TEMP_USER_DOC_TYPE));
+        urlBuilder.append("&docNumber=").append(encodeUrlComponent(TEMP_USER_DOC_NUMBER));
+
+        return urlBuilder.toString();
+    }
+
+    private String encodeUrlComponent(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }
