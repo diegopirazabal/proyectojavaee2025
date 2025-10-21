@@ -15,7 +15,7 @@
 <h:body>
     
     <f:metadata>
-        <f:event type="preRenderView" listener="#{loginBean.checkAuthentication}"/>
+        <f:event type="preRenderView" listener="#{login_bean.checkAuthentication}"/>
     </f:metadata>
 
     <div class="dashboard-container">
@@ -28,11 +28,11 @@
                 </div>
                 
                 <div class="user-section">
-                    <p:outputPanel rendered="#{loginBean.loggedIn}">
-                        <span class="welcome-text">Bienvenido, #{loginBean.loggedAdmin.fullName}</span>
+                    <p:outputPanel rendered="#{login_bean.loggedIn}">
+                        <span class="welcome-text">Bienvenido, #{login_bean.loggedAdmin.fullName}</span>
                         <h:form style="display: inline;">
                             <p:commandButton value="Cerrar Sesión" 
-                                           action="#{loginBean.logout}"
+                                           action="#{login_bean.logout}"
                                            styleClass="logout-button"
                                            icon="pi pi-sign-out"/>
                         </h:form>
@@ -57,18 +57,18 @@
                                 <h3><i class="pi pi-user"></i> Información del Administrador</h3>
                             </div>
                             <div class="card-content">
-                                <p><strong>Usuario:</strong> #{loginBean.loggedAdmin.username}</p>
-                                <p><strong>Nombre:</strong> #{loginBean.loggedAdmin.fullName}</p>
-                                <p><strong>Email:</strong> #{loginBean.loggedAdmin.email}</p>
+                                <p><strong>Usuario:</strong> #{login_bean.loggedAdmin.username}</p>
+                                <p><strong>Nombre:</strong> #{login_bean.loggedAdmin.fullName}</p>
+                                <p><strong>Email:</strong> #{login_bean.loggedAdmin.email}</p>
                                 <p><strong>Estado:</strong> 
-                                    <span class="status-active">#{loginBean.loggedAdmin.active ? 'Activo' : 'Inactivo'}</span>
+                                    <span class="status-active">#{login_bean.loggedAdmin.active ? 'Activo' : 'Inactivo'}</span>
                                 </p>
                                 <p><strong>Último acceso:</strong> 
-                                    <h:outputText value="#{loginBean.loggedAdmin.lastLogin}" 
-                                                 rendered="#{loginBean.loggedAdmin.lastLogin != null}">
+                                    <h:outputText value="#{login_bean.loggedAdmin.lastLogin}" 
+                                                 rendered="#{login_bean.loggedAdmin.lastLogin != null}">
                                         <f:convertDateTime pattern="dd/MM/yyyy HH:mm"/>
                                     </h:outputText>
-                                    <span rendered="#{loginBean.loggedAdmin.lastLogin == null}">Primer acceso</span>
+                                    <span rendered="#{login_bean.loggedAdmin.lastLogin == null}">Primer acceso</span>
                                 </p>
                             </div>
                         </div>
@@ -92,6 +92,12 @@
                                 <h3><i class="pi pi-bolt"></i> Acciones Rápidas</h3>
                             </div>
                             <div class="card-content">
+                                <p:commandButton value="Enviar Notificación de Prueba"
+                                               styleClass="action-button"
+                                               icon="pi pi-bell"
+                                               action="#{notification_bean.sendTestNotification}"
+                                               update="messages"/>
+                                <br/><br/>
                                 <p:commandButton value="Gestionar Clínicas" 
                                                styleClass="action-button"
                                                icon="pi pi-building"/>

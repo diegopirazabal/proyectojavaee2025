@@ -1,0 +1,7 @@
+hcen/central/inus/dao/admin_hcen_dao.class
+hcen/central/inus/entity/admin_hcen.class
+hcen/central/inus/config/FirebaseInitializer.class
+hcen/central/inus/service/notification_service.class
+hcen/central/inus/service/authentication_service.class
+hcen/central/RestApplication.class
+hcen/central/inus/api/notification_resource.class

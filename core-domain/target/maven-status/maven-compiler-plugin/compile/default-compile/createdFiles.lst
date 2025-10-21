@@ -1,0 +1,10 @@
+com/hcen/core/domain/clinica.class
+com/hcen/core/domain/usuario_salud.class
+com/hcen/core/domain/politica_acceso.class
+com/hcen/core/domain/historia_clinica.class
+com/hcen/core/domain/profesional_salud.class
+com/hcen/core/domain/administrador_hcen.class
+com/hcen/core/domain/notificacion.class
+com/hcen/core/domain/administrador_clinica.class
+com/hcen/core/domain/configuracion_clinica.class
+com/hcen/core/domain/documento_clinico.class
