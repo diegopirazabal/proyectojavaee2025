@@ -27,4 +27,12 @@
     <string name="historia_placeholder_title">Historia Clínica</string>
     <string name="historia_placeholder_message">Esta funcionalidad se encuentra en implementación</string>
     <string name="historia_placeholder_subtitle">Próximamente podrá visualizar su historia clínica completa</string>
+
+    <!-- Logout -->
+    <string name="action_logout">Cerrar sesión</string>
+    <string name="logout_confirmation_title">Cerrar sesión</string>
+    <string name="logout_confirmation_message">¿Está seguro que desea cerrar sesión?</string>
+    <string name="logout_success">Sesión cerrada exitosamente</string>
+    <string name="button_cancel">Cancelar</string>
+    <string name="button_logout">Cerrar sesión</string>
 </resources>

@@ -2,16 +2,20 @@ package com.example.hcenmobile;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
@@ -22,6 +26,7 @@ import androidx.navigation.ui.NavigationUI;
 import com.example.hcenmobile.databinding.ActivityMainBinding;
 import com.example.hcenmobile.data.repository.NotificacionRepository;
 import com.example.hcenmobile.util.Constants;
+import com.example.hcenmobile.util.SessionManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.messaging.FirebaseMessaging;
 
@@ -168,5 +173,51 @@ public class MainActivity extends AppCompatActivity {
                 // y se puede intentar registrar más tarde
             }
         });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_logout) {
+            mostrarDialogoLogout();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Muestra un diálogo de confirmación para el logout
+     */
+    private void mostrarDialogoLogout() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.logout_confirmation_title)
+                .setMessage(R.string.logout_confirmation_message)
+                .setPositiveButton(R.string.button_logout, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        realizarLogout();
+                    }
+                })
+                .setNegativeButton(R.string.button_cancel, null)
+                .show();
+    }
+
+    /**
+     * Realiza el logout: limpia sesión y redirige a LoginActivity
+     */
+    private void realizarLogout() {
+        // Limpiar sesión usando SessionManager
+        SessionManager.logout(this);
+
+        // Mostrar mensaje
+        Toast.makeText(this, R.string.logout_success, Toast.LENGTH_SHORT).show();
+
+        // Redirigir a LoginActivity
+        redirigirALogin();
     }
 }

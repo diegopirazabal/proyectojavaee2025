@@ -49,10 +49,10 @@
         <!-- Configuración de Firebase (metadata opcional para icono y color de notificaciones) -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ic_launcher_foreground" />
+            android:resource="@mipmap/ic_launcher" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
-            android:resource="@color/purple_500" />
+            android:resource="@color/blue_500" />
 
     </application>
 
