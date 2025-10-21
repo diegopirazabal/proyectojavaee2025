@@ -40,6 +40,15 @@
     margin: 0 0 30px 0;
 }
 
+.login-note {
+    background: #f4f6fb;
+    border-radius: 6px;
+    color: #476282;
+    font-size: 0.9em;
+    margin: 0;
+    padding: 10px 15px;
+}
+
 .login-form {
     margin: 30px 0;
 }
@@ -101,6 +110,75 @@
     border-top: 1px solid #ecf0f1;
 }
 
+.login-divider {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    margin: 10px 0 25px 0;
+}
+
+.login-divider span {
+    background: white;
+    color: #a0b4c7;
+    font-size: 0.85em;
+    margin: 0 12px;
+    padding: 0 10px;
+    position: relative;
+}
+
+.login-divider::before,
+.login-divider::after {
+    background: #ecf0f1;
+    content: "";
+    display: block;
+    flex: 1;
+    height: 1px;
+    max-width: 120px;
+}
+
+.oidc-section {
+    background: #f7f9fc;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.oidc-section h3 {
+    color: #2c3e50;
+    margin-top: 0;
+}
+
+.oidc-description {
+    color: #60758c;
+    font-size: 0.9em;
+    margin-bottom: 20px;
+}
+
+.oidc-button {
+    align-items: center;
+    background: linear-gradient(135deg, #1d976c, #2cc197);
+    border-radius: 5px;
+    color: white;
+    display: inline-flex;
+    font-weight: 600;
+    gap: 10px;
+    justify-content: center;
+    padding: 12px 20px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.oidc-button:hover {
+    filter: brightness(1.05);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(45, 206, 137, 0.3);
+}
+
+.oidc-icon {
+    font-size: 1.2em;
+}
+
 .login-footer p {
     color: #95a5a6;
     font-size: 0.8em;
@@ -137,5 +215,10 @@
     
     .login-header h2 {
         font-size: 1.1em;
+    }
+
+    .login-note,
+    .oidc-section {
+        text-align: left;
     }
 }
