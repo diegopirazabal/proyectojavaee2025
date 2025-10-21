@@ -6,6 +6,7 @@ import hcen.central.inus.dto.OIDCAuthRequest;
 import hcen.central.inus.dto.OIDCTokenResponse;
 import hcen.central.inus.dto.OIDCUserInfo;
 import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.enums.TipoDocumento;
 import hcen.central.inus.security.config.OIDCConfiguration;
 import hcen.central.inus.security.jwt.JWTTokenProvider;
 // import hcen.central.inus.security.pkce.PKCEGenerator; // PKCE removido
@@ -283,16 +284,16 @@ public class OIDCAuthenticationService {
 
     /**
      * Mapea el tipo de documento de gub.uy (String) al enum TipoDocumento
-     * 
+     * <p>
      * gub.uy devuelve valores como: "CI", "Pasaporte", "DNI", etc.
-     * 
+     *
      * @param tipoDocGubUy String del tipo de documento desde gub.uy
      * @return TipoDocumento enum correspondiente
      */
-    private hcen.central.inus.entity.TipoDocumento mapTipoDocumento(String tipoDocGubUy) {
+    private TipoDocumento mapTipoDocumento(String tipoDocGubUy) {
         if (tipoDocGubUy == null || tipoDocGubUy.isEmpty()) {
             LOGGER.warning("tipo_documento vacío desde gub.uy, usando CI por defecto");
-            return hcen.central.inus.entity.TipoDocumento.CI;
+            return hcen.central.inus.enums.TipoDocumento.CI;
         }
         
         // Normalizar: convertir a mayúsculas y quitar espacios
@@ -305,23 +306,23 @@ public class OIDCAuthenticationService {
                 case "CEDULA":
                 case "CÉDULA":
                 case "CEDULA DE IDENTIDAD":
-                    return hcen.central.inus.entity.TipoDocumento.CI;
+                    return hcen.central.inus.enums.TipoDocumento.CI;
                     
                 case "PASAPORTE":
                 case "PASSPORT":
-                    return hcen.central.inus.entity.TipoDocumento.PASAPORTE;
+                    return hcen.central.inus.enums.TipoDocumento.PASAPORTE;
                     
                 case "DNI":
                 case "DOCUMENTO NACIONAL DE IDENTIDAD":
-                    return hcen.central.inus.entity.TipoDocumento.DNI;
+                    return hcen.central.inus.enums.TipoDocumento.DNI;
                     
                 default:
                     LOGGER.warning("Tipo de documento desconocido desde gub.uy: '" + tipoDocGubUy + "', usando CI por defecto");
-                    return hcen.central.inus.entity.TipoDocumento.CI;
+                    return hcen.central.inus.enums.TipoDocumento.CI;
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error mapeando tipo de documento: " + tipoDocGubUy, e);
-            return hcen.central.inus.entity.TipoDocumento.CI;
+            return hcen.central.inus.enums.TipoDocumento.CI;
         }
     }
     
