@@ -120,8 +120,136 @@
                                 <p><strong>Accesos Hoy:</strong> 145</p>
                             </div>
                         </div>
+
+                        <!-- Usuarios de Salud -->
+                        <div class="dashboard-card full-width">
+                            <div class="card-header">
+                                <h3><i class="pi pi-users"></i> Usuarios de Salud</h3>
+                                <div class="card-actions">
+                                    <p:commandButton value="Refrescar"
+                                                     icon="pi pi-refresh"
+                                                     action="#{dashboard_bean.cargarUsuariosSalud}"
+                                                     update="usuariosTable messages"
+                                                     styleClass="action-button"/>
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                <p:dataTable id="usuariosTable"
+                                             value="#{dashboard_bean.usuariosSalud}"
+                                             var="usuario"
+                                             paginator="true"
+                                             rows="5"
+                                             emptyMessage="No hay usuarios de salud registrados."
+                                             responsiveLayout="scroll">
+                                    <p:column headerText="Cédula">
+                                        <h:outputText value="#{usuario.cedula}"/>
+                                    </p:column>
+                                    <p:column headerText="Nombre">
+                                        <h:outputText value="#{usuario.displayName}"/>
+                                    </p:column>
+                                    <p:column headerText="Email">
+                                        <h:outputText value="#{usuario.email}"/>
+                                    </p:column>
+                                    <p:column headerText="Estado">
+                                        <span class="#{usuario.active ? 'status-active' : 'status-inactive'}">
+                                            #{usuario.active ? 'Activo' : 'Inactivo'}
+                                        </span>
+                                    </p:column>
+                                    <p:column headerText="Acciones" style="width:140px;">
+                                        <p:commandButton value="Notificar"
+                                                         icon="pi pi-bell"
+                                                         action="#{dashboard_bean.enviarNotificacion(usuario)}"
+                                                         update="messages"
+                                                         process="@this"
+                                                         styleClass="action-button"/>
+                                    </p:column>
+                                </p:dataTable>
+                            </div>
+                        </div>
+
+                        <!-- Prestadores -->
+                        <div class="dashboard-card full-width">
+                            <div class="card-header">
+                                <h3><i class="pi pi-building"></i> Prestadores (Tenants)</h3>
+                                <div class="card-actions">
+                                    <p:commandButton value="Refrescar"
+                                                     icon="pi pi-refresh"
+                                                     action="#{dashboard_bean.cargarPrestadores}"
+                                                     update="prestadoresTable messages"
+                                                     styleClass="action-button"/>
+                                    <p:commandButton type="button"
+                                                     value="Agregar Prestador"
+                                                     icon="pi pi-plus"
+                                                     onclick="PF('altaPrestadorDialog').show()"
+                                                     styleClass="action-button"/>
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                <p:dataTable id="prestadoresTable"
+                                             value="#{dashboard_bean.prestadores}"
+                                             var="prestador"
+                                             paginator="true"
+                                             rows="5"
+                                             emptyMessage="No hay prestadores registrados."
+                                             responsiveLayout="scroll">
+                                    <p:column headerText="RUT">
+                                        <h:outputText value="#{prestador.rut}"/>
+                                    </p:column>
+                                    <p:column headerText="Nombre">
+                                        <h:outputText value="#{prestador.nombre}"/>
+                                    </p:column>
+                                    <p:column headerText="Email">
+                                        <h:outputText value="#{prestador.email}"/>
+                                    </p:column>
+                                    <p:column headerText="Estado">
+                                        <h:outputText value="#{prestador.estado}"/>
+                                    </p:column>
+                                    <p:column headerText="Tenant ID">
+                                        <h:outputText value="#{prestador.tenantId}"/>
+                                    </p:column>
+                                </p:dataTable>
+                            </div>
+                        </div>
                         
                     </div>
+
+                    <!-- Dialogo Alta Prestador -->
+                    <p:dialog id="altaPrestadorDialog"
+                              widgetVar="altaPrestadorDialog"
+                              header="Alta de Prestador"
+                              modal="true"
+                              closable="true"
+                              resizable="false">
+                        <h:panelGrid columns="2" columnClasses="label,value" styleClass="form-grid">
+                            <h:outputLabel for="rut" value="RUT"/>
+                            <p:inputText id="rut"
+                                         value="#{dashboard_bean.nuevoPrestador.rut}"
+                                         required="true"
+                                         requiredMessage="El RUT es obligatorio."/>
+
+                            <h:outputLabel for="nombrePrestador" value="Nombre"/>
+                            <p:inputText id="nombrePrestador"
+                                         value="#{dashboard_bean.nuevoPrestador.nombre}"
+                                         required="true"
+                                         requiredMessage="El nombre es obligatorio."/>
+
+                            <h:outputLabel for="emailPrestador" value="Email"/>
+                            <p:inputText id="emailPrestador"
+                                         value="#{dashboard_bean.nuevoPrestador.email}"/>
+                        </h:panelGrid>
+                        <f:facet name="footer">
+                            <p:commandButton value="Crear"
+                                             icon="pi pi-check"
+                                             action="#{dashboard_bean.crearPrestador}"
+                                             update="messages prestadoresTable altaPrestadorDialog"
+                                             process="@form"
+                                             oncomplete="if (!args.validationFailed && args.prestadorCreado) { PF('altaPrestadorDialog').hide(); }"/>
+                            <p:commandButton type="button"
+                                             value="Cancelar"
+                                             icon="pi pi-times"
+                                             onclick="PF('altaPrestadorDialog').hide()"/>
+                        </f:facet>
+                    </p:dialog>
                 </h:form>
                 
             </div>
