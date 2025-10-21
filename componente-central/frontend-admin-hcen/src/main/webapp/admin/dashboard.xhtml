@@ -243,7 +243,7 @@
                                              action="#{dashboard_bean.crearPrestador}"
                                              update="messages prestadoresTable altaPrestadorDialog"
                                              process="@form"
-                                             oncomplete="if (!args.validationFailed && args.prestadorCreado) { PF('altaPrestadorDialog').hide(); }"/>
+                                            oncomplete="if (!args.validationFailed &amp;&amp; args.prestadorCreado) { PF('altaPrestadorDialog').hide(); }"/>
                             <p:commandButton type="button"
                                              value="Cancelar"
                                              icon="pi pi-times"
