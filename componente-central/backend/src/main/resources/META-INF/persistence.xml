@@ -10,6 +10,7 @@
         <jta-data-source>java:jboss/datasources/HcenDS</jta-data-source>
 
         <class>hcen.central.inus.entity.UsuarioSalud</class>
+        <class>hcen.central.inus.entity.UsuarioClinica</class>
         <class>hcen.central.inus.entity.admin_hcen</class>
         <class>hcen.central.notifications.entity.FCMToken</class>
 

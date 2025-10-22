@@ -41,7 +41,9 @@ public class JWTAuthenticationFilter implements Filter {
             "/api/fcm/register",              // Registro de token FCM desde mobile
             "/api/fcm/unregister",            // Eliminación de token FCM
             "/api/notifications/broadcast-test",  // Envío de notificación de prueba desde AdminHCEN
-            "/api/usuarios-salud"             // Listado de usuarios (usado por AdminHCEN)
+            "/api/usuarios-salud",            // Listado de usuarios (usado por AdminHCEN)
+            "/api/usuarios/registrar",        // Registro de usuario desde clínicas periféricas
+            "/api/usuarios/verificar"         // Verificación de existencia de usuario (se usa /verificar/{cedula})
     );
 
     @Override
@@ -155,6 +157,19 @@ public class JWTAuthenticationFilter implements Filter {
                 return true;
             }
         }
+
+        // Verificar rutas con parámetros dinámicos
+        // Permitir GET /api/usuarios/{cedula} y DELETE /api/usuarios/{cedula}/clinica/{rut}
+        if (requestURI.matches(".*/api/usuarios/[^/]+$") ||
+            requestURI.matches(".*/api/usuarios/[^/]+/clinica/[^/]+$")) {
+            return true;
+        }
+
+        // Permitir /api/usuarios/verificar/{cedula}
+        if (requestURI.matches(".*/api/usuarios/verificar/[^/]+$")) {
+            return true;
+        }
+
         return false;
     }
 
