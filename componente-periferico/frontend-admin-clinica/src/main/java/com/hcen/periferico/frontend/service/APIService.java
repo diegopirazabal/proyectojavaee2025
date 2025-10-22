@@ -13,12 +13,14 @@ import org.apache.hc.client5.http.classic.methods.*;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
-import org.apache.hc.client5.http.ssl.SSLContextBuilder;
+import org.apache.hc.client5.http.ssl.TrustAllStrategy;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.hc.core5.ssl.TrustAllStrategy;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -38,7 +40,7 @@ public class APIService implements Serializable {
     private CloseableHttpClient createHttpClient() {
         try {
             SSLContext sslContext = SSLContextBuilder.create()
-                .loadTrustMaterial(TrustAllStrategy.INSTANCE)
+                .loadTrustMaterial(null, TrustAllStrategy.INSTANCE)
                 .build();
 
             SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(
@@ -46,8 +48,12 @@ public class APIService implements Serializable {
                 NoopHostnameVerifier.INSTANCE
             );
 
-            return HttpClients.custom()
+            PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
                 .setSSLSocketFactory(socketFactory)
+                .build();
+
+            return HttpClients.custom()
+                .setConnectionManager(connectionManager)
                 .build();
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("Unable to initialize insecure SSL context", e);
