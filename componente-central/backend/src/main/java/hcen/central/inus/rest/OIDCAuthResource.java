@@ -89,8 +89,11 @@ public class OIDCAuthResource {
             String loginOrigin = "admin"; // Por defecto admin
             if (referer != null && (referer.contains("/portal-salud/") || referer.contains("/portal-usuario/"))) {
                 loginOrigin = "usuario-salud";
+            } else if (referer != null && (referer.contains("/portal-admin/") || referer.contains("/frontend-admin-hcen/"))) {
+                loginOrigin = "admin";
             }
             session.setAttribute("oidc_login_origin", loginOrigin);
+            LOGGER.info("Login origin detectado: " + loginOrigin + " desde referer: " + referer);
 
             LOGGER.info("Redirigiendo al authorization endpoint de gub.uy");
 
@@ -203,8 +206,8 @@ public class OIDCAuthResource {
                     if ("usuario-salud".equals(loginOrigin)) {
                         contextPath = isProduction ? "/portal-usuario" : "/portal-salud";
                     } else {
-                        // Admin: root en producción, /frontend-admin-hcen en desarrollo
-                        contextPath = isProduction ? "" : "/frontend-admin-hcen";
+                        // Admin: /portal-admin en producción, /frontend-admin-hcen en desarrollo
+                        contextPath = isProduction ? "/portal-admin" : "/frontend-admin-hcen";
                     }
                     
                     // Construir URL del dashboard
