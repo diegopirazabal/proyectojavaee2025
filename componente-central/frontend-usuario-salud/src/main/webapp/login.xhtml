@@ -56,10 +56,25 @@
         </h:form>
     </section>
 
-    <footer class="login-footer">
-        <p>Historia Clínica Electrónica Nacional</p>
+    <div class="login-divider">
+        <span>o</span>
+    </div>
+
+    <div class="oidc-section">
+        <h3>Autenticación con gub.uy</h3>
+        <p class="oidc-description">
+            Serás redirigido a gub.uy para iniciar sesión con tu identidad digital.
+        </p>
+        <a href="#{usuarioSaludLoginBean.oidcLoginUrl}" class="oidc-button">
+            <span class="oidc-icon">🔐</span>
+            <span>Iniciar sesión con gub.uy</span>
+        </a>
+    </div>
+
+    <div class="login-footer">
+        <p>Sistema de Salud - Universidad de la República</p>
         <p>© 2025 HCEN - Todos los derechos reservados</p>
-    </footer>
+    </div>
 </div>
 </h:body>
 </html>

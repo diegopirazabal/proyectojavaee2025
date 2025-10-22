@@ -179,9 +179,20 @@ public class api_service {
     }
 
     public String getOidcLoginUrl() {
-        // Construir URL con redirect_uri apuntando al callback del backend
-        String redirectUri = "http://localhost:8080/api/auth/callback";
-        return backendUrl + "/auth/login?redirect_uri=" + redirectUri;
+        // Detectar URL base según variable de entorno o usar localhost
+        String baseUrl = System.getenv("HCEN_PUBLIC_URL");
+        if (baseUrl == null || baseUrl.isBlank()) {
+            baseUrl = "http://localhost:8080";
+        }
+        baseUrl = sanitizeBaseUrl(baseUrl);
+        
+        String redirectUri = baseUrl + "/api/auth/callback";
+        try {
+            return baseUrl + "/api/auth/login?redirect_uri=" + java.net.URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error encoding redirect_uri", e);
+            return baseUrl + "/api/auth/login?redirect_uri=" + redirectUri;
+        }
     }
 
     public boolean isBackendAvailable() {

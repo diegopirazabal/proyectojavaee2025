@@ -112,4 +112,21 @@ public class UsuarioSaludLoginBean implements Serializable {
     private String codificar(String valor) {
         return URLEncoder.encode(valor, StandardCharsets.UTF_8);
     }
+
+    public String getOidcLoginUrl() {
+        // Detectar URL base según el contexto (funciona en desarrollo y producción)
+        ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
+        String scheme = external.getRequestScheme();
+        String serverName = external.getRequestServerName();
+        int serverPort = external.getRequestServerPort();
+        
+        // Construir base URL
+        StringBuilder baseUrl = new StringBuilder(scheme).append("://").append(serverName);
+        if (("http".equals(scheme) && serverPort != 80) || ("https".equals(scheme) && serverPort != 443)) {
+            baseUrl.append(":").append(serverPort);
+        }
+        
+        String redirectUri = baseUrl + "/api/auth/callback";
+        return baseUrl + "/api/auth/login?redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
+    }
 }
