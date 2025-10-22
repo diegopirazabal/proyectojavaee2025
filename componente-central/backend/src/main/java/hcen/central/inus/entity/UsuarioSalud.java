@@ -27,7 +27,7 @@ public class UsuarioSalud {
     private String cedula;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_documento", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'CI'")
+    @Column(name = "tipo_documento", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'DO'")
     private TipoDocumento tipoDeDocumento;
 
     @Column(name = "fecha_nacimiento", nullable = false)
