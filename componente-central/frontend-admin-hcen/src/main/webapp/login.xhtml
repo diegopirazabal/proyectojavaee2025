@@ -20,13 +20,17 @@
             <p>Historia Clínica Electrónica Nacional</p>
         </div>
 
+        <p class="login-note">
+            Acceso temporal habilitado con usuario <strong>admin</strong> / <strong>admin</strong>.
+        </p>
+
         <h:form id="loginForm" styleClass="login-form">
             <p:messages id="messages" showDetail="true" closable="true"/>
             
             <div class="input-group">
                 <p:outputLabel for="username" value="Usuario:"/>
                 <p:inputText id="username" 
-                            value="#{loginBean.username}" 
+                            value="#{login_bean.username}" 
                             required="true" 
                             requiredMessage="El usuario es requerido"
                             placeholder="Ingrese su usuario"
@@ -36,7 +40,7 @@
             <div class="input-group">
                 <p:outputLabel for="password" value="Contraseña:"/>
                 <p:password id="password" 
-                           value="#{loginBean.password}" 
+                           value="#{login_bean.password}" 
                            required="true" 
                            requiredMessage="La contraseña es requerida"
                            placeholder="Ingrese su contraseña"
@@ -46,12 +50,27 @@
             
             <div class="button-group">
                 <p:commandButton value="Iniciar Sesión" 
-                                action="#{loginBean.login}"
+                                action="#{login_bean.login}"
                                 styleClass="login-button"
                                 update="messages"
                                 icon="pi pi-sign-in"/>
             </div>
         </h:form>
+
+        <div class="login-divider">
+            <span>o</span>
+        </div>
+
+        <div class="oidc-section">
+            <h3>Autenticación con gub.uy</h3>
+            <p class="oidc-description">
+                Serás redirigido a gub.uy para iniciar sesión con tu identidad digital.
+            </p>
+            <a href="#{login_bean.oidcLoginUrl}" class="oidc-button">
+                <span class="oidc-icon">🔐</span>
+                <span>Iniciar sesión con gub.uy</span>
+            </a>
+        </div>
         
         <div class="login-footer">
             <p>Sistema de Salud - Universidad de la República</p>

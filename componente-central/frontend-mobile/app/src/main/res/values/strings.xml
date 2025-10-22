@@ -1,0 +1,38 @@
+<resources>
+    <string name="app_name">HCEN</string>
+
+    <!-- Navigation -->
+    <string name="title_home">Inicio</string>
+    <string name="title_dashboard">Historia Clínica</string>
+    <string name="title_notifications">Notificaciones</string>
+
+    <!-- Login -->
+    <string name="login_title">Iniciar Sesión</string>
+    <string name="login_subtitle">Ingrese su cédula de identidad</string>
+    <string name="login_cedula_hint">Cédula (sin puntos ni guiones)</string>
+    <string name="login_button">Ingresar</string>
+    <string name="login_error_empty">Debe ingresar su cédula</string>
+    <string name="login_error_invalid">Cédula inválida. Solo números</string>
+    <string name="login_success">Bienvenido</string>
+
+    <!-- Home -->
+    <string name="home_welcome">Bienvenido</string>
+    <string name="home_notif_count">Notificaciones totales</string>
+    <string name="home_notif_unread">Sin leer</string>
+    <string name="home_quick_access">Acceso rápido</string>
+    <string name="home_view_notifications">Ver notificaciones</string>
+    <string name="home_view_history">Ver historia clínica</string>
+
+    <!-- Historia Clínica -->
+    <string name="historia_placeholder_title">Historia Clínica</string>
+    <string name="historia_placeholder_message">Esta funcionalidad se encuentra en implementación</string>
+    <string name="historia_placeholder_subtitle">Próximamente podrá visualizar su historia clínica completa</string>
+
+    <!-- Logout -->
+    <string name="action_logout">Cerrar sesión</string>
+    <string name="logout_confirmation_title">Cerrar sesión</string>
+    <string name="logout_confirmation_message">¿Está seguro que desea cerrar sesión?</string>
+    <string name="logout_success">Sesión cerrada exitosamente</string>
+    <string name="button_cancel">Cancelar</string>
+    <string name="button_logout">Cerrar sesión</string>
+</resources>

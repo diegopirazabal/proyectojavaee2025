@@ -4,9 +4,6 @@ import com.hcen.periferico.frontend.dto.administrador_clinica_dto;
 import com.hcen.periferico.frontend.dto.configuracion_clinica_dto;
 import com.hcen.periferico.frontend.dto.profesional_salud_dto;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.servlet.ServletContext;
-import jakarta.annotation.PostConstruct;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
@@ -29,57 +26,13 @@ import java.util.UUID;
 public class APIService implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    // URL base configurable del backend periférico
-    private static final String DEFAULT_BASE = "http://localhost:8080/hcen-periferico/multitenant-api";
-    private static final String BACKEND_URL_FALLBACK = resolveBaseUrl();
-
-    @Inject
-    private transient ServletContext servletContext;
-
-    // Si está definido en web.xml (context-param), tendrá prioridad
-    private String baseFromWebXml;
-
-    @PostConstruct
-    public void init() {
-        try {
-            if (servletContext != null) {
-                String p = servletContext.getInitParameter("hcen.periferico.api.base");
-                if (p != null && !p.isBlank()) {
-                    baseFromWebXml = p.trim();
-                }
-            }
-        } catch (Exception ignored) {
-        }
-    }
-
-    private static String resolveBaseUrl() {
-        try {
-            String fromEnv = System.getenv("HCEN_PERIFERICO_API_BASE");
-            if (fromEnv != null && !fromEnv.isBlank()) {
-                return fromEnv.trim();
-            }
-            String fromProp = System.getProperty("hcen.periferico.api.base");
-            if (fromProp != null && !fromProp.isBlank()) {
-                return fromProp.trim();
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return DEFAULT_BASE;
-    }
-
-    private String effectiveBase() {
-        if (baseFromWebXml != null && !baseFromWebXml.isBlank()) {
-            return baseFromWebXml;
-        }
-        return BACKEND_URL_FALLBACK;
-    }
+    private static final String BACKEND_URL = "https://node5823-hcen-uy.web.elasticloud.uy/api";
 
     // ========== AUTENTICACIÓN ==========
 
     public administrador_clinica_dto authenticate(String username, String password, String clinicaRut) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost request = new HttpPost(effectiveBase() + "/auth/login");
+            HttpPost request = new HttpPost(BACKEND_URL + "/auth/login");
 
             JsonObject loginData = Json.createObjectBuilder()
                 .add("username", username)
@@ -106,7 +59,7 @@ public class APIService implements Serializable {
 
     public configuracion_clinica_dto getConfiguracion(String clinicaRut) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet(effectiveBase() + "/configuracion/" + clinicaRut);
+            HttpGet request = new HttpGet(BACKEND_URL + "/configuracion/" + clinicaRut);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -124,7 +77,7 @@ public class APIService implements Serializable {
                                                      String colorSecundario, String logoUrl,
                                                      String nombreSistema, String tema) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPut request = new HttpPut(effectiveBase() + "/configuracion/" + clinicaRut + "/lookfeel");
+            HttpPut request = new HttpPut(BACKEND_URL + "/configuracion/" + clinicaRut + "/lookfeel");
 
             JsonObject data = Json.createObjectBuilder()
                 .add("colorPrimario", colorPrimario != null ? colorPrimario : "")
@@ -151,7 +104,7 @@ public class APIService implements Serializable {
 
     public configuracion_clinica_dto toggleNodoPeriferico(String clinicaRut, boolean habilitado) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPut request = new HttpPut(effectiveBase() + "/configuracion/" + clinicaRut + "/nodo");
+            HttpPut request = new HttpPut(BACKEND_URL + "/configuracion/" + clinicaRut + "/nodo");
 
             JsonObject data = Json.createObjectBuilder()
                 .add("habilitado", habilitado)
@@ -174,7 +127,7 @@ public class APIService implements Serializable {
 
     public configuracion_clinica_dto resetConfiguracion(String clinicaRut) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost request = new HttpPost(effectiveBase() + "/configuracion/" + clinicaRut + "/reset");
+            HttpPost request = new HttpPost(BACKEND_URL + "/configuracion/" + clinicaRut + "/reset");
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -192,7 +145,7 @@ public class APIService implements Serializable {
 
     public List<profesional_salud_dto> getAllProfesionales() {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet(effectiveBase() + "/profesionales");
+            HttpGet request = new HttpGet(BACKEND_URL + "/profesionales");
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -209,7 +162,7 @@ public class APIService implements Serializable {
     public List<profesional_salud_dto> searchProfesionales(String searchTerm) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             String encodedTerm = java.net.URLEncoder.encode(searchTerm, java.nio.charset.StandardCharsets.UTF_8);
-            HttpGet request = new HttpGet(effectiveBase() + "/profesionales?search=" + encodedTerm);
+            HttpGet request = new HttpGet(BACKEND_URL + "/profesionales?search=" + encodedTerm);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -226,7 +179,7 @@ public class APIService implements Serializable {
     public profesional_salud_dto saveProfesional(Integer ci, String nombre, String apellidos,
                                                String especialidad, String email) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost request = new HttpPost(effectiveBase() + "/profesionales");
+            HttpPost request = new HttpPost(BACKEND_URL + "/profesionales");
 
             JsonObject data = Json.createObjectBuilder()
                 .add("ci", ci)
@@ -253,7 +206,7 @@ public class APIService implements Serializable {
 
     public boolean deleteProfesional(Integer ci) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpDelete request = new HttpDelete(effectiveBase() + "/profesionales/" + ci);
+            HttpDelete request = new HttpDelete(BACKEND_URL + "/profesionales/" + ci);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() == 200;
@@ -351,7 +304,7 @@ public class APIService implements Serializable {
 
     public boolean isBackendAvailable() {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet(effectiveBase() + "/auth/login");
+            HttpGet request = new HttpGet(BACKEND_URL + "/auth/login");
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() != 500;
             }

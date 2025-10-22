@@ -1,6 +1,6 @@
 package com.hcen.periferico.service;
 
-import com.hcen.core.domain.ProfesionalSalud;
+import com.hcen.core.domain.profesional_salud;
 import com.hcen.periferico.dao.ProfesionalSaludDAO;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
@@ -19,7 +19,7 @@ public class ProfesionalService {
     /**
      * Crea o actualiza un profesional de salud
      */
-    public ProfesionalSalud saveProfesional(Integer ci, String nombre, String apellidos,
+    public profesional_salud saveProfesional(Integer ci, String nombre, String apellidos,
                                            String especialidad, String email) {
         // Validaciones
         if (ci == null || ci <= 0) {
@@ -32,15 +32,15 @@ public class ProfesionalService {
             throw new IllegalArgumentException("Los apellidos son requeridos");
         }
 
-        Optional<ProfesionalSalud> existing = profesionalDAO.findByCi(ci);
-        ProfesionalSalud profesional;
+        Optional<profesional_salud> existing = profesionalDAO.findByCi(ci);
+        profesional_salud profesional;
 
         if (existing.isPresent()) {
             // Actualizar existente
             profesional = existing.get();
         } else {
             // Crear nuevo
-            profesional = new ProfesionalSalud();
+            profesional = new profesional_salud();
             profesional.setCi(ci);
         }
 
@@ -55,28 +55,28 @@ public class ProfesionalService {
     /**
      * Obtiene un profesional por su cédula
      */
-    public Optional<ProfesionalSalud> getProfesionalByCi(Integer ci) {
+    public Optional<profesional_salud> getProfesionalByCi(Integer ci) {
         return profesionalDAO.findByCi(ci);
     }
 
     /**
      * Lista todos los profesionales
      */
-    public List<ProfesionalSalud> getAllProfesionales() {
+    public List<profesional_salud> getAllProfesionales() {
         return profesionalDAO.findAll();
     }
 
     /**
      * Busca profesionales por especialidad
      */
-    public List<ProfesionalSalud> getProfesionalesByEspecialidad(String especialidad) {
+    public List<profesional_salud> getProfesionalesByEspecialidad(String especialidad) {
         return profesionalDAO.findByEspecialidad(especialidad);
     }
 
     /**
      * Busca profesionales por nombre o apellido
      */
-    public List<ProfesionalSalud> searchProfesionales(String searchTerm) {
+    public List<profesional_salud> searchProfesionales(String searchTerm) {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return getAllProfesionales();
         }
@@ -100,14 +100,14 @@ public class ProfesionalService {
     /**
      * Lista profesionales paginados
      */
-    public List<ProfesionalSalud> getProfesionalesPaginated(int page) {
+    public List<profesional_salud> getProfesionalesPaginated(int page) {
         return profesionalDAO.findAllPaginated(page, PAGE_SIZE);
     }
 
     /**
      * Busca profesionales por nombre o apellido con paginación
      */
-    public List<ProfesionalSalud> searchProfesionalesPaginated(String searchTerm, int page) {
+    public List<profesional_salud> searchProfesionalesPaginated(String searchTerm, int page) {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return getProfesionalesPaginated(page);
         }

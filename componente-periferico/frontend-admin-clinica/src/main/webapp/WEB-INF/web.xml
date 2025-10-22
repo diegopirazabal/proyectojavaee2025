@@ -35,12 +35,6 @@
         <param-value>saga</param-value>
     </context-param>
 
-    <!-- URL base del backend periférico (puede sobreescribirse sin recompilar) -->
-    <context-param>
-        <param-name>hcen.periferico.api.base</param-name>
-        <param-value>http://localhost:8080/hcen-periferico/api</param-value>
-    </context-param>
-
     <!-- Página de bienvenida -->
     <welcome-file-list>
         <welcome-file>index.xhtml</welcome-file>

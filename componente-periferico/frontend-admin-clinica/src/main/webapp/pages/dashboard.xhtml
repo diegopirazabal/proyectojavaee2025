@@ -1,22 +1,13 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:h="http://xmlns.jakarta.ee/jsf/html"
+      xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
-      xmlns:f="http://xmlns.jakarta.ee/jsf/core"
-      xmlns:ui="http://xmlns.jakarta.ee/jsf/facelets">
+      xmlns:f="jakarta.faces.core"
+      xmlns:ui="jakarta.faces.facelets">
 
 <h:head>
     <title>Dashboard - Portal Admin Clínica</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <style>
-        :root {
-            --primary-color: #{empty configuracionBean.colorPrimario ? '#007bff' : configuracionBean.colorPrimario};
-            --secondary-color: #{empty configuracionBean.colorSecundario ? '#6c757d' : configuracionBean.colorSecundario};
-        }
-        .p-menubar { background-color: var(--primary-color) !important; border: none; }
-        .p-menubar .p-menuitem-link, .p-menubar .p-menuitem-text { color: #fff !important; }
-        .p-button-primary { background-color: var(--primary-color) !important; border-color: var(--primary-color) !important; }
-    </style>
 </h:head>
 
 <f:metadata>

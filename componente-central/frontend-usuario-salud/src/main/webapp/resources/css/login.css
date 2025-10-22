@@ -1,0 +1,141 @@
+.login-body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg, #1b74c4, #48a9fe);
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0f2d4b;
+}
+
+.login-container {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 18px;
+    box-shadow: 0 20px 45px rgba(15, 45, 75, 0.25);
+    padding: 40px 48px;
+    width: min(420px, 90vw);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.login-header h1 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 600;
+    color: #0f2d4b;
+}
+
+.login-header p {
+    margin: 8px 0 0;
+    font-size: 16px;
+    color: #2f4c66;
+}
+
+.login-content {
+    margin-bottom: 24px;
+}
+
+.login-hint {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #425e7a;
+}
+
+.login-form .input-group {
+    margin-bottom: 18px;
+}
+
+.login-input {
+    width: 100%;
+}
+
+.login-button {
+    width: 100%;
+    justify-content: center;
+}
+
+.login-footer {
+    text-align: center;
+    font-size: 13px;
+    color: #5b7a99;
+    border-top: 1px solid #d5e2f0;
+    padding-top: 18px;
+}
+
+.login-footer p {
+    margin: 4px 0;
+}
+
+.login-divider {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    margin: 10px 0 25px 0;
+}
+
+.login-divider span {
+    background: white;
+    color: #a0b4c7;
+    font-size: 0.85em;
+    margin: 0 12px;
+    padding: 0 10px;
+    position: relative;
+}
+
+.login-divider::before,
+.login-divider::after {
+    background: #ecf0f1;
+    content: "";
+    display: block;
+    flex: 1;
+    height: 1px;
+    max-width: 120px;
+}
+
+.oidc-section {
+    background: #f7f9fc;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.oidc-section h3 {
+    color: #2c3e50;
+    margin-top: 0;
+}
+
+.oidc-description {
+    color: #60758c;
+    font-size: 0.9em;
+    margin-bottom: 20px;
+}
+
+.oidc-button {
+    align-items: center;
+    background: linear-gradient(135deg, #1d976c, #2cc197);
+    border-radius: 5px;
+    color: white;
+    display: inline-flex;
+    font-weight: 600;
+    gap: 10px;
+    justify-content: center;
+    padding: 12px 20px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.oidc-button:hover {
+    filter: brightness(1.05);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(45, 206, 137, 0.3);
+}
+
+.oidc-icon {
+    font-size: 1.2em;
+}

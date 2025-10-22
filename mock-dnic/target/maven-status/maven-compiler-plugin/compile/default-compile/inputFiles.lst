@@ -1,6 +1,0 @@
-/Users/diego/Developer/hcen-uy/mock-dnic/src/main/java/com/hcen/mockdnic/dominio/Ciudadano.java
-/Users/diego/Developer/hcen-uy/mock-dnic/src/main/java/com/hcen/mockdnic/dominio/CiudadanoId.java
-/Users/diego/Developer/hcen-uy/mock-dnic/src/main/java/com/hcen/mockdnic/excepciones/CiudadanoNoEncontradoException.java
-/Users/diego/Developer/hcen-uy/mock-dnic/src/main/java/com/hcen/mockdnic/ws/CiudadanoServicioWeb.java
-/Users/diego/Developer/hcen-uy/mock-dnic/src/main/java/com/hcen/mockdnic/ws/dto/RespuestaCiudadano.java
-/Users/diego/Developer/hcen-uy/mock-dnic/src/main/java/com/hcen/mockdnic/ws/dto/SolicitudCiudadano.java

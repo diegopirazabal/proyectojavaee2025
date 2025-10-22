@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:h="http://xmlns.jakarta.ee/jsf/html"
+      xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
-      xmlns:f="http://xmlns.jakarta.ee/jsf/core">
+      xmlns:f="jakarta.faces.core">
 
 <h:head>
     <title>Configuración - Portal Admin Clínica</title>
@@ -16,15 +16,6 @@
             margin-left: 10px;
             vertical-align: middle;
         }
-    </style>
-    <style>
-        :root {
-            --primary-color: #{empty configuracionBean.colorPrimario ? '#007bff' : configuracionBean.colorPrimario};
-            --secondary-color: #{empty configuracionBean.colorSecundario ? '#6c757d' : configuracionBean.colorSecundario};
-        }
-        .p-menubar { background-color: var(--primary-color) !important; border: none; }
-        .p-menubar .p-menuitem-link, .p-menubar .p-menuitem-text { color: #fff !important; }
-        .p-button-primary, .p-button-success { background-color: var(--primary-color) !important; border-color: var(--primary-color) !important; }
     </style>
 </h:head>
 

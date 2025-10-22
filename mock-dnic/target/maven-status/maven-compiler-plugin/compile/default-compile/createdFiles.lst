@@ -1,6 +1,0 @@
-com/hcen/mockdnic/ws/CiudadanoServicioWeb.class
-com/hcen/mockdnic/dominio/CiudadanoId.class
-com/hcen/mockdnic/excepciones/CiudadanoNoEncontradoException.class
-com/hcen/mockdnic/dominio/Ciudadano.class
-com/hcen/mockdnic/ws/dto/SolicitudCiudadano.class
-com/hcen/mockdnic/ws/dto/RespuestaCiudadano.class

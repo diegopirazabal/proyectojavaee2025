@@ -7,10 +7,12 @@
     
     <persistence-unit name="hcen-central-pu" transaction-type="JTA">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
-        
-        <class>hcen.central.inus.entity.AdminHCEN</class>
-        
+        <jta-data-source>java:jboss/datasources/HcenDS</jta-data-source>
+
+        <class>hcen.central.inus.entity.UsuarioSalud</class>
+        <class>hcen.central.inus.entity.admin_hcen</class>
+        <class>hcen.central.notifications.entity.FCMToken</class>
+
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
             <property name="hibernate.hbm2ddl.auto" value="update"/>

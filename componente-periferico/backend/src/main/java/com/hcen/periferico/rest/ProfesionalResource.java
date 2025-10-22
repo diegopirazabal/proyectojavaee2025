@@ -1,6 +1,10 @@
 package com.hcen.periferico.rest;
 
+<<<<<<< HEAD
 import com.hcen.core.domain.ProfesionalSalud;
+=======
+import com.hcen.core.domain.profesional_salud;
+>>>>>>> main
 import com.hcen.periferico.dto.profesional_salud_dto;
 import com.hcen.periferico.service.ProfesionalService;
 import jakarta.ejb.EJB;
@@ -24,7 +28,11 @@ public class ProfesionalResource {
             @QueryParam("search") String searchTerm,
             @QueryParam("page") @DefaultValue("0") int page) {
         try {
+<<<<<<< HEAD
             List<ProfesionalSalud> profesionales;
+=======
+            List<profesional_salud> profesionales;
+>>>>>>> main
             long totalCount;
 
             if (searchTerm != null && !searchTerm.trim().isEmpty()) {
@@ -52,7 +60,11 @@ public class ProfesionalResource {
     @Path("/{ci}")
     public Response getProfesionalByCi(@PathParam("ci") Integer ci) {
         try {
+<<<<<<< HEAD
             Optional<ProfesionalSalud> profesional = profesionalService.getProfesionalByCi(ci);
+=======
+            Optional<profesional_salud> profesional = profesionalService.getProfesionalByCi(ci);
+>>>>>>> main
             if (profesional.isPresent()) {
                 profesional_salud_dto dto = toDTO(profesional.get());
                 return Response.ok(dto).build();
@@ -71,7 +83,11 @@ public class ProfesionalResource {
     @POST
     public Response saveProfesional(profesional_salud_dto dto) {
         try {
+<<<<<<< HEAD
             ProfesionalSalud profesional = profesionalService.saveProfesional(
+=======
+            profesional_salud profesional = profesionalService.saveProfesional(
+>>>>>>> main
                 dto.getCi(),
                 dto.getNombre(),
                 dto.getApellidos(),
@@ -108,7 +124,11 @@ public class ProfesionalResource {
     @Path("/especialidad/{especialidad}")
     public Response getProfesionalesByEspecialidad(@PathParam("especialidad") String especialidad) {
         try {
+<<<<<<< HEAD
             List<ProfesionalSalud> profesionales = profesionalService.getProfesionalesByEspecialidad(especialidad);
+=======
+            List<profesional_salud> profesionales = profesionalService.getProfesionalesByEspecialidad(especialidad);
+>>>>>>> main
             List<profesional_salud_dto> dtos = profesionales.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
@@ -120,7 +140,11 @@ public class ProfesionalResource {
         }
     }
 
+<<<<<<< HEAD
     private profesional_salud_dto toDTO(ProfesionalSalud entity) {
+=======
+    private profesional_salud_dto toDTO(profesional_salud entity) {
+>>>>>>> main
         return new profesional_salud_dto(
             entity.getCi(),
             entity.getNombre(),
@@ -183,4 +207,8 @@ public class ProfesionalResource {
         public long getTotalPages() { return totalPages; }
         public void setTotalPages(long totalPages) { this.totalPages = totalPages; }
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> main

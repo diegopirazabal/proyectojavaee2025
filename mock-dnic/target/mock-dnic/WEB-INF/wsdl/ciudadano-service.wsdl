@@ -25,14 +25,14 @@
                 </xs:restriction>
             </xs:simpleType>
 
-            <xs:complexType name="SolicitudCiudadano">
+            <xs:complexType name="solicitud_ciudadano">
                 <xs:sequence>
                     <xs:element name="tipoDoc" type="tns:TipoDocumento"/>
                     <xs:element name="nroDoc" type="tns:NumeroDocumento"/>
                 </xs:sequence>
             </xs:complexType>
 
-            <xs:complexType name="RespuestaCiudadano">
+            <xs:complexType name="respuesta_ciudadano">
                 <xs:sequence>
                     <xs:element name="tipoDoc" type="tns:TipoDocumento"/>
                     <xs:element name="nroDoc" type="tns:NumeroDocumento"/>
@@ -47,43 +47,59 @@
                 </xs:sequence>
             </xs:complexType>
 
-            <xs:element name="SolicitudCiudadano" type="tns:SolicitudCiudadano"/>
-            <xs:element name="RespuestaCiudadano" type="tns:RespuestaCiudadano"/>
+            <xs:complexType name="ciudadano_no_encontrado_fault">
+                <xs:sequence>
+                    <xs:element name="tipoDoc" type="tns:TipoDocumento"/>
+                    <xs:element name="nroDoc" type="tns:NumeroDocumento"/>
+                </xs:sequence>
+            </xs:complexType>
+
+            <xs:element name="solicitud_ciudadano" type="tns:solicitud_ciudadano"/>
+            <xs:element name="respuesta_ciudadano" type="tns:respuesta_ciudadano"/>
+            <xs:element name="ciudadano_no_encontrado" type="tns:ciudadano_no_encontrado_fault"/>
 
         </xs:schema>
     </wsdl:types>
 
-    <wsdl:message name="ObtenerCiudadanoEntrada">
-        <wsdl:part name="SolicitudCiudadano" element="tns:SolicitudCiudadano"/>
+    <wsdl:message name="obtener_ciudadano_entrada">
+        <wsdl:part name="solicitud_ciudadano" element="tns:solicitud_ciudadano"/>
     </wsdl:message>
 
-    <wsdl:message name="ObtenerCiudadanoSalida">
-        <wsdl:part name="RespuestaCiudadano" element="tns:RespuestaCiudadano"/>
+    <wsdl:message name="obtener_ciudadano_salida">
+        <wsdl:part name="respuesta_ciudadano" element="tns:respuesta_ciudadano"/>
     </wsdl:message>
 
-    <wsdl:portType name="CiudadanoPortType">
-        <wsdl:operation name="obtenerCiudadano">
-            <wsdl:input message="tns:ObtenerCiudadanoEntrada"/>
-            <wsdl:output message="tns:ObtenerCiudadanoSalida"/>
+    <wsdl:message name="ciudadano_no_encontrado_fault_message">
+        <wsdl:part name="ciudadano_no_encontrado" element="tns:ciudadano_no_encontrado"/>
+    </wsdl:message>
+
+    <wsdl:portType name="ciudadano_port_type">
+        <wsdl:operation name="obtener_ciudadano">
+            <wsdl:input message="tns:obtener_ciudadano_entrada"/>
+            <wsdl:output message="tns:obtener_ciudadano_salida"/>
+            <wsdl:fault name="ciudadano_no_encontrado" message="tns:ciudadano_no_encontrado_fault_message"/>
         </wsdl:operation>
     </wsdl:portType>
 
-    <wsdl:binding name="CiudadanoBinding" type="tns:CiudadanoPortType">
+    <wsdl:binding name="ciudadano_binding" type="tns:ciudadano_port_type">
         <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
-        <wsdl:operation name="obtenerCiudadano">
-            <soap:operation soapAction="obtenerCiudadano"/>
+        <wsdl:operation name="obtener_ciudadano">
+            <soap:operation soapAction="obtener_ciudadano"/>
             <wsdl:input>
                 <soap:body use="literal"/>
             </wsdl:input>
             <wsdl:output>
                 <soap:body use="literal"/>
             </wsdl:output>
+            <wsdl:fault name="ciudadano_no_encontrado">
+                <soap:fault name="ciudadano_no_encontrado" use="literal"/>
+            </wsdl:fault>
         </wsdl:operation>
     </wsdl:binding>
 
     <wsdl:service name="ciudadano-service">
-        <wsdl:port name="CiudadanoPort" binding="tns:CiudadanoBinding">
-            <soap:address location="http://localhost:8080/mock-dnic/CiudadanoServicioWeb"/>
+        <wsdl:port name="ciudadano_port" binding="tns:ciudadano_binding">
+            <soap:address location="http://localhost:8080/mock-dnic/ciudadano_servicio_web"/>
         </wsdl:port>
     </wsdl:service>
 

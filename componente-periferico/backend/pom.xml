@@ -94,8 +94,6 @@
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
                     <attachClasses>true</attachClasses>
-                    <!-- Avoid deploying embedded DS; server manages the datasource -->
-                    <packagingExcludes>WEB-INF/hcen-periferico-ds.xml</packagingExcludes>
                 </configuration>
             </plugin>
 

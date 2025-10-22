@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores azules principales -->
+    <color name="blue_200">#90CAF9</color>
+    <color name="blue_500">#2196F3</color>
+    <color name="blue_700">#1976D2</color>
+    <color name="blue_900">#0D47A1</color>
+
+    <!-- Colores secundarios -->
+    <color name="light_blue_200">#81D4FA</color>
+    <color name="light_blue_700">#0288D1</color>
+
+    <!-- Compatibilidad con nombres anteriores -->
+    <color name="purple_200">@color/blue_200</color>
+    <color name="purple_500">@color/blue_500</color>
+    <color name="purple_700">@color/blue_700</color>
+    <color name="teal_200">@color/light_blue_200</color>
+    <color name="teal_700">@color/light_blue_700</color>
+
+    <!-- Básicos -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="notificacion_no_leida_bg">#F5F5F5</color>
+</resources>
