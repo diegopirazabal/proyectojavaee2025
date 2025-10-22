@@ -5,6 +5,9 @@ import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
 import jakarta.inject.Named;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URLEncoder;
@@ -56,10 +59,14 @@ public class UsuarioSaludLoginBean implements Serializable {
     }
 
     public void checkAuthentication() throws IOException {
-        if (!loggedIn) {
+        // Verificar si hay cookie JWT (sesión OIDC) antes de redirigir
+        if (!loggedIn && !hasOidcSession()) {
             ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
             external.redirect(external.getRequestContextPath() + "/login.xhtml");
             FacesContext.getCurrentInstance().responseComplete();
+        } else if (!loggedIn && hasOidcSession()) {
+            // Marcar como logueado si hay cookie JWT válida
+            loggedIn = true;
         }
     }
 
@@ -113,6 +120,28 @@ public class UsuarioSaludLoginBean implements Serializable {
         return URLEncoder.encode(valor, StandardCharsets.UTF_8);
     }
 
+    private boolean hasOidcSession() {
+        try {
+            ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
+            
+            // Primero verificar cookie JWT (más confiable entre WARs)
+            HttpServletRequest request = (HttpServletRequest) external.getRequest();
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("jwt_token".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                        return true;
+                    }
+                }
+            }
+            
+            // Fallback: verificar userInfo en sesión HTTP (mismo WAR)
+            HttpSession session = (HttpSession) external.getSession(false);
+            return session != null && session.getAttribute("userInfo") != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
     public String getOidcLoginUrl() {
         // redirect_uri DEBE ser fija y estar registrada en gub.uy
         ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
@@ -124,21 +153,15 @@ public class UsuarioSaludLoginBean implements Serializable {
         String baseUrl;
         
         if (isProduction) {
+            // Producción
             baseUrl = "https://hcen-uy.web.elasticloud.uy";
             redirectUri = "https://hcen-uy.web.elasticloud.uy/api/auth/callback";
         } else {
-            // Desarrollo (localhost)
-            String scheme = external.getRequestScheme();
-            int serverPort = external.getRequestServerPort();
-            
-            StringBuilder url = new StringBuilder(scheme).append("://").append(serverName);
-            if (("http".equals(scheme) && serverPort != 80) || ("https".equals(scheme) && serverPort != 443)) {
-                url.append(":").append(serverPort);
-            }
-            baseUrl = url.toString();
-            redirectUri = baseUrl + "/api/auth/callback";
+            // Desarrollo - backend en /hcen-central
+            baseUrl = "http://localhost:8080/hcen-central";
+            redirectUri = "http://localhost:8080/hcen-central/api/auth/callback";
         }
         
-        return baseUrl + "/api/auth/login?redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
+        return baseUrl + "/api/auth/login?redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8) + "&origin=usuario-salud";
     }
 }
