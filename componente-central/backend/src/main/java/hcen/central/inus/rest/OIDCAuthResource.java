@@ -83,6 +83,14 @@ public class OIDCAuthResource {
             // session.setAttribute("oidc_code_verifier", authRequest.getCodeVerifier()); // PKCE removido
             // session.setAttribute("oidc_code_challenge", authRequest.getCodeChallenge()); // PKCE removido
             session.setAttribute("oidc_redirect_uri", redirectUri);
+            
+            // Detectar origen del login desde Referer header
+            String referer = httpRequest.getHeader("Referer");
+            String loginOrigin = "admin"; // Por defecto admin
+            if (referer != null && (referer.contains("/portal-salud/") || referer.contains("/portal-usuario/"))) {
+                loginOrigin = "usuario-salud";
+            }
+            session.setAttribute("oidc_login_origin", loginOrigin);
 
             LOGGER.info("Redirigiendo al authorization endpoint de gub.uy");
 
@@ -186,14 +194,34 @@ public class OIDCAuthResource {
                     
                     LOGGER.info("Datos guardados en sesión HTTP y cookie para desarrollo");
                     
-                    // Construir URL del dashboard (sin /api porque es un recurso JSF, no REST)
-                    String dashboardUrl = httpRequest.getScheme() + "://" + 
-                                          httpRequest.getServerName() + ":" + 
-                                          httpRequest.getServerPort() + 
-                                          httpRequest.getContextPath() + "/dashboard.xhtml";
+                    // Determinar dashboard según origen del login y entorno
+                    String loginOrigin = (String) session.getAttribute("oidc_login_origin");
+                    String serverName = httpRequest.getServerName();
+                    boolean isProduction = "hcen-uy.web.elasticloud.uy".equals(serverName);
+                    String contextPath;
+                    
+                    if ("usuario-salud".equals(loginOrigin)) {
+                        contextPath = isProduction ? "/portal-usuario" : "/portal-salud";
+                    } else {
+                        // Admin: root en producción, /frontend-admin-hcen en desarrollo
+                        contextPath = isProduction ? "" : "/frontend-admin-hcen";
+                    }
+                    
+                    // Construir URL del dashboard
+                    String scheme = httpRequest.getScheme();
+                    int serverPort = httpRequest.getServerPort();
+                    
+                    StringBuilder dashboardUrl = new StringBuilder(scheme).append("://").append(serverName);
+                    if (("http".equals(scheme) && serverPort != 80) || ("https".equals(scheme) && serverPort != 443)) {
+                        dashboardUrl.append(":").append(serverPort);
+                    }
+                    dashboardUrl.append(contextPath).append("/dashboard.xhtml");
+                    
+                    // Limpiar atributo de origen
+                    session.removeAttribute("oidc_login_origin");
                     
                     // Redirigir al dashboard JSF con cookie HttpOnly
-                    return Response.seeOther(URI.create(dashboardUrl))
+                    return Response.seeOther(URI.create(dashboardUrl.toString()))
                             .cookie(createJwtCookie(tokenResponse.getAccessToken(), tokenResponse.getExpiresIn()))
                             .build();
                 }

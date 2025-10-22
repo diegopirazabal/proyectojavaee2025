@@ -5,10 +5,12 @@ import com.hcen.periferico.usuariosalud.service.DnicServiceClient;
 import com.hcen.periferico.usuariosalud.service.DocumentoNoEncontradoException;
 import jakarta.annotation.PostConstruct;
 import jakarta.faces.application.FacesMessage;
+import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.view.ViewScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import jakarta.servlet.http.HttpSession;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.logging.Level;
@@ -31,11 +33,34 @@ public class UsuarioSaludDashboardBean implements Serializable {
     @PostConstruct
     public void init() {
         ciudadano = new CiudadanoDetalle();
-        Map<String, String> params = FacesContext.getCurrentInstance()
-                .getExternalContext()
-                .getRequestParameterMap();
-        docType = params.getOrDefault("docType", "");
-        docNumber = params.getOrDefault("docNumber", "");
+        ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
+        
+        // Intentar obtener datos de la sesión OIDC primero
+        HttpSession session = (HttpSession) externalContext.getSession(false);
+        if (session != null) {
+            // Buscar userInfo en la sesión (viene del callback OIDC)
+            Object userInfoObj = session.getAttribute("userInfo");
+            if (userInfoObj != null) {
+                try {
+                    // Usar reflexión para obtener la cédula sin depender de la clase OIDCUserInfo
+                    String cedula = (String) userInfoObj.getClass().getMethod("getNumeroDocumento").invoke(userInfoObj);
+                    if (cedula != null && !cedula.isBlank()) {
+                        docType = "CI";
+                        docNumber = cedula;
+                        LOGGER.info("Cédula obtenida de sesión OIDC: " + cedula);
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "No se pudo obtener cédula de userInfo en sesión", e);
+                }
+            }
+        }
+        
+        // Si no hay datos de OIDC, intentar obtener de parámetros de URL
+        if (docType == null || docType.isBlank()) {
+            Map<String, String> params = externalContext.getRequestParameterMap();
+            docType = params.getOrDefault("docType", "");
+            docNumber = params.getOrDefault("docNumber", "");
+        }
 
         if (!docType.isBlank() && !docNumber.isBlank()) {
             buscar();
