@@ -16,6 +16,7 @@
         <module>componente-central/backend</module>
         <module>componente-periferico/backend</module>
         <module>componente-periferico/frontend-profesionales</module>
+        <module>componente-periferico/frontend-admin-clinica</module>
     </modules>
 </project>
 

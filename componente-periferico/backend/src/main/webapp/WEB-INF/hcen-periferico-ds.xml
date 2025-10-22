@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<datasources xmlns="http://www.jboss.org/ironjacamar/schema"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://www.jboss.org/ironjacamar/schema
+             http://www.jboss.org/ironjacamar/schema/datasources_1_0.xsd">
+
+    <datasource jndi-name="java:jboss/datasources/HcenPerifericoDS"
+                pool-name="HcenPerifericoDS"
+                enabled="true"
+                use-java-context="true">
+
+        <connection-url>jdbc:postgresql://179.31.2.185:5432/hcen-periferico</connection-url>
+        <driver>postgresql</driver>
+
+        <security>
+            <user-name>webadmin</user-name>
+            <password>RXGyhe18615</password>
+        </security>
+
+        <pool>
+            <min-pool-size>5</min-pool-size>
+            <max-pool-size>20</max-pool-size>
+        </pool>
+
+        <validation>
+            <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker"/>
+            <background-validation>true</background-validation>
+            <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter"/>
+        </validation>
+    </datasource>
+
+</datasources>

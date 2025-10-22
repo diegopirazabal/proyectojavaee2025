@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jakarta.ee/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jakarta.ee/jsf/core"
+      xmlns:ui="http://xmlns.jakarta.ee/jsf/facelets">
+
+<h:head>
+    <title>Dashboard - Portal Admin Clínica</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        :root {
+            --primary-color: #{empty configuracionBean.colorPrimario ? '#007bff' : configuracionBean.colorPrimario};
+            --secondary-color: #{empty configuracionBean.colorSecundario ? '#6c757d' : configuracionBean.colorSecundario};
+        }
+        .p-menubar { background-color: var(--primary-color) !important; border: none; }
+        .p-menubar .p-menuitem-link, .p-menubar .p-menuitem-text { color: #fff !important; }
+        .p-button-primary { background-color: var(--primary-color) !important; border-color: var(--primary-color) !important; }
+    </style>
+</h:head>
+
+<f:metadata>
+    <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
+</f:metadata>
+
+<h:body>
+    <h:form>
+        <p:menubar>
+            <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>
+            <p:menuitem value="Profesionales" icon="pi pi-users" outcome="/pages/profesionales.xhtml"/>
+            <p:menuitem value="Configuración" icon="pi pi-cog" outcome="/pages/configuracion.xhtml"/>
+
+            <f:facet name="options">
+                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem;"/>
+                <p:commandButton value="Cerrar Sesión"
+                                icon="pi pi-sign-out"
+                                action="#{sessionBean.logout}"
+                                styleClass="p-button-danger"/>
+            </f:facet>
+        </p:menubar>
+    </h:form>
+
+    <div style="padding: 2rem;">
+        <h:form>
+            <p:panel header="Bienvenido al Portal Admin Clínica">
+                <h:panelGrid columns="2" style="margin-bottom: 1rem;">
+                    <h:outputText value="Administrador:"/>
+                    <h:outputText value="#{sessionBean.nombreAdministrador}" style="font-weight: bold;"/>
+
+                    <h:outputText value="Usuario:"/>
+                    <h:outputText value="#{sessionBean.username}" style="font-weight: bold;"/>
+
+                    <h:outputText value="Clínica:"/>
+                    <h:outputText value="#{sessionBean.clinicaRut}" style="font-weight: bold;"/>
+                </h:panelGrid>
+
+                <p:separator/>
+
+                <div style="margin-top: 2rem;">
+                    <h3>Accesos Rápidos</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <p:link outcome="/pages/profesionales.xhtml">
+                            <p:panel header="Gestión de Profesionales" style="text-align: center;">
+                                <i class="pi pi-users" style="font-size: 3rem; color: #007bff;"/>
+                                <p>Administrar profesionales de salud de la clínica</p>
+                            </p:panel>
+                        </p:link>
+
+                        <p:link outcome="/pages/configuracion.xhtml">
+                            <p:panel header="Configuración" style="text-align: center;">
+                                <i class="pi pi-cog" style="font-size: 3rem; color: #28a745;"/>
+                                <p>Personalizar el look &amp; feel de la clínica</p>
+                            </p:panel>
+                        </p:link>
+                    </div>
+                </div>
+            </p:panel>
+        </h:form>
+    </div>
+</h:body>
+</html>

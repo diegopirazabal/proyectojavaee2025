@@ -1,0 +1,13 @@
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\dao\AdministradorClinicaDAO.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\dao\ConfiguracionClinicaDAO.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\dao\ProfesionalSaludDAO.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\dto\administrador_clinica_dto.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\dto\configuracion_clinica_dto.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\dto\profesional_salud_dto.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\rest\AuthenticationResource.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\rest\ConfiguracionResource.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\rest\ProfesionalResource.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\rest\RestApplication.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\service\AuthenticationService.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\service\ConfiguracionService.java
+C:\Users\User\OneDrive\Escritorio\JavaEE\proyectojavaee2025\componente-periferico\backend\src\main\java\com\hcen\periferico\service\ProfesionalService.java

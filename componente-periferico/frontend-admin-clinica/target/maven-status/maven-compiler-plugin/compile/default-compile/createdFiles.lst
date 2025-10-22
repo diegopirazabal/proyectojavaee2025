@@ -1,0 +1,8 @@
+com\hcen\periferico\frontend\bean\ConfiguracionBean.class
+com\hcen\periferico\frontend\bean\ProfesionalBean.class
+com\hcen\periferico\frontend\service\APIService.class
+com\hcen\periferico\frontend\bean\LoginBean.class
+com\hcen\periferico\frontend\dto\profesional_salud_dto.class
+com\hcen\periferico\frontend\bean\SessionBean.class
+com\hcen\periferico\frontend\dto\configuracion_clinica_dto.class
+com\hcen\periferico\frontend\dto\administrador_clinica_dto.class
