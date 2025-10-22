@@ -39,12 +39,12 @@ public class OIDCCallbackHandler {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * Procesa el callback de autenticación OIDC
+     * Procesa el callback de autenticación OIDC (sin PKCE)
      * Intercambia el authorization code por tokens
      *
      * @param code          Authorization code recibido del proveedor
      * @param state         State parameter para validación CSRF
-     * @param codeVerifier  Code verifier PKCE usado en la petición original
+     * @param codeVerifier  Code verifier PKCE (no usado, puede ser null)
      * @param redirectUri   URI de redirección usada en la petición original
      * @return OIDCTokenResponse con los tokens recibidos
      * @throws Exception si ocurre un error en el intercambio
@@ -54,29 +54,24 @@ public class OIDCCallbackHandler {
             throw new IllegalArgumentException("Authorization code no puede ser nulo o vacío");
         }
 
-        if (codeVerifier == null || codeVerifier.isEmpty()) {
-            throw new IllegalArgumentException("Code verifier no puede ser nulo o vacío");
-        }
-
         LOGGER.info("Procesando callback OIDC con code: " + code.substring(0, Math.min(10, code.length())) + "...");
 
-        // Intercambiar code por tokens
-        OIDCTokenResponse tokenResponse = exchangeCodeForTokens(code, codeVerifier, redirectUri);
+        // Intercambiar code por tokens (sin PKCE)
+        OIDCTokenResponse tokenResponse = exchangeCodeForTokens(code, redirectUri);
 
         LOGGER.info("Éxito al intercambiar code por tokens");
         return tokenResponse;
     }
 
     /**
-     * Intercambia el authorization code por tokens mediante POST al token endpoint
+     * Intercambia el authorization code por tokens mediante POST al token endpoint (sin PKCE)
      *
      * @param code         Authorization code
-     * @param codeVerifier Code verifier PKCE
      * @param redirectUri  Redirect URI
      * @return OIDCTokenResponse con access_token, id_token, refresh_token
      * @throws Exception si falla el intercambio
      */
-    private OIDCTokenResponse exchangeCodeForTokens(String code, String codeVerifier, String redirectUri) throws Exception {
+    private OIDCTokenResponse exchangeCodeForTokens(String code, String redirectUri) throws Exception {
         String tokenEndpoint = oidcConfig.getTokenEndpoint();
         LOGGER.info("Intercambiando code por tokens en: " + tokenEndpoint);
 
@@ -89,12 +84,11 @@ public class OIDCCallbackHandler {
             httpPost.setHeader("Authorization", "Basic " + encodedAuth);
             httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded");
 
-            // Preparar parámetros del POST
+            // Preparar parámetros del POST (sin code_verifier)
             List<NameValuePair> params = new ArrayList<>();
             params.add(new BasicNameValuePair("grant_type", "authorization_code"));
             params.add(new BasicNameValuePair("code", code));
             params.add(new BasicNameValuePair("redirect_uri", redirectUri));
-            params.add(new BasicNameValuePair("code_verifier", codeVerifier));
             params.add(new BasicNameValuePair("client_id", oidcConfig.getClientId()));
 
             httpPost.setEntity(new UrlEncodedFormEntity(params));

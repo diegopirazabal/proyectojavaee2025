@@ -20,7 +20,7 @@ import java.util.logging.Logger;
  * Se ejecuta ANTES de los recursos REST protegidos
  * 
  * Flujo:
- * 1. Extrae token del header Authorization: Bearer <token>
+ * 1. Extrae token del header Authorization: Bearer <token> o de cookie HttpOnly
  * 2. Valida token usando JWTTokenProvider
  * 3. Si válido: permite acceso y setea contexto de seguridad
  * 4. Si inválido: retorna 401 Unauthorized
@@ -72,11 +72,11 @@ public class JWTAuthenticationFilter implements Filter {
         }
 
         try {
-            // Extraer token del header Authorization
-            String token = extractTokenFromHeader(httpRequest);
+            // Extraer token del header Authorization o cookie HttpOnly
+            String token = extractTokenFromRequest(httpRequest);
 
             if (token == null || token.isEmpty()) {
-                LOGGER.warning("Token no proporcionado en header Authorization para: " + requestURI);
+                LOGGER.warning("Token no proporcionado en header Authorization ni cookie para: " + requestURI);
                 sendUnauthorizedResponse(httpResponse, "Token no proporcionado");
                 return;
             }
@@ -114,16 +114,26 @@ public class JWTAuthenticationFilter implements Filter {
     }
 
     /**
-     * Extrae el token JWT del header Authorization
+     * Extrae el token JWT del header Authorization o de la cookie HttpOnly
+     * Prioridad: 1) Header Authorization, 2) Cookie
      *
      * @param request HttpServletRequest
      * @return Token JWT o null si no está presente
      */
-    private String extractTokenFromHeader(HttpServletRequest request) {
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        // 1. Intentar extraer del header Authorization (prioridad para APIs REST)
         String authHeader = request.getHeader("Authorization");
-
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7); // Remover "Bearer " prefix
+        }
+
+        // 2. Intentar extraer de la cookie HttpOnly (para frontend JSF)
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if ("jwt_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
         }
 
         return null;

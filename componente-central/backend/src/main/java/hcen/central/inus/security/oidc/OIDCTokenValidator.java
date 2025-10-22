@@ -1,10 +1,18 @@
 package hcen.central.inus.security.oidc;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import hcen.central.inus.security.config.OIDCConfiguration;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.io.Decoders;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
@@ -14,6 +22,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.security.Signature;
 
 /**
  * Validador de tokens ID Token y Access Token
@@ -56,11 +65,38 @@ public class OIDCTokenValidator {
             PublicKey publicKey = getPublicKeyFromJWKS(kid);
 
             // Validar el token con la clave pública
+            // NOTA: gub.uy usa claves RSA de 1024 bits, así que deshabilitamos la validación de tamaño
             JwtParser parser = Jwts.parserBuilder()
                     .setSigningKey(publicKey)
                     .build();
 
-            Jws<Claims> jws = parser.parseClaimsJws(idToken);
+            // Parsear sin validación estricta de tamaño de clave
+            Jws<Claims> jws;
+            try {
+                jws = parser.parseClaimsJws(idToken);
+            } catch (io.jsonwebtoken.security.WeakKeyException e) {
+                // gub.uy usa claves de 1024 bits que son rechazadas por JJWT
+                // Usamos parser sin validación de tamaño de clave
+                LOGGER.warning("Clave RSA de gub.uy es de 1024 bits (menor a 2048). Validando sin restricción de tamaño.");
+                parser = Jwts.parserBuilder()
+                        .setSigningKey(publicKey)
+                        .build();
+                
+                // Parsear manualmente el JWT para obtener los claims
+                String[] tokenParts = idToken.split("\\.");
+                String claimsJson = new String(Base64.getUrlDecoder().decode(tokenParts[1]));
+                ObjectMapper mapper = new ObjectMapper();
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> claimsMap = mapper.readValue(claimsJson, java.util.Map.class);
+                
+                // Crear Claims manualmente
+                Claims claims = Jwts.claims(claimsMap);
+                
+                // Verificar la firma manualmente usando la biblioteca estándar de Java
+                verifySignatureManually(idToken, publicKey);
+                
+                return claims;
+            }
             Claims claims = jws.getBody();
 
             // Validar claims estándar
@@ -128,40 +164,99 @@ public class OIDCTokenValidator {
     }
 
     /**
+     * Verifica la firma del JWT manualmente usando la clave pública RSA
+     * Este método se usa cuando JJWT rechaza claves de 1024 bits
+     */
+    private void verifySignatureManually(String jwt, PublicKey publicKey) throws Exception {
+        String[] parts = jwt.split("\\.");
+        if (parts.length != 3) {
+            throw new JwtException("JWT inválido: formato incorrecto");
+        }
+        
+        String headerAndPayload = parts[0] + "." + parts[1];
+        byte[] signatureBytes = Base64.getUrlDecoder().decode(parts[2]);
+        
+        Signature signature = Signature.getInstance("SHA256withRSA");
+        signature.initVerify(publicKey);
+        signature.update(headerAndPayload.getBytes("UTF-8"));
+        
+        if (!signature.verify(signatureBytes)) {
+            throw new JwtException("Firma del JWT inválida");
+        }
+        
+        LOGGER.info("Firma del JWT verificada manualmente con éxito");
+    }
+
+    /**
      * Obtiene la clave pública del JWKS endpoint usando el kid
      *
      * @param kid Key ID del token
      * @return PublicKey para validar la firma
      */
     private PublicKey getPublicKeyFromJWKS(String kid) throws Exception {
-        // TODO: En producción, implementar cache de claves públicas
-        // TODO: Hacer llamada HTTP al jwks_uri del proveedor OIDC
-        // Por ahora, retornamos una implementación stub que debe ser completada
+        String jwksUri = oidcConfig.getJwksUri();
+        LOGGER.info("Obteniendo clave pública del JWKS endpoint: " + jwksUri + " para kid: " + kid);
 
-        LOGGER.warning("ADVERTENCIA: getPublicKeyFromJWKS es un stub. Implementar llamada HTTP a JWKS endpoint.");
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpGet httpGet = new HttpGet(jwksUri);
+            httpGet.setHeader("Accept", "application/json");
 
-        // Ejemplo de cómo construir una clave RSA desde JWKS:
-        // 1. Llamar a oidcConfig.getJwksUri() con HttpClient
-        // 2. Parsear JSON response para encontrar la key con el kid
-        // 3. Extraer los valores 'n' (modulus) y 'e' (exponent)
-        // 4. Construir PublicKey como se muestra abajo:
+            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+                int statusCode = response.getCode();
+                String responseBody = EntityUtils.toString(response.getEntity());
 
-        /*
-        String modulusBase64 = ... // extraído del JWKS
-        String exponentBase64 = ... // extraído del JWKS
+                if (statusCode != 200) {
+                    throw new RuntimeException("Error al obtener JWKS. Status: " + statusCode + ", Body: " + responseBody);
+                }
 
-        byte[] modulusBytes = Base64.getUrlDecoder().decode(modulusBase64);
-        byte[] exponentBytes = Base64.getUrlDecoder().decode(exponentBase64);
+                LOGGER.fine("JWKS response: " + responseBody);
 
-        BigInteger modulus = new BigInteger(1, modulusBytes);
-        BigInteger exponent = new BigInteger(1, exponentBytes);
+                // Parsear JSON del JWKS
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode jwks = objectMapper.readTree(responseBody);
+                JsonNode keys = jwks.get("keys");
 
-        RSAPublicKeySpec spec = new RSAPublicKeySpec(modulus, exponent);
-        KeyFactory factory = KeyFactory.getInstance("RSA");
-        return factory.generatePublic(spec);
-        */
+                if (keys == null || !keys.isArray()) {
+                    throw new RuntimeException("JWKS no contiene array 'keys'");
+                }
 
-        throw new UnsupportedOperationException("JWKS retrieval no implementado. Ver TODO en código.");
+                // Buscar la clave con el kid correspondiente
+                for (JsonNode key : keys) {
+                    String keyId = key.get("kid").asText();
+                    if (kid.equals(keyId)) {
+                        String kty = key.get("kty").asText();
+                        if (!"RSA".equals(kty)) {
+                            throw new RuntimeException("Solo se soportan claves RSA, recibido: " + kty);
+                        }
+
+                        // Extraer modulus (n) y exponent (e)
+                        String modulusBase64 = key.get("n").asText();
+                        String exponentBase64 = key.get("e").asText();
+
+                        // Decodificar Base64URL
+                        byte[] modulusBytes = Base64.getUrlDecoder().decode(modulusBase64);
+                        byte[] exponentBytes = Base64.getUrlDecoder().decode(exponentBase64);
+
+                        // Crear BigIntegers
+                        BigInteger modulus = new BigInteger(1, modulusBytes);
+                        BigInteger exponent = new BigInteger(1, exponentBytes);
+
+                        // Construir la clave pública RSA
+                        RSAPublicKeySpec spec = new RSAPublicKeySpec(modulus, exponent);
+                        KeyFactory factory = KeyFactory.getInstance("RSA");
+                        PublicKey publicKey = factory.generatePublic(spec);
+
+                        LOGGER.info("Clave pública obtenida exitosamente para kid: " + kid);
+                        return publicKey;
+                    }
+                }
+
+                throw new RuntimeException("No se encontró clave con kid: " + kid + " en JWKS");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error obteniendo clave pública del JWKS", e);
+            throw new RuntimeException("Error obteniendo clave pública: " + e.getMessage(), e);
+        }
     }
 
     /**

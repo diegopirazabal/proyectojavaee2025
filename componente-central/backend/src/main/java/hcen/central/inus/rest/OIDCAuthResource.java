@@ -11,6 +11,7 @@ import hcen.central.inus.security.oidc.OIDCCallbackHandler;
 import hcen.central.inus.security.oidc.OIDCUserInfoService;
 import io.jsonwebtoken.Claims;
 import jakarta.inject.Inject;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.ws.rs.*;
@@ -160,7 +161,7 @@ public class OIDCAuthResource {
             LOGGER.info("Éxito en callback OIDC");
 
             // TODO: QUITAR LUEGO, ES SOLO PARA DESARROLLO - Inicio
-            // Guardar datos en sesión HTTP para el frontend JSF de desarrollo
+            // Guardar datos en sesión HTTP y cookie HttpOnly para el frontend JSF de desarrollo
             try {
                 String cedula = tokenResponse.getUserSub();
                 
@@ -183,10 +184,18 @@ public class OIDCAuthResource {
                     session.setAttribute("userInfo", userInfo);
                     session.setAttribute("jwtToken", tokenResponse);
                     
-                    LOGGER.info("Datos guardados en sesión HTTP para desarrollo");
+                    LOGGER.info("Datos guardados en sesión HTTP y cookie para desarrollo");
                     
-                    // Redirigir al dashboard JSF
-                    return Response.seeOther(URI.create(httpRequest.getContextPath() + "/dashboard.xhtml")).build();
+                    // Construir URL del dashboard (sin /api porque es un recurso JSF, no REST)
+                    String dashboardUrl = httpRequest.getScheme() + "://" + 
+                                          httpRequest.getServerName() + ":" + 
+                                          httpRequest.getServerPort() + 
+                                          httpRequest.getContextPath() + "/dashboard.xhtml";
+                    
+                    // Redirigir al dashboard JSF con cookie HttpOnly
+                    return Response.seeOther(URI.create(dashboardUrl))
+                            .cookie(createJwtCookie(tokenResponse.getAccessToken(), tokenResponse.getExpiresIn()))
+                            .build();
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Error guardando datos en sesión para desarrollo", e);
@@ -250,12 +259,12 @@ public class OIDCAuthResource {
 
     /**
      * POST /api/auth/logout
-     * Cierra la sesión del usuario
+     * Cierra la sesión del usuario y borra la cookie JWT
      *
-     * Requiere header: Authorization: Bearer <access_token>
+     * Requiere header: Authorization: Bearer <access_token> o cookie jwt_token
      *
-     * @param authHeader Header de autorización con JWT
-     * @return Respuesta de éxito
+     * @param authHeader Header de autorización con JWT (opcional si hay cookie)
+     * @return Respuesta de éxito con cookie borrada
      */
     @POST
     @Path("/logout")
@@ -263,32 +272,29 @@ public class OIDCAuthResource {
         try {
             LOGGER.info("··· Cerrando sesión");
 
-            // Extraer token del header
+            // Extraer token del header (validación opcional, el filtro ya lo hizo)
             String token = extractTokenFromHeader(authHeader);
-            if (token == null) {
-                return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(createErrorResponse("Token no proporcionado"))
-                        .build();
+            
+            // TODO: Si se implementa invalidación de tokens (blacklist), hacerlo aquí
+            // authService.invalidateToken(token);
+
+            // Invalidar sesión HTTP si existe
+            HttpSession session = httpRequest.getSession(false);
+            if (session != null) {
+                session.invalidate();
+                LOGGER.info("Sesión HTTP invalidada");
             }
-
-            // Validar y extraer subject del token
-            // Nota: Aquí deberías inyectar JWTTokenProvider para validar el token
-            // Por simplicidad, asumimos que el filtro JWT ya validó el token
-            // y puedes extraer el subject directamente
-
-            // TODO: Extraer userSub del token JWT validado
-            // Claims claims = jwtTokenProvider.validateAccessToken(token);
-            // String userSub = claims.getSubject();
-
-            // Por ahora, devolvemos éxito genérico
-            // authService.logout(userSub);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Sesión cerrada exitosamente");
 
             LOGGER.info("Éxito al cerrar sesión");
-            return Response.ok(response).build();
+            
+            // Retornar respuesta con cookie JWT borrada
+            return Response.ok(response)
+                    .cookie(deleteJwtCookie())
+                    .build();
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error en logout", e);
@@ -357,5 +363,39 @@ public class OIDCAuthResource {
         error.put("error", true);
         error.put("message", message);
         return error;
+    }
+
+    /**
+     * Crea una cookie HttpOnly para el JWT access token
+     * 
+     * @param accessToken Token JWT
+     * @param expiresInSeconds Duración del token en segundos
+     * @return NewCookie para JAX-RS Response
+     */
+    private NewCookie createJwtCookie(String accessToken, long expiresInSeconds) {
+        return new NewCookie.Builder("jwt_token")
+                .value(accessToken)
+                .path("/")
+                .maxAge((int) expiresInSeconds)
+                .httpOnly(true)
+                .secure(false) // TODO: Cambiar a true en producción con HTTPS
+                .sameSite(NewCookie.SameSite.LAX)
+                .build();
+    }
+
+    /**
+     * Crea una cookie vacía para borrar el JWT (usado en logout)
+     * 
+     * @return NewCookie con maxAge=0 para borrar la cookie
+     */
+    private NewCookie deleteJwtCookie() {
+        return new NewCookie.Builder("jwt_token")
+                .value("")
+                .path("/")
+                .maxAge(0)
+                .httpOnly(true)
+                .secure(false) // TODO: Cambiar a true en producción con HTTPS
+                .sameSite(NewCookie.SameSite.LAX)
+                .build();
     }
 }

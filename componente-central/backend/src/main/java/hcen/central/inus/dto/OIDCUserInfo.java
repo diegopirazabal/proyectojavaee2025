@@ -1,19 +1,25 @@
 package hcen.central.inus.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import hcen.central.inus.dto.deserializer.TipoDocumentoDeserializer;
 
 /**
  * DTO para información del usuario obtenida desde el endpoint UserInfo de gub.uy
- * Basado en los claims del .well-known
+ * Solo mapea los campos necesarios para UsuarioSalud
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OIDCUserInfo {
     
+    // Campos básicos
     private String sub;
     private String email;
     
     @JsonProperty("email_verified")
     private Boolean emailVerified;
     
+    // Campos de nombre
     @JsonProperty("nombre_completo")
     private String nombreCompleto;
     
@@ -29,31 +35,17 @@ public class OIDCUserInfo {
     @JsonProperty("segundo_apellido")
     private String segundoApellido;
     
+    // Campos de documento (tipo_documento viene como objeto, se deserializa a String)
     @JsonProperty("tipo_documento")
+    @JsonDeserialize(using = TipoDocumentoDeserializer.class)
     private String tipoDocumento;
     
     @JsonProperty("numero_documento")
     private String numeroDocumento;
     
-    @JsonProperty("pais_documento")
-    private String paisDocumento;
-    
-    private String uid;
-    private String rid;
-    private String nid;
-    
-    @JsonProperty("name")
-    private String name;
-    
-    @JsonProperty("given_name")
-    private String givenName;
-    
-    @JsonProperty("family_name")
-    private String familyName;
-    
     public OIDCUserInfo() {}
     
-    // Getters/Setters
+    // Getters y Setters solo para los campos necesarios
     public String getSub() { return sub; }
     public void setSub(String sub) { this.sub = sub; }
     
@@ -84,40 +76,15 @@ public class OIDCUserInfo {
     public String getNumeroDocumento() { return numeroDocumento; }
     public void setNumeroDocumento(String numeroDocumento) { this.numeroDocumento = numeroDocumento; }
     
-    public String getPaisDocumento() { return paisDocumento; }
-    public void setPaisDocumento(String paisDocumento) { this.paisDocumento = paisDocumento; }
-    
-    public String getUid() { return uid; }
-    public void setUid(String uid) { this.uid = uid; }
-    
-    public String getRid() { return rid; }
-    public void setRid(String rid) { this.rid = rid; }
-    
-    public String getNid() { return nid; }
-    public void setNid(String nid) { this.nid = nid; }
-    
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    
-    public String getGivenName() { return givenName; }
-    public void setGivenName(String givenName) { this.givenName = givenName; }
-    
-    public String getFamilyName() { return familyName; }
-    public void setFamilyName(String familyName) { this.familyName = familyName; }
-    
-    // English aliases
-    public String getFullName() { return nombreCompleto; }
-    public void setFullName(String fullName) { this.nombreCompleto = fullName; }
-    
-    public String getFirstName() { return primerNombre; }
-    public void setFirstName(String firstName) { this.primerNombre = firstName; }
-    
-    public String getLastName() { return primerApellido; }
-    public void setLastName(String lastName) { this.primerApellido = lastName; }
+    // Alias para compatibilidad con JSF dashboard.xhtml
+    public String getFullName() { 
+        return nombreCompleto != null ? nombreCompleto : 
+               (primerNombre != null ? primerNombre + " " : "") + 
+               (primerApellido != null ? primerApellido : "");
+    }
     
     public String getDocumentType() { return tipoDocumento; }
-    public void setDocumentType(String documentType) { this.tipoDocumento = documentType; }
-    
     public String getDocumentNumber() { return numeroDocumento; }
-    public void setDocumentNumber(String documentNumber) { this.numeroDocumento = documentNumber; }
+    
+    public String getUid() { return sub; }
 }

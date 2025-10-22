@@ -40,7 +40,7 @@ public class api_service {
 
     private static final String CENTRAL_ENV_VAR = "HCEN_API_BASE_URL";
     private static final String CENTRAL_SYS_PROP = "hcen.apiBaseUrl";
-    private static final String DEFAULT_BACKEND_URL = "http://localhost:8080/hcen-central/api";
+    private static final String DEFAULT_BACKEND_URL = "http://localhost:8080/api";
 
     private static final String PERIPHERAL_ENV_VAR = "HCEN_PERIPHERAL_API_BASE_URL";
     private static final String PERIPHERAL_SYS_PROP = "hcen.peripheralApiBaseUrl";
@@ -179,7 +179,9 @@ public class api_service {
     }
 
     public String getOidcLoginUrl() {
-        return backendUrl + "/auth/login";
+        // Construir URL con redirect_uri apuntando al callback del backend
+        String redirectUri = "http://localhost:8080/api/auth/callback";
+        return backendUrl + "/auth/login?redirect_uri=" + redirectUri;
     }
 
     public boolean isBackendAvailable() {
