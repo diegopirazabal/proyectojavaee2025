@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<documento>
+  <title>Consulta Ambulatoria</title>
+  <paciente>CI 4.567.890-1</paciente>
+  <fecha>2025-10-22</fecha>
+  <resumen>Paciente consulta por control de rutina. TA 120/80, FC 72. Se indica laboratorio básico y control en 6 meses.</resumen>
+  <observaciones>
+    <item tipo="Signo Vital">Tensión arterial dentro de parámetros normales.</item>
+    <item tipo="Indicación">Solicitar hemograma y perfil lipídico.</item>
+    <item tipo="Plan">Control con médico de referencia en 6 meses.</item>
+  </observaciones>
+</documento>
+

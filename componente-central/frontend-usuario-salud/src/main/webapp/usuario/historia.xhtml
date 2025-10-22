@@ -1,0 +1,75 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+<f:metadata>
+    <f:event type="preRenderView" listener="#{login_bean.checkAuthentication}" />
+</f:metadata>
+<h:head>
+    <title>Mi Historia Clínica</title>
+    <meta charset="UTF-8" />
+    <style>
+        .viewer { width: 100%; height: 85vh; border: none; }
+        .upload-grid .ui-grid-col-6 { padding: .5rem; }
+    </style>
+</h:head>
+<h:body>
+    <h:form id="hform">
+        <p:menubar>
+            <p:menuitem value="Salir" icon="pi pi-sign-out" action="#{login_bean.logout}" />
+        </p:menubar>
+
+        <p:panel header="Mi Historia Clínica">
+            <h:panelGroup rendered="#{not empty historia_bean.pdfBase64}">
+                <object class="viewer" type="application/pdf"
+                        data="#{empty historia_bean.pdfBase64 ? '' : 'data:application/pdf;base64,'.concat(historia_bean.pdfBase64)}">
+                    Su navegador no puede mostrar PDF. Descargue
+                    <h:outputLink value="#{empty historia_bean.pdfBase64 ? '' : 'data:application/pdf;base64,'.concat(historia_bean.pdfBase64)}">aquí</h:outputLink>.
+                </object>
+            </h:panelGroup>
+
+            <h:panelGroup rendered="#{empty historia_bean.pdfBase64}">
+                <p:messages id="messages" showDetail="true"/>
+                <h:outputText value="No se encontró el PDF de historia clínica. Puede cargar XML+XSL para visualizar." />
+
+                <p:fieldset legend="Cargar XML y XSL (opcional)" toggleable="true" collapsed="false">
+                    <div class="upload-grid">
+                        <p:panelGrid columns="2" columnClasses="ui-grid-col-6,ui-grid-col-6" layout="grid">
+                            <h:panelGroup>
+                                <p:outputLabel value="XML"/>
+                                <p:fileUpload mode="advanced" auto="true" dragDropSupport="true"
+                                              chooseLabel="Seleccionar XML" update=":hform:messages"
+                                              listener="#{historia_bean.handleXmlUpload}"/>
+                                <h:outputText value="#{empty historia_bean.xmlFileName ? 'Sin archivo' : historia_bean.xmlFileName}"/>
+                            </h:panelGroup>
+                            <h:panelGroup>
+                                <p:outputLabel value="XSL"/>
+                                <p:fileUpload mode="advanced" auto="true" dragDropSupport="true"
+                                              chooseLabel="Seleccionar XSL" update=":hform:messages"
+                                              listener="#{historia_bean.handleXslUpload}"/>
+                                <h:outputText value="#{empty historia_bean.xslFileName ? 'Sin archivo' : historia_bean.xslFileName}"/>
+                            </h:panelGroup>
+                        </p:panelGrid>
+                        <p:commandButton value="Transformar y mostrar" icon="pi pi-sync"
+                                         actionListener="#{historia_bean.transformar}"
+                                         update=":hform:preview :hform:messages" />
+                        <p:commandButton value="Cargar ejemplo" icon="pi pi-file"
+                                         styleClass="p-button-secondary"
+                                         actionListener="#{historia_bean.cargarEjemplo}"
+                                         update=":hform:preview :hform:messages :hform" />
+                    </div>
+                </p:fieldset>
+
+                <h:panelGroup id="preview">
+                    <h:panelGroup rendered="#{not empty historia_bean.htmlDataUrl}">
+                        <iframe sandbox="" width="100%" height="600"
+                                src="#{historia_bean.htmlDataUrl}"></iframe>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:panelGroup>
+        </p:panel>
+    </h:form>
+</h:body>
+</html>
+

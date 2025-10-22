@@ -1,0 +1,21 @@
+*** Begin Patch
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\java\com\hcen\frontend\usuario\bean\historia_bean.java
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\java\com\hcen\frontend\usuario\bean\historia_doc_bean.java
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\java\com\hcen\frontend\usuario\bean\historia_lista_bean.java
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\java\com\hcen\frontend\usuario\bean\login_bean.java
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\java\com\hcen\frontend\usuario\bean\profesional_bean.java
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\java\com\hcen\frontend\usuario\dto\administrador_clinica_dto.java
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\java\com\hcen\frontend\usuario\dto\documento_historia_dto.java
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\java\com\hcen\frontend\usuario\dto\profesional_salud_dto.java
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\java\com\hcen\frontend\usuario\service\api_service.java
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\java\com\hcen\frontend\usuario\service\xslt_service.java
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\resources\historia\cda.xsl
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\resources\historia\ejemplo.xml
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\webapp\login.xhtml
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\webapp\usuario\dashboard.xhtml
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\webapp\usuario\historia.xhtml
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\webapp\usuario\historia_doc.xhtml
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\webapp\usuario\historia_lista.xhtml
+*** Delete File: componente-periferico\frontend-usuario-salud\src\main\webapp\WEB-INF\web.xml
+*** End Patch
+

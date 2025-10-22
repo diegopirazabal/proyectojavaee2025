@@ -32,9 +32,7 @@ public class usuario_salud {
     @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private historia_clinica historiaClinica;
 
-    // Notificaciones
-    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<notificacion> notificaciones = new ArrayList<>();
+    // Notificaciones removidas
 
     // Clínicas
     @ManyToMany
@@ -66,8 +64,7 @@ public class usuario_salud {
         this.historiaClinica = historiaClinica;
         if (historiaClinica != null) historiaClinica.setUsuario(this);
     }
-    public List<notificacion> getNotificaciones() { return notificaciones; }
-    public void setNotificaciones(List<notificacion> notificaciones) { this.notificaciones = notificaciones; }
+    // Getters/Setters de notificaciones removidos
     public Set<clinica> getClinicas() { return clinicas; }
     public void setClinicas(Set<clinica> clinicas) { this.clinicas = clinicas; }
     public List<politica_acceso> getPoliticasAcceso() { return politicasAcceso; }

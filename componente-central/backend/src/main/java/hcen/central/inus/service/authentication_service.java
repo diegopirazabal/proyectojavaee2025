@@ -100,7 +100,7 @@ public class authentication_service {
         if (envValue != null) {
             return Boolean.parseBoolean(envValue);
         }
-        return Boolean.parseBoolean(System.getProperty(DEV_LOGIN_PROP, "false"));
+        return Boolean.parseBoolean(System.getProperty(DEV_LOGIN_PROP, "true"));
     }
 
     private String hashPassword(String password) {

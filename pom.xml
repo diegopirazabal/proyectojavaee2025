@@ -15,5 +15,6 @@
         <module>core-domain</module>
         <module>componente-central/backend</module>
         <module>componente-periferico/backend</module>
+        <module>componente-central/frontend-usuario-salud</module>
     </modules>
 </project>

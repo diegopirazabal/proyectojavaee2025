@@ -1,7 +1,4 @@
-/Users/diego/Developer/hcen-uy/componente-central/backend/src/main/java/hcen/central/RestApplication.java
-/Users/diego/Developer/hcen-uy/componente-central/backend/src/main/java/hcen/central/inus/api/notification_resource.java
-/Users/diego/Developer/hcen-uy/componente-central/backend/src/main/java/hcen/central/inus/config/FirebaseInitializer.java
-/Users/diego/Developer/hcen-uy/componente-central/backend/src/main/java/hcen/central/inus/dao/admin_hcen_dao.java
-/Users/diego/Developer/hcen-uy/componente-central/backend/src/main/java/hcen/central/inus/entity/admin_hcen.java
-/Users/diego/Developer/hcen-uy/componente-central/backend/src/main/java/hcen/central/inus/service/authentication_service.java
-/Users/diego/Developer/hcen-uy/componente-central/backend/src/main/java/hcen/central/inus/service/notification_service.java
+C:\Users\Mauro\Desktop\PROYECTO FINAL\proyectojavaee2025\componente-central\backend\src\main\java\hcen\central\inus\dao\admin_hcen_dao.java
+C:\Users\Mauro\Desktop\PROYECTO FINAL\proyectojavaee2025\componente-central\backend\src\main\java\hcen\central\inus\entity\admin_hcen.java
+C:\Users\Mauro\Desktop\PROYECTO FINAL\proyectojavaee2025\componente-central\backend\src\main\java\hcen\central\inus\service\authentication_service.java
+C:\Users\Mauro\Desktop\PROYECTO FINAL\proyectojavaee2025\componente-central\backend\src\main\java\hcen\central\RestApplication.java

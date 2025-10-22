@@ -59,21 +59,7 @@ public class api_service {
         return null;
     }
 
-    public boolean triggerBroadcastNotification() {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost request = new HttpPost(backendUrl + "/notifications/broadcast-test");
-
-            StringEntity entity = new StringEntity("{}", ContentType.APPLICATION_JSON);
-            request.setEntity(entity);
-
-            try (CloseableHttpResponse response = httpClient.execute(request)) {
-                return response.getCode() == 200;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
+    // Notifications API removed
     
     private admin_hcen_dto parseAdminFromJson(String jsonString) {
         try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {

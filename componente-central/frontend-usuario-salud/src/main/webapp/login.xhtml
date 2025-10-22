@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+<h:head>
+    <title>HCEN - Usuario de la Salud</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <h:outputStylesheet>
+        .login-box { max-width: 420px; margin: 8vh auto; }
+        .subtitle { color: #666; font-size: .9rem; display: block; margin-top: .25rem; }
+    </h:outputStylesheet>
+</h:head>
+<h:body>
+    <h:form id="formLogin">
+        <p:messages showDetail="true" closable="true" />
+
+        <p:panel header="Ingreso - Usuario de la Salud" styleClass="login-box">
+            <p:panelGrid columns="2" columnClasses="ui-grid-col-4,ui-grid-col-8" styleClass="ui-fluid" layout="grid">
+                <p:outputLabel for="cedula" value="Cédula" />
+                <h:panelGroup>
+                    <p:inputText id="cedula" value="#{login_bean.cedula}" required="true"
+                                 requiredMessage="Ingrese su cédula"
+                                 placeholder="Sin puntos ni guión" />
+                    <span class="subtitle">Temporal: sin autenticación (solo CI)</span>
+                </h:panelGroup>
+            </p:panelGrid>
+
+            <p:separator />
+            <p:commandButton value="Ver mi historia clínica" icon="pi pi-file"
+                             action="#{login_bean.ingresarPorCedula}" update=":formLogin" />
+        </p:panel>
+    </h:form>
+</h:body>
+</html>
+
+

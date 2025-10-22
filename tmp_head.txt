@@ -1,0 +1,200 @@
+<xsl:stylesheet version="1.0" xmlns:xsl="http://xmlns.jcp.org/jsf/composite">
+    <xsl:output method="html" indent="yes" version="4.01" encoding="ISO-8859-1" doctype-system="http://www.w3.org/TR/html4/strict.dtd" doctype-public="-//W3C//DTD HTML 4.01//EN"/>
+    <xsl:param name="limit-external-images" select="'yes'"/>
+    <!--
+     A vertical bar separated list of URI prefixes, such as "http://www.example.com|https://www.example.com"
+    -->
+    <xsl:param name="external-image-whitelist"/>
+    <!-- string processing variables -->
+    <xsl:variable name="lc" select="'abcdefghijklmnopqrstuvwxyz'"/>
+    <xsl:variable name="uc" select="'ABCDEFGHIJKLMNOPQRSTUVWXYZ'"/>
+    <!--
+    -->
+    <xsl:variable name="simple-sanitizer-match">
+        <xsl:text> "':;?`{}“”„‚’</xsl:text>
+    </xsl:variable>
+    <xsl:variable name="simple-sanitizer-replace" select="'***************'"/>
+    <xsl:variable name="javascript-injection-warning">
+        WARNING: Javascript injection attempt detected in source CDA document. Terminating
+    </xsl:variable>
+    <xsl:variable name="malicious-content-warning">
+        WARNING: Potentially malicious content found in CDA document.
+    </xsl:variable>
+    <!-- global variable title -->
+    <xsl:variable name="title">
+        <xsl:choose>
+            <xsl:when test="string-length(/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:title) >= 1">
+                <xsl:value-of select="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:title"/>
+            </xsl:when>
+            <xsl:when test="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:code/@displayName">
+                <xsl:value-of select="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:code/@displayName"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:text>Documento Clínico</xsl:text>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+    <!-- Main -->
+    <xsl:template match="/">
+        <xsl:apply-templates select="n2:SignedClinicalDocument"/>
+    </xsl:template>
+    <!--
+     produce browser rendered, human readable clinical document
+    -->
+    <xsl:template match="n2:SignedClinicalDocument">
+        <html>
+            <head>
+                <xsl:comment>
+                    Do NOT edit this HTML directly: it was generated via an XSLT transformation from a CDA Release 2 XML document.
+                </xsl:comment>
+                <title>
+                    <xsl:value-of select="$title"/>
+                </title>
+                <xsl:call-template name="addCSS"/>
+            </head>
+            <body>
+                <h1 class="h1center">
+                    <xsl:value-of select="$title"/>
+                </h1>
+                <!-- START display top portion of clinical document -->
+                <xsl:call-template name="recordTarget"/>
+                <xsl:call-template name="componentOf"/>
+                <xsl:call-template name="author"/>
+                <xsl:call-template name="documentGeneral"/>
+                <!--
+                      <xsl:call-template name="documentationOf"/>
+                                <xsl:call-template name="participant"/>
+                                <xsl:call-template name="dataEnterer"/>
+                                <xsl:call-template name="authenticator"/>
+                                <xsl:call-template name="informant"/>
+                                <xsl:call-template name="informationRecipient"/>
+                                <xsl:call-template name="legalAuthenticator"/>
+                                <xsl:call-template name="custodian"/>
+
+                -->
+                <!-- END display top portion of clinical document -->
+                <!-- produce table of contents -->
+                <xsl:if test="not(//n1:nonXMLBody)">
+                    <xsl:if test="count(/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:component/n1:structuredBody/n1:component[n1:section]) > 1">
+                        <xsl:call-template name="make-tableofcontents"/>
+                    </xsl:if>
+                </xsl:if>
+                <hr align="left" color="teal" size="2"/>
+                <!-- produce human readable document content -->
+                <xsl:apply-templates select="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:component/n1:structuredBody|/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:component/n1:nonXMLBody"/>
+                <br/>
+                <br/>
+            </body>
+        </html>
+    </xsl:template>
+    <!-- generate table of contents -->
+    <xsl:template name="make-tableofcontents">
+        <h2>
+            <a name="toc">Tabla de Contenidos</a>
+        </h2>
+        <ul>
+            <xsl:for-each select="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:component/n1:structuredBody/n1:component/n1:section/n1:title">
+                <li>
+                    <a href="#{generate-id(.)}">
+                        <xsl:value-of select="."/>
+                    </a>
+                </li>
+            </xsl:for-each>
+        </ul>
+    </xsl:template>
+    <!-- header elements -->
+    <xsl:template name="documentGeneral">
+        <table class="header_table">
+            <tbody>
+                <tr>
+                    <td class="td_header_role_name">
+                        <span class="td_label">
+                            <xsl:text>DOCUMENTO</xsl:text>
+                        </span>
+                    </td>
+                    <td class="td_header_role_value">
+                        <xsl:call-template name="show-id">
+                            <xsl:with-param name="id" select="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:id"/>
+                        </xsl:call-template>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="td_header_role_name">
+                        <span class="td_label">
+                            <xsl:text>Fecha generación</xsl:text>
+                        </span>
+                    </td>
+                    <td class="td_header_role_value">
+                        <xsl:call-template name="show-time">
+                            <xsl:with-param name="datetime" select="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:effectiveTime"/>
+                        </xsl:call-template>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="td_header_role_name">
+                        <span class="td_label">
+                            <xsl:text>Custodio</xsl:text>
+                        </span>
+                    </td>
+                    <td class="td_header_role_value">
+                        <xsl:choose>
+                            <xsl:when test="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:custodian/n1:assignedCustodian/n1:representedCustodianOrganization/n1:name">
+                                <xsl:call-template name="show-name">
+                                    <xsl:with-param name="name" select="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:custodian/n1:assignedCustodian/n1:representedCustodianOrganization/n1:name"/>
+                                </xsl:call-template>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:for-each select="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:custodian/n1:assignedCustodian/n1:representedCustodianOrganization/n1:id">
+                                    <xsl:call-template name="show-id"/>
+                                    <xsl:if test="position()!=last()">
+                                        <br/>
+                                    </xsl:if>
+                                </xsl:for-each>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </xsl:template>
+    <!-- confidentiality -->
+    <xsl:template name="confidentiality">
+        <table class="header_table">
+            <tbody>
+                <td class="td_header_role_name">
+                    <xsl:text>Confidentiality</xsl:text>
+                </td>
+                <td class="td_header_role_value">
+                    <xsl:choose>
+                        <xsl:when test="n1:confidentialityCode/@code = 'N'">
+                            <xsl:text>Normal</xsl:text>
+                        </xsl:when>
+                        <xsl:when test="n1:confidentialityCode/@code = 'R'">
+                            <xsl:text>Restricted</xsl:text>
+                        </xsl:when>
+                        <xsl:when test="n1:confidentialityCode/@code = 'V'">
+                            <xsl:text>Very restricted</xsl:text>
+                        </xsl:when>
+                    </xsl:choose>
+                    <xsl:if test="n1:confidentialityCode/n1:originalText">
+                        <xsl:text> </xsl:text>
+                        <xsl:value-of select="n1:confidentialityCode/n1:originalText"/>
+                    </xsl:if>
+                </td>
+            </tbody>
+        </table>
+    </xsl:template>
+    <!-- author -->
+    <xsl:template name="author">
+        <xsl:if test="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:author">
+            <table class="header_table">
+                <tbody>
+                    <xsl:for-each select="/n2:SignedClinicalDocument/n1:ClinicalDocument/n1:author/n1:assignedAuthor">
+                        <tr>
+                            <td class="td_header_role_name">
+                                <span class="td_label">
+                                    <xsl:text>Autor</xsl:text>
+                                </span>
+                            </td>
+                            <td class="td_header_role_value">
+                                <xsl:choose>
