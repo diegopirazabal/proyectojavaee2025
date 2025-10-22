@@ -5,6 +5,8 @@ import hcen.frontend.admin.dto.prestador_dto;
 import hcen.frontend.admin.dto.prestador_form;
 import hcen.frontend.admin.dto.usuario_salud_dto;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.faces.context.ExternalContext;
+import jakarta.faces.context.FacesContext;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
@@ -40,7 +42,7 @@ public class api_service {
 
     private static final String CENTRAL_ENV_VAR = "HCEN_API_BASE_URL";
     private static final String CENTRAL_SYS_PROP = "hcen.apiBaseUrl";
-    private static final String DEFAULT_BACKEND_URL = "http://localhost:8080/api";
+    private static final String DEFAULT_BACKEND_URL = "http://localhost:8080/hcen-central/api";
 
     private static final String PERIPHERAL_ENV_VAR = "HCEN_PERIPHERAL_API_BASE_URL";
     private static final String PERIPHERAL_SYS_PROP = "hcen.peripheralApiBaseUrl";
@@ -180,22 +182,29 @@ public class api_service {
 
     public String getOidcLoginUrl() {
         // redirect_uri DEBE ser fija y estar registrada en gub.uy
-        String redirectUri = "https://hcen-uy.web.elasticloud.uy/api/auth/callback";
+        ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
+        String serverName = external.getRequestServerName();
         
-        // Detectar URL base del backend según variable de entorno o usar localhost
-        String baseUrl = System.getenv("HCEN_PUBLIC_URL");
-        if (baseUrl == null || baseUrl.isBlank()) {
-            baseUrl = "http://localhost:8080";
-            // En desarrollo local, usar localhost también para redirect_uri
-            redirectUri = "http://localhost:8080/api/auth/callback";
+        // Determinar si es producción o desarrollo
+        boolean isProduction = "hcen-uy.web.elasticloud.uy".equals(serverName);
+        String redirectUri;
+        String baseUrl;
+        
+        if (isProduction) {
+            // Producción
+            baseUrl = "https://hcen-uy.web.elasticloud.uy";
+            redirectUri = "https://hcen-uy.web.elasticloud.uy/api/auth/callback";
+        } else {
+            // Desarrollo - backend en /hcen-central
+            baseUrl = "http://localhost:8080/hcen-central";
+            redirectUri = "http://localhost:8080/hcen-central/api/auth/callback";
         }
-        baseUrl = sanitizeBaseUrl(baseUrl);
         
         try {
-            return baseUrl + "/api/auth/login?redirect_uri=" + java.net.URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
+            return baseUrl + "/api/auth/login?redirect_uri=" + java.net.URLEncoder.encode(redirectUri, StandardCharsets.UTF_8) + "&origin=admin";
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error encoding redirect_uri", e);
-            return baseUrl + "/api/auth/login?redirect_uri=" + redirectUri;
+            return baseUrl + "/api/auth/login?redirect_uri=" + redirectUri + "&origin=admin";
         }
     }
 

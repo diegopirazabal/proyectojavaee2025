@@ -62,7 +62,9 @@ public class OIDCAuthResource {
      */
     @GET
     @Path("/login")
-    public Response login(@QueryParam("redirect_uri") String redirectUri) {
+    public Response login(
+            @QueryParam("redirect_uri") String redirectUri,
+            @QueryParam("origin") String origin) {
         try {
             LOGGER.info("··· Iniciando login OIDC");
 
@@ -84,19 +86,25 @@ public class OIDCAuthResource {
             // session.setAttribute("oidc_code_challenge", authRequest.getCodeChallenge()); // PKCE removido
             session.setAttribute("oidc_redirect_uri", redirectUri);
             
-            // Detectar origen del login desde Referer header
-            String referer = httpRequest.getHeader("Referer");
-            String loginOrigin = "admin"; // Por defecto admin
-            if (referer != null && (referer.contains("/portal-salud/") || referer.contains("/portal-usuario/"))) {
-                loginOrigin = "usuario-salud";
-            } else if (referer != null && (referer.contains("/portal-admin/") || referer.contains("/frontend-admin-hcen/"))) {
-                loginOrigin = "admin";
+            // Detectar origen del login desde parámetro origin (prioritario) o Referer header
+            String loginOrigin = origin; // Usar el parámetro origin si viene
+            
+            if (loginOrigin == null || loginOrigin.isBlank()) {
+                // Fallback: detectar desde Referer header
+                String referer = httpRequest.getHeader("Referer");
+                loginOrigin = "admin"; // Por defecto admin
+                
+                if (referer != null) {
+                    if (referer.contains("portal-salud") || referer.contains("portal-usuario")) {
+                        loginOrigin = "usuario-salud";
+                    } else if (referer.contains("portal-admin") || referer.contains("frontend-admin-hcen")) {
+                        loginOrigin = "admin";
+                    }
+                }
             }
+            
             session.setAttribute("oidc_login_origin", loginOrigin);
-            LOGGER.info("Login origin detectado: " + loginOrigin + " desde referer: " + referer);
-
-            LOGGER.info("Redirigiendo al authorization endpoint de gub.uy");
-
+            LOGGER.info("Login origin detectado: '" + loginOrigin + "' (origin param: '" + origin + "')");
             // Redirigir al authorization endpoint
             return Response.seeOther(URI.create(authRequest.getAuthorizationUrl())).build();
 
@@ -203,12 +211,16 @@ public class OIDCAuthResource {
                     boolean isProduction = "hcen-uy.web.elasticloud.uy".equals(serverName);
                     String contextPath;
                     
+                    LOGGER.info("Callback - loginOrigin: '" + loginOrigin + "', serverName: '" + serverName + "', isProduction: " + isProduction);
+                    
                     if ("usuario-salud".equals(loginOrigin)) {
                         contextPath = isProduction ? "/portal-usuario" : "/portal-salud";
                     } else {
                         // Admin: /portal-admin en producción, /frontend-admin-hcen en desarrollo
                         contextPath = isProduction ? "/portal-admin" : "/frontend-admin-hcen";
                     }
+                    
+                    LOGGER.info("Redirigiendo a contextPath: '" + contextPath + "'");
                     
                     // Construir URL del dashboard
                     String scheme = httpRequest.getScheme();
@@ -219,6 +231,12 @@ public class OIDCAuthResource {
                         dashboardUrl.append(":").append(serverPort);
                     }
                     dashboardUrl.append(contextPath).append("/dashboard.xhtml");
+                    
+                    // Agregar cédula como parámetro si es portal usuario-salud
+                    if ("usuario-salud".equals(loginOrigin)) {
+                        dashboardUrl.append("?docType=DO&docNumber=")
+                                   .append(java.net.URLEncoder.encode(cedula, java.nio.charset.StandardCharsets.UTF_8));
+                    }
                     
                     // Limpiar atributo de origen
                     session.removeAttribute("oidc_login_origin");

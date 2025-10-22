@@ -10,6 +10,8 @@ import jakarta.faces.context.FacesContext;
 import jakarta.faces.view.ViewScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import java.io.Serializable;
 import java.util.Map;
@@ -35,8 +37,26 @@ public class UsuarioSaludDashboardBean implements Serializable {
         ciudadano = new CiudadanoDetalle();
         ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
         
-        // Intentar obtener datos de la sesión OIDC primero
+        // Verificar autenticación OIDC mediante cookie JWT
+        HttpServletRequest request = (HttpServletRequest) externalContext.getRequest();
+        String jwtToken = getJwtFromCookie(request);
+        
+        if (jwtToken == null || jwtToken.isBlank()) {
+            LOGGER.warning("No se encontró cookie JWT, redirigiendo a login");
+            try {
+                externalContext.redirect(externalContext.getRequestContextPath() + "/login.xhtml");
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error redirigiendo a login", e);
+            }
+            return;
+        }
+        
+        LOGGER.info("Cookie JWT encontrada, usuario autenticado");
+        
+        // Verificar sesión HTTP para datos de userInfo (opcional, puede no existir en este WAR)
         HttpSession session = (HttpSession) externalContext.getSession(false);
+        
+        // Intentar obtener datos de la sesión OIDC primero
         if (session != null) {
             // Buscar userInfo en la sesión (viene del callback OIDC)
             Object userInfoObj = session.getAttribute("userInfo");
@@ -136,5 +156,19 @@ public class UsuarioSaludDashboardBean implements Serializable {
 
     public void setDocNumber(String docNumber) {
         this.docNumber = docNumber;
+    }
+    
+    /**
+     * Extrae el JWT de la cookie jwt_token
+     */
+    private String getJwtFromCookie(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("jwt_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 }
