@@ -179,14 +179,18 @@ public class api_service {
     }
 
     public String getOidcLoginUrl() {
-        // Detectar URL base según variable de entorno o usar localhost
+        // redirect_uri DEBE ser fija y estar registrada en gub.uy
+        String redirectUri = "https://hcen-uy.web.elasticloud.uy/api/auth/callback";
+        
+        // Detectar URL base del backend según variable de entorno o usar localhost
         String baseUrl = System.getenv("HCEN_PUBLIC_URL");
         if (baseUrl == null || baseUrl.isBlank()) {
             baseUrl = "http://localhost:8080";
+            // En desarrollo local, usar localhost también para redirect_uri
+            redirectUri = "http://localhost:8080/api/auth/callback";
         }
         baseUrl = sanitizeBaseUrl(baseUrl);
         
-        String redirectUri = baseUrl + "/api/auth/callback";
         try {
             return baseUrl + "/api/auth/login?redirect_uri=" + java.net.URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
         } catch (Exception e) {

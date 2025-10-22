@@ -114,19 +114,31 @@ public class UsuarioSaludLoginBean implements Serializable {
     }
 
     public String getOidcLoginUrl() {
-        // Detectar URL base según el contexto (funciona en desarrollo y producción)
+        // redirect_uri DEBE ser fija y estar registrada en gub.uy
         ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
-        String scheme = external.getRequestScheme();
         String serverName = external.getRequestServerName();
-        int serverPort = external.getRequestServerPort();
         
-        // Construir base URL
-        StringBuilder baseUrl = new StringBuilder(scheme).append("://").append(serverName);
-        if (("http".equals(scheme) && serverPort != 80) || ("https".equals(scheme) && serverPort != 443)) {
-            baseUrl.append(":").append(serverPort);
+        // Determinar si es producción o desarrollo
+        boolean isProduction = "hcen-uy.web.elasticloud.uy".equals(serverName);
+        String redirectUri;
+        String baseUrl;
+        
+        if (isProduction) {
+            baseUrl = "https://hcen-uy.web.elasticloud.uy";
+            redirectUri = "https://hcen-uy.web.elasticloud.uy/api/auth/callback";
+        } else {
+            // Desarrollo (localhost)
+            String scheme = external.getRequestScheme();
+            int serverPort = external.getRequestServerPort();
+            
+            StringBuilder url = new StringBuilder(scheme).append("://").append(serverName);
+            if (("http".equals(scheme) && serverPort != 80) || ("https".equals(scheme) && serverPort != 443)) {
+                url.append(":").append(serverPort);
+            }
+            baseUrl = url.toString();
+            redirectUri = baseUrl + "/api/auth/callback";
         }
         
-        String redirectUri = baseUrl + "/api/auth/callback";
         return baseUrl + "/api/auth/login?redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
     }
 }
