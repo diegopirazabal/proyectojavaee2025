@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="jakarta.faces.core">
+
+<h:head>
+    <title>Gestión de Usuarios - Portal Admin Clínica</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</h:head>
+
+<f:metadata>
+    <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
+</f:metadata>
+
+<h:body>
+    <h:form>
+        <p:menubar>
+            <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>
+            <p:menuitem value="Usuarios" icon="pi pi-user" outcome="/pages/usuarios.xhtml"/>
+            <p:menuitem value="Profesionales" icon="pi pi-users" outcome="/pages/profesionales.xhtml"/>
+            <p:menuitem value="Configuración" icon="pi pi-cog" outcome="/pages/configuracion.xhtml"/>
+
+            <f:facet name="options">
+                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem;"/>
+                <p:commandButton value="Cerrar Sesión"
+                                icon="pi pi-sign-out"
+                                action="#{sessionBean.logout}"
+                                styleClass="p-button-danger"/>
+            </f:facet>
+        </p:menubar>
+    </h:form>
+
+    <div style="padding: 2rem;">
+        <h:form id="usuariosForm">
+            <p:messages id="messages" showDetail="false" closable="true"/>
+
+            <p:panel header="Gestión de Usuarios de Salud">
+                <p:toolbar style="margin-bottom: 1rem;">
+                    <p:toolbarGroup>
+                        <p:commandButton value="Nuevo Usuario"
+                                        icon="pi pi-plus"
+                                        onclick="PF('dlgNuevoUsuario').show();"
+                                        styleClass="p-button-success"
+                                        update=":usuariosForm:newUsuarioPanel"
+                                        action="#{usuarioBean.prepareNew}"/>
+                    </p:toolbarGroup>
+
+                    <p:toolbarGroup align="right">
+                        <p:inputText id="searchInput"
+                                    value="#{usuarioBean.searchTerm}"
+                                    placeholder="Buscar por nombre..."/>
+                        <p:commandButton value="Buscar"
+                                        icon="pi pi-search"
+                                        action="#{usuarioBean.search}"
+                                        process="@this,searchInput"
+                                        update=":usuariosForm:usuariosTable,:usuariosForm:messages"
+                                        style="margin-left: 0.5rem;"/>
+                        <p:commandButton value="Mostrar Todos"
+                                        icon="pi pi-refresh"
+                                        action="#{usuarioBean.loadUsuarios}"
+                                        process="@this"
+                                        update=":usuariosForm:usuariosTable,:usuariosForm:messages"
+                                        style="margin-left: 0.5rem;"/>
+                    </p:toolbarGroup>
+                </p:toolbar>
+
+                <p:dataTable id="usuariosTable"
+                            value="#{usuarioBean.usuarios}"
+                            var="usuario"
+                            paginator="true"
+                            rows="10"
+                            emptyMessage="No hay usuarios registrados">
+
+                    <p:column headerText="Cédula" sortBy="#{usuario.cedula}">
+                        <h:outputText value="#{usuario.cedula}"/>
+                    </p:column>
+
+                    <p:column headerText="Tipo Doc." sortBy="#{usuario.tipoDocumento}">
+                        <h:outputText value="#{usuario.tipoDocumento}"/>
+                    </p:column>
+
+                    <p:column headerText="Nombre Completo">
+                        <h:outputText value="#{usuario.nombreCompleto}"/>
+                    </p:column>
+
+                    <p:column headerText="Email">
+                        <h:outputText value="#{usuario.email}"/>
+                    </p:column>
+
+                    <p:column headerText="Fecha Nacimiento" sortBy="#{usuario.fechaNacimiento}">
+                        <h:outputText value="#{usuario.fechaNacimiento}">
+                            <f:convertDateTime pattern="dd/MM/yyyy" type="localDate"/>
+                        </h:outputText>
+                    </p:column>
+
+                    <p:column headerText="Acciones" style="width: 100px; text-align: center;">
+                        <p:commandButton icon="pi pi-trash"
+                                        title="Eliminar"
+                                        styleClass="p-button-danger"
+                                        process="@this"
+                                        action="#{usuarioBean.deleteUsuarioSelected}"
+                                        update=":usuariosForm:usuariosTable,:usuariosForm:messages">
+                            <p:confirm header="Confirmar" message="¿Está seguro de eliminar este usuario?"
+                                      icon="pi pi-exclamation-triangle"/>
+                            <f:setPropertyActionListener value="#{usuario}"
+                                                        target="#{usuarioBean.usuarioToDelete}"/>
+                        </p:commandButton>
+                    </p:column>
+                </p:dataTable>
+            </p:panel>
+
+            <!-- Diálogo Nuevo Usuario -->
+            <p:dialog id="dlgNuevoUsuario"
+                     header="Registrar Nuevo Usuario"
+                     widgetVar="dlgNuevoUsuario"
+                     modal="true"
+                     width="700">
+                <h:panelGrid id="newUsuarioPanel" columns="2" styleClass="p-fluid">
+
+                    <p:outputLabel for="newCedula" value="Cédula*"/>
+                    <p:inputText id="newCedula"
+                                value="#{usuarioBean.newUsuario.cedula}"
+                                required="true"
+                                requiredMessage="La cédula es requerida"
+                                maxlength="20"/>
+
+                    <p:outputLabel for="newTipoDoc" value="Tipo Documento*"/>
+                    <p:selectOneMenu id="newTipoDoc"
+                                    value="#{usuarioBean.newUsuario.tipoDocumento}"
+                                    required="true"
+                                    requiredMessage="El tipo de documento es requerido">
+                        <f:selectItem itemLabel="Seleccione..." itemValue="" noSelectionOption="true"/>
+                        <f:selectItem itemLabel="Cédula de Identidad (CI)" itemValue="CI"/>
+                        <f:selectItem itemLabel="Pasaporte" itemValue="PASAPORTE"/>
+                        <f:selectItem itemLabel="DNI" itemValue="DNI"/>
+                    </p:selectOneMenu>
+
+                    <p:outputLabel for="newPrimerNombre" value="Primer Nombre*"/>
+                    <p:inputText id="newPrimerNombre"
+                                value="#{usuarioBean.newUsuario.primerNombre}"
+                                required="true"
+                                requiredMessage="El primer nombre es requerido"
+                                maxlength="100"/>
+
+                    <p:outputLabel for="newSegundoNombre" value="Segundo Nombre"/>
+                    <p:inputText id="newSegundoNombre"
+                                value="#{usuarioBean.newUsuario.segundoNombre}"
+                                maxlength="100"/>
+
+                    <p:outputLabel for="newPrimerApellido" value="Primer Apellido*"/>
+                    <p:inputText id="newPrimerApellido"
+                                value="#{usuarioBean.newUsuario.primerApellido}"
+                                required="true"
+                                requiredMessage="El primer apellido es requerido"
+                                maxlength="100"/>
+
+                    <p:outputLabel for="newSegundoApellido" value="Segundo Apellido"/>
+                    <p:inputText id="newSegundoApellido"
+                                value="#{usuarioBean.newUsuario.segundoApellido}"
+                                maxlength="100"/>
+
+                    <p:outputLabel for="newEmail" value="Email*"/>
+                    <p:inputText id="newEmail"
+                                value="#{usuarioBean.newUsuario.email}"
+                                type="email"
+                                required="true"
+                                requiredMessage="El email es requerido"
+                                validatorMessage="Formato de email inválido">
+                        <f:validateRegex pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"/>
+                    </p:inputText>
+
+                    <p:outputLabel for="newFechaNac" value="Fecha de Nacimiento*"/>
+                    <p:datePicker id="newFechaNac"
+                                 value="#{usuarioBean.newUsuario.fechaNacimiento}"
+                                 pattern="dd/MM/yyyy"
+                                 showIcon="true"
+                                 yearNavigator="true"
+                                 monthNavigator="true"
+                                 yearRange="c-120:c"
+                                 required="true"
+                                 requiredMessage="La fecha de nacimiento es requerida"
+                                 maxdate="#{java.time.LocalDate.now()}">
+                    </p:datePicker>
+                </h:panelGrid>
+
+                <p style="margin-top: 1rem; color: #666; font-size: 0.9em;">
+                    <i class="pi pi-info-circle"></i> Los campos marcados con * son obligatorios.
+                    El usuario será registrado en el sistema central (INUS) y asociado a su clínica.
+                </p>
+
+                <f:facet name="footer">
+                    <p:commandButton value="Registrar"
+                                    icon="pi pi-check"
+                                    action="#{usuarioBean.registrarUsuario}"
+                                    process="@this,newUsuarioPanel"
+                                    update=":usuariosForm:usuariosTable,:usuariosForm:messages,:usuariosForm:newUsuarioPanel"
+                                    oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dlgNuevoUsuario').hide();"/>
+                    <p:commandButton value="Cancelar"
+                                    icon="pi pi-times"
+                                    onclick="PF('dlgNuevoUsuario').hide();"
+                                    styleClass="p-button-secondary"/>
+                </f:facet>
+            </p:dialog>
+
+            <p:confirmDialog global="true" showEffect="fade" hideEffect="fade">
+                <p:commandButton value="Sí" styleClass="ui-confirmdialog-yes" icon="pi pi-check"/>
+                <p:commandButton value="No" styleClass="ui-confirmdialog-no" icon="pi pi-times"/>
+            </p:confirmDialog>
+
+        </h:form>
+    </div>
+</h:body>
+</html>

@@ -3,6 +3,7 @@ package com.hcen.periferico.frontend.service;
 import com.hcen.periferico.frontend.dto.administrador_clinica_dto;
 import com.hcen.periferico.frontend.dto.configuracion_clinica_dto;
 import com.hcen.periferico.frontend.dto.profesional_salud_dto;
+import com.hcen.periferico.frontend.dto.usuario_salud_dto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -26,7 +27,7 @@ import java.util.UUID;
 public class APIService implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private static final String BACKEND_URL = "https://node5823-hcen-uy.web.elasticloud.uy/api";
+    private static final String BACKEND_URL = "https://node5823-hcen-uy.web.elasticloud.uy/multitenant-api";
 
     // ========== AUTENTICACIÓN ==========
 
@@ -293,6 +294,152 @@ public class APIService implements Serializable {
                 dto.setApellidos(jsonObject.getString("apellidos"));
                 dto.setEspecialidad(jsonObject.getString("especialidad", null));
                 dto.setEmail(jsonObject.getString("email", null));
+
+                list.add(dto);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // ========== USUARIOS DE SALUD ==========
+
+    public List<usuario_salud_dto> getAllUsuarios() {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpGet request = new HttpGet(BACKEND_URL + "/usuarios");
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseUsuariosFromJson(responseBody);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
+    public List<usuario_salud_dto> searchUsuarios(String searchTerm) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            String encodedTerm = java.net.URLEncoder.encode(searchTerm, java.nio.charset.StandardCharsets.UTF_8);
+            HttpGet request = new HttpGet(BACKEND_URL + "/usuarios?search=" + encodedTerm);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseUsuariosFromJson(responseBody);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
+    public usuario_salud_dto registrarUsuario(String cedula, String tipoDocumento,
+                                             String primerNombre, String segundoNombre,
+                                             String primerApellido, String segundoApellido,
+                                             String email, java.time.LocalDate fechaNacimiento,
+                                             String clinicaRut) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost request = new HttpPost(BACKEND_URL + "/usuarios");
+
+            var builder = Json.createObjectBuilder()
+                .add("cedula", cedula)
+                .add("tipoDocumento", tipoDocumento)
+                .add("primerNombre", primerNombre)
+                .add("primerApellido", primerApellido)
+                .add("email", email)
+                .add("fechaNacimiento", fechaNacimiento.toString())
+                .add("clinicaRut", clinicaRut);
+
+            if (segundoNombre != null && !segundoNombre.isEmpty()) {
+                builder.add("segundoNombre", segundoNombre);
+            }
+            if (segundoApellido != null && !segundoApellido.isEmpty()) {
+                builder.add("segundoApellido", segundoApellido);
+            }
+
+            JsonObject data = builder.build();
+
+            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
+            request.setEntity(entity);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseUsuarioFromJson(responseBody);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public boolean deleteUsuario(String cedula, String clinicaRut) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            String encodedRut = java.net.URLEncoder.encode(clinicaRut, java.nio.charset.StandardCharsets.UTF_8);
+            HttpDelete request = new HttpDelete(BACKEND_URL + "/usuarios/" + cedula + "?clinicaRut=" + encodedRut);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                return response.getCode() == 200;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private usuario_salud_dto parseUsuarioFromJson(String jsonString) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject jsonObject = reader.readObject();
+
+            usuario_salud_dto dto = new usuario_salud_dto();
+            dto.setCedula(jsonObject.getString("cedula", null));
+            dto.setTipoDocumento(jsonObject.getString("tipoDocumento", null));
+            dto.setPrimerNombre(jsonObject.getString("primerNombre", null));
+            dto.setSegundoNombre(jsonObject.getString("segundoNombre", null));
+            dto.setPrimerApellido(jsonObject.getString("primerApellido", null));
+            dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
+            dto.setEmail(jsonObject.getString("email", null));
+
+            String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
+            if (fechaNacStr != null) {
+                dto.setFechaNacimiento(java.time.LocalDate.parse(fechaNacStr));
+            }
+
+            return dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private List<usuario_salud_dto> parseUsuariosFromJson(String jsonString) {
+        List<usuario_salud_dto> list = new ArrayList<>();
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject paginatedResponse = reader.readObject();
+            JsonArray jsonArray = paginatedResponse.getJsonArray("data");
+
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JsonObject jsonObject = jsonArray.getJsonObject(i);
+
+                usuario_salud_dto dto = new usuario_salud_dto();
+                dto.setCedula(jsonObject.getString("cedula", null));
+                dto.setTipoDocumento(jsonObject.getString("tipoDocumento", null));
+                dto.setPrimerNombre(jsonObject.getString("primerNombre", null));
+                dto.setSegundoNombre(jsonObject.getString("segundoNombre", null));
+                dto.setPrimerApellido(jsonObject.getString("primerApellido", null));
+                dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
+                dto.setEmail(jsonObject.getString("email", null));
+
+                String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
+                if (fechaNacStr != null) {
+                    dto.setFechaNacimiento(java.time.LocalDate.parse(fechaNacStr));
+                }
 
                 list.add(dto);
             }
