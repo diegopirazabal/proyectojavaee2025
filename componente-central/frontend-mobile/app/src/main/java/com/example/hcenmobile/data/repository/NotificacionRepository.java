@@ -128,8 +128,8 @@ public class NotificacionRepository {
         });
     }
 
-    public void registrarTokenFCM(String token, String userId, String deviceInfo, TokenCallback callback) {
-        FCMTokenDTO tokenDTO = new FCMTokenDTO(token, userId, deviceInfo);
+    public void registrarTokenFCM(String token, String deviceId, String deviceModel, String osVersion, TokenCallback callback) {
+        FCMTokenDTO tokenDTO = new FCMTokenDTO(token, deviceId, deviceModel, osVersion);
 
         apiService.registerFCMToken(tokenDTO).enqueue(new Callback<ApiResponse<Void>>() {
             @Override

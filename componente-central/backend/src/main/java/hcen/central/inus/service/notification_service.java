@@ -4,9 +4,14 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import hcen.central.inus.config.FirebaseInitializer;
+import hcen.central.notifications.entity.FCMToken;
+import hcen.central.notifications.service.fcm_token_service;
+import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,27 +25,63 @@ public class notification_service {
     @Inject
     private FirebaseInitializer firebaseInitializer;
 
+    @EJB
+    private fcm_token_service fcmTokenService;
+
     public void sendBroadcastTestNotification() {
         if (!firebaseInitializer.isReady()) {
             LOGGER.warning("Firebase not initialized; skipping broadcast test notification.");
             return;
         }
 
-        Message message = Message.builder()
-                .setTopic(DEFAULT_TOPIC)
-                .setNotification(Notification.builder()
-                        .setTitle("HCEN")
-                        .setBody("Notificación de prueba desde el backend.")
-                        .build())
+        // Obtener todos los tokens activos del sistema
+        List<FCMToken> activeTokens = fcmTokenService.getAllActiveTokens();
+
+        if (activeTokens.isEmpty()) {
+            LOGGER.warning("No hay tokens FCM activos registrados. No se enviarán notificaciones.");
+            return;
+        }
+
+        LOGGER.info("Enviando notificación broadcast a " + activeTokens.size() + " dispositivos");
+
+        // Crear notificación
+        Notification notification = Notification.builder()
+                .setTitle("HCEN - Notificación de Prueba")
+                .setBody("Esta es una notificación de prueba enviada a todos los usuarios desde el Admin HCEN")
                 .build();
 
-        try {
-            FirebaseMessaging messaging = firebaseInitializer.getMessaging();
-            String messageId = messaging.send(message);
-            LOGGER.info(() -> "Firebase broadcast test notification sent. Message ID: " + messageId);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to send Firebase broadcast test notification.", e);
+        FirebaseMessaging messaging = firebaseInitializer.getMessaging();
+        int successCount = 0;
+        int failureCount = 0;
+
+        // Enviar notificación a cada token individualmente
+        for (FCMToken token : activeTokens) {
+            try {
+                Message message = Message.builder()
+                        .setToken(token.getFcmToken())
+                        .setNotification(notification)
+                        .putData("tipo", "SISTEMA")
+                        .putData("mensaje", "Notificación de prueba")
+                        .putData("timestamp", Instant.now().toString())
+                        .putData("usuarioId", String.valueOf(token.getUsuarioId()))
+                        .build();
+
+                String messageId = messaging.send(message);
+                successCount++;
+                LOGGER.fine("Notificación enviada a token ID " + token.getId() + ". Message ID: " + messageId);
+
+            } catch (Exception e) {
+                failureCount++;
+                LOGGER.log(Level.WARNING,
+                    "Error al enviar notificación a token ID " + token.getId() +
+                    " (usuario " + token.getUsuarioId() + "): " + e.getMessage(), e);
+            }
         }
+
+        LOGGER.info(String.format(
+            "Notificación broadcast completada. Éxitos: %d, Fallos: %d, Total: %d",
+            successCount, failureCount, activeTokens.size()
+        ));
     }
 
     public boolean sendDirectNotificationToUser(String cedula, String body) {
