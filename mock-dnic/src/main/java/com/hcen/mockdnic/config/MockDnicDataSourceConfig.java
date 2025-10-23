@@ -10,9 +10,9 @@ import jakarta.ejb.Startup;
         name = "java:app/jdbc/MockDnicDS",
         className = "org.postgresql.xa.PGXADataSource",
         user = "webadmin",
-        password = "ZBAvpa62261",
+        password = "V79FHjyEho",
         properties = {
-                "serverName=179.31.3.191",
+                "serverName=179.31.2.178",
                 "portNumber=5432",
                 "databaseName=postgres",
                 "sslMode=disable"
