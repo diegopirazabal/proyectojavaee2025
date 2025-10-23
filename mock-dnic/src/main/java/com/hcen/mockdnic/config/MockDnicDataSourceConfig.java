@@ -15,7 +15,7 @@ import jakarta.ejb.Startup;
                 "serverName=179.31.3.191",
                 "portNumber=5432",
                 "databaseName=postgres",
-                "sslMode=require"
+                "sslMode=disable"
         }
 )
 public class MockDnicDataSourceConfig {

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project id="a281d04b-2a81-4cf8-ade9-043041ecd7f5" activeEnvironment="Default" name="mock-dnic" resourceRoot="" soapui-version="5.9.1" abortOnError="false" runType="SEQUENTIAL" xmlns:con="http://eviware.com/soapui/config"><con:settings/><con:interface xsi:type="con:WsdlInterface" id="63855f73-f976-4213-acac-6480bd200787" wsaVersion="NONE" name="ciudadano_binding" type="wsdl" bindingName="{http://hcen.com/soap/ciudadano}ciudadano_binding" soapVersion="1_1" anonymous="optional" definition="http://179.31.2.214/mock-dnic/ciudadano-service/ciudadano_servicio_web?wsdl" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><con:settings/><con:definitionCache type="TEXT" rootPart="http://179.31.2.214/mock-dnic/ciudadano-service/ciudadano_servicio_web?wsdl"><con:part><con:url>http://179.31.2.214/mock-dnic/ciudadano-service/ciudadano_servicio_web?wsdl</con:url><con:content><![CDATA[<wsdl:definitions name="ciudadano-service" targetNamespace="http://hcen.com/soap/ciudadano" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://hcen.com/soap/ciudadano" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/">
+  <wsdl:types>
+    <xs:schema elementFormDefault="qualified" targetNamespace="http://hcen.com/soap/ciudadano">
+      <xs:simpleType name="TipoDocumento">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="PA"/>
+          <xs:enumeration value="DO"/>
+          <xs:enumeration value="OTRO"/>
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:simpleType name="NumeroDocumento">
+        <xs:restriction base="xs:string">
+          <xs:length value="8"/>
+          <xs:pattern value="[0-9]{8}"/>
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:complexType name="solicitud_ciudadano">
+        <xs:sequence>
+          <xs:element name="tipoDoc" type="tns:TipoDocumento"/>
+          <xs:element name="nroDoc" type="tns:NumeroDocumento"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="respuesta_ciudadano">
+        <xs:sequence>
+          <xs:element name="tipoDoc" type="tns:TipoDocumento"/>
+          <xs:element name="nroDoc" type="tns:NumeroDocumento"/>
+          <xs:element name="nombre1" type="xs:string"/>
+          <xs:element minOccurs="0" name="nombre2" type="xs:string"/>
+          <xs:element name="apellido1" type="xs:string"/>
+          <xs:element minOccurs="0" name="apellido2" type="xs:string"/>
+          <xs:element name="sexo" type="xs:int"/>
+          <xs:element name="fechaNac" type="xs:string"/>
+          <xs:element name="codNacionalidad" type="xs:int"/>
+          <xs:element name="nombreEnCedula" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="ciudadano_no_encontrado_fault">
+        <xs:sequence>
+          <xs:element name="tipoDoc" type="tns:TipoDocumento"/>
+          <xs:element name="nroDoc" type="tns:NumeroDocumento"/>
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element name="solicitud_ciudadano" type="tns:solicitud_ciudadano"/>
+      <xs:element name="respuesta_ciudadano" type="tns:respuesta_ciudadano"/>
+      <xs:element name="ciudadano_no_encontrado" type="tns:ciudadano_no_encontrado_fault"/>
+    </xs:schema>
+  </wsdl:types>
+  <wsdl:message name="obtener_ciudadano_salida">
+    <wsdl:part element="tns:respuesta_ciudadano" name="respuesta_ciudadano"></wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="ciudadano_no_encontrado_fault_message">
+    <wsdl:part element="tns:ciudadano_no_encontrado" name="ciudadano_no_encontrado"></wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="obtener_ciudadano_entrada">
+    <wsdl:part element="tns:solicitud_ciudadano" name="solicitud_ciudadano"></wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="ciudadano_port_type">
+    <wsdl:operation name="obtener_ciudadano">
+      <wsdl:input message="tns:obtener_ciudadano_entrada"></wsdl:input>
+      <wsdl:output message="tns:obtener_ciudadano_salida"></wsdl:output>
+      <wsdl:fault message="tns:ciudadano_no_encontrado_fault_message" name="ciudadano_no_encontrado"></wsdl:fault>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="ciudadano_binding" type="tns:ciudadano_port_type">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="obtener_ciudadano">
+      <soap:operation soapAction="obtener_ciudadano"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="ciudadano_no_encontrado">
+        <soap:fault name="ciudadano_no_encontrado" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="ciudadano-service">
+    <wsdl:port binding="tns:ciudadano_binding" name="ciudadano_port">
+      <soap:address location="http://179.31.2.214/mock-dnic/ciudadano-service/ciudadano_servicio_web"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>]]></con:content><con:type>http://schemas.xmlsoap.org/wsdl/</con:type></con:part></con:definitionCache><con:endpoints><con:endpoint>http://179.31.2.214/mock-dnic/ciudadano-service/ciudadano_servicio_web</con:endpoint></con:endpoints><con:operation id="10310d62-6945-4cbf-b6c6-5baf853f6488" isOneWay="false" action="obtener_ciudadano" name="obtener_ciudadano" bindingOperationName="obtener_ciudadano" type="Request-Response" inputName="" receivesAttachments="false" sendsAttachments="false" anonymous="optional"><con:settings/><con:call id="a394dac5-661a-47c4-8e37-13f5535fb31f" name="Request 1"><con:settings><con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/></con:setting></con:settings><con:encoding>UTF-8</con:encoding><con:endpoint>http://179.31.2.214/mock-dnic/ciudadano-service/ciudadano_servicio_web</con:endpoint><con:request><![CDATA[<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ciud="http://hcen.com/soap/ciudadano">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <ciud:solicitud_ciudadano>
+         <ciud:tipoDoc>DO</ciud:tipoDoc>
+         <ciud:nroDoc>53935696</ciud:nroDoc>
+      </ciud:solicitud_ciudadano>
+   </soapenv:Body>
+</soapenv:Envelope>]]></con:request><con:credentials><con:authType>No Authorization</con:authType></con:credentials><con:jmsConfig JMSDeliveryMode="PERSISTENT"/><con:jmsPropertyConfig/><con:wsaConfig mustUnderstand="NONE" version="200508" action="obtener_ciudadano"/><con:wsrmConfig version="1.2"/></con:call></con:operation></con:interface><con:properties/><con:wssContainer/><con:oAuth2ProfileContainer/><con:oAuth1ProfileContainer/><con:sensitiveInformation/></con:soapui-project>
