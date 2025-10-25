@@ -32,10 +32,14 @@ public final class TipoDocumentoMapper {
             return TipoDocumento.DO;
         }
 
+        LOGGER.fine(() -> "Normalizando tipo_documento recibido: '" + rawValue + "'");
+
         String tipoNormalizado = Normalizer.normalize(rawValue.trim(), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toUpperCase(Locale.ROOT);
         String tipoSanitizado = tipoNormalizado.replaceAll("[^A-Z0-9]", "");
+
+        LOGGER.fine(() -> "tipo_documento sanitizado: '" + tipoSanitizado + "'");
 
         if (tipoSanitizado.isEmpty()) {
             LOGGER.warning("tipo_documento inválido ('" + rawValue + "'), usando OTRO por defecto");
@@ -43,6 +47,12 @@ public final class TipoDocumentoMapper {
         }
 
         try {
+            // gub.uy suele enviar variantes como "CI - Cédula de identidad"; limpiamos el prefijo CI.
+            if (tipoSanitizado.startsWith("CI")
+                    && (tipoSanitizado.contains("CEDULA") || tipoSanitizado.contains("IDENTIDAD"))) {
+                return TipoDocumento.DO;
+            }
+
             switch (tipoSanitizado) {
                 // Cedula -> Documento (DO)
                 case "DO":
