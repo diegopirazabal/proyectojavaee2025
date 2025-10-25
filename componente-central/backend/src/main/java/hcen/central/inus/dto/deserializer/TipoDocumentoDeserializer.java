@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
+import hcen.central.inus.util.TipoDocumentoMapper;
 import java.io.IOException;
 
 /**
@@ -18,31 +19,44 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
     public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         JsonNode node = p.getCodec().readTree(p);
         
+        String rawValue = null;
+
         // Si es un string simple, lo retorna directamente
         if (node.isTextual()) {
-            return node.asText();
+            rawValue = node.asText();
         }
-        
+
         // Si es un objeto, intenta extraer el campo "descripcion" o "codigo"
-        if (node.isObject()) {
+        if (rawValue == null && node.isObject()) {
             // Primero intenta obtener "descripcion"
             if (node.has("descripcion")) {
-                return node.get("descripcion").asText();
+                rawValue = node.get("descripcion").asText();
             }
             // Si no, intenta "codigo"
             if (node.has("codigo")) {
                 String codigo = node.get("codigo").asText();
                 // Mapeo de códigos comunes a descripciones
                 switch (codigo) {
-                    case "1": return "CI";
-                    case "2": return "PASAPORTE";
-                    case "3": return "DNI";
-                    default: return codigo;
+                    case "1":
+                        rawValue = "CI";
+                        break;
+                    case "2":
+                        rawValue = "PASAPORTE";
+                        break;
+                    case "3":
+                        rawValue = "DNI";
+                        break;
+                    default:
+                        rawValue = codigo;
+                        break;
                 }
             }
         }
-        
-        // Si no puede extraer nada, retorna "CI" por defecto
-        return "CI";
+
+        if (rawValue == null || rawValue.isBlank()) {
+            rawValue = "CI"; // Default si no llega nada útil
+        }
+
+        return TipoDocumentoMapper.toEnum(rawValue).name();
     }
 }
