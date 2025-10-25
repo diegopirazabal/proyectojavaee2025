@@ -62,8 +62,9 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
             rawValue = "CI"; // Default si no llega nada útil
         }
 
-        String tipoNormalizado = TipoDocumentoMapper.toEnum(rawValue).name();
-        LOGGER.fine(() -> "tipo_documento mapeado a '" + tipoNormalizado + "' desde '" + rawValue + "'");
+        final String rawValueLog = rawValue;
+        final String tipoNormalizado = TipoDocumentoMapper.toEnum(rawValueLog).name();
+        LOGGER.fine(() -> "tipo_documento mapeado a '" + tipoNormalizado + "' desde '" + rawValueLog + "'");
         return tipoNormalizado;
     }
 }
