@@ -1,5 +1,6 @@
 package hcen.central.inus.entity;
 
+import hcen.central.inus.entity.converter.TipoDocumentoAttributeConverter;
 import hcen.central.inus.enums.TipoDocumento;
 import jakarta.persistence.*;
 import java.io.Serializable;
@@ -26,7 +27,7 @@ public class UsuarioSalud {
     @Column(name = "cedula", nullable = false, length = 20)
     private String cedula;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = TipoDocumentoAttributeConverter.class)
     @Column(name = "tipo_documento", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'DO'")
     private TipoDocumento tipoDeDocumento;
 

@@ -6,9 +6,9 @@ import hcen.central.inus.dto.OIDCAuthRequest;
 import hcen.central.inus.dto.OIDCTokenResponse;
 import hcen.central.inus.dto.OIDCUserInfo;
 import hcen.central.inus.entity.UsuarioSalud;
-import hcen.central.inus.enums.TipoDocumento;
 import hcen.central.inus.security.config.OIDCConfiguration;
 import hcen.central.inus.security.jwt.JWTTokenProvider;
+import hcen.central.inus.util.TipoDocumentoMapper;
 // import hcen.central.inus.security.pkce.PKCEGenerator; // PKCE removido
 import io.jsonwebtoken.Claims;
 import jakarta.ejb.Stateless;
@@ -17,9 +17,7 @@ import jakarta.inject.Inject;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.text.Normalizer;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -164,8 +162,8 @@ public class OIDCAuthenticationService {
         user.setEmail(userInfo.getEmail());
         user.setEmailVerificado(userInfo.getEmailVerified() != null ? userInfo.getEmailVerified() : false);
         
-        // tipo_documento -> tipoDeDocumento: mapear String de gub.uy a enum
-        user.setTipoDeDocumento(mapTipoDocumento(userInfo.getTipoDocumento()));
+        // tipo_documento -> tipoDeDocumento: normalizar String de gub.uy
+        user.setTipoDeDocumento(TipoDocumentoMapper.toEnum(userInfo.getTipoDocumento()));
         
         user.setNombreCompleto(userInfo.getNombreCompleto());
         user.setPrimerNombre(userInfo.getPrimerNombre());
@@ -283,65 +281,6 @@ public class OIDCAuthenticationService {
         }
     }
 
-    /**
-     * Mapea el tipo de documento de gub.uy (String) al enum TipoDocumento
-     * <p>
-     * gub.uy devuelve valores como: "CI", "Pasaporte", "DNI", etc.
-     *
-     * @param tipoDocGubUy String del tipo de documento desde gub.uy
-     * @return TipoDocumento enum correspondiente
-     */
-    private TipoDocumento mapTipoDocumento(String tipoDocGubUy) {
-        if (tipoDocGubUy == null || tipoDocGubUy.isEmpty()) {
-            LOGGER.warning("tipo_documento vacío desde gub.uy, usando DO por defecto");
-            return hcen.central.inus.enums.TipoDocumento.DO;
-        }
-        
-        // Normalizar: remover diacríticos, convertir a mayúsculas y limpiar caracteres no alfanuméricos
-        String tipoNormalizado = Normalizer.normalize(tipoDocGubUy.trim(), Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toUpperCase(Locale.ROOT);
-        String tipoSanitizado = tipoNormalizado.replaceAll("[^A-Z0-9]", "");
-        
-        if (tipoSanitizado.isEmpty()) {
-            LOGGER.warning("tipo_documento inválido desde gub.uy ('" + tipoDocGubUy + "'), usando OTRO por defecto");
-            return hcen.central.inus.enums.TipoDocumento.OTRO;
-        }
-        
-        try {
-            // Mapeo directo si coincide exactamente
-            switch (tipoSanitizado) {
-                case "CI":
-                case "C":
-                case "CEDULA":
-                case "CEDULAIDENTIDAD":
-                case "CEDULADEIDENTIDAD":
-                    return hcen.central.inus.enums.TipoDocumento.DO;
-                    
-                case "PASAPORTE":
-                case "PASSPORT":
-                case "P":
-                    return hcen.central.inus.enums.TipoDocumento.PA;
-                    
-                case "DNI":
-                case "DNIOTRO":
-                case "DNIUTRO":
-                case "DOCUMENTO NACIONAL DE IDENTIDAD":
-                case "DOCUMENTONACIONALDEIDENTIDAD":
-                case "OTRO":
-                case "OTROS":
-                    return hcen.central.inus.enums.TipoDocumento.OTRO;
-                    
-                default:
-                    LOGGER.warning("Tipo de documento desconocido desde gub.uy: '" + tipoDocGubUy + "', usando OTRO por defecto");
-                    return hcen.central.inus.enums.TipoDocumento.OTRO;
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error mapeando tipo de documento: " + tipoDocGubUy, e);
-            return hcen.central.inus.enums.TipoDocumento.OTRO;
-        }
-    }
-    
     /**
      * Genera un string random para state y nonce
      */
