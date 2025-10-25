@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import hcen.central.inus.util.TipoDocumentoMapper;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Deserializador personalizado para tipo_documento de gub.uy
@@ -14,6 +15,8 @@ import java.io.IOException;
  * - Objeto: {"codigo": "1", "descripcion": "CI"}
  */
 public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
+
+    private static final Logger LOGGER = Logger.getLogger(TipoDocumentoDeserializer.class.getName());
     
     @Override
     public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
@@ -28,6 +31,7 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
 
         // Si es un objeto, intenta extraer el campo "descripcion" o "codigo"
         if (rawValue == null && node.isObject()) {
+            LOGGER.fine(() -> "tipo_documento recibido como objeto: " + node.toString());
             // Primero intenta obtener "descripcion"
             if (node.has("descripcion")) {
                 rawValue = node.get("descripcion").asText();
@@ -35,6 +39,7 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
             // Si no, intenta "codigo"
             if (node.has("codigo")) {
                 String codigo = node.get("codigo").asText();
+                LOGGER.fine(() -> "tipo_documento codigo recibido: '" + codigo + "'");
                 // Mapeo de códigos comunes a descripciones
                 switch (codigo) {
                     case "1":
@@ -57,6 +62,8 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
             rawValue = "CI"; // Default si no llega nada útil
         }
 
-        return TipoDocumentoMapper.toEnum(rawValue).name();
+        String tipoNormalizado = TipoDocumentoMapper.toEnum(rawValue).name();
+        LOGGER.fine(() -> "tipo_documento mapeado a '" + tipoNormalizado + "' desde '" + rawValue + "'");
+        return tipoNormalizado;
     }
 }
