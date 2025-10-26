@@ -4,8 +4,10 @@ import com.hcen.periferico.dto.usuario_salud_dto;
 import com.hcen.periferico.enums.TipoDocumento;
 import jakarta.ejb.Stateless;
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -82,7 +84,7 @@ public class CentralAPIClient {
                                                        String primerNombre, String segundoNombre,
                                                        String primerApellido, String segundoApellido,
                                                        String email, LocalDate fechaNacimiento,
-                                                       String clinicaRut) {
+                                                       String tenantId) {
         try {
             String url = API_USUARIOS + "/registrar";
             LOGGER.info("=== Registrando usuario en central ===");
@@ -97,7 +99,7 @@ public class CentralAPIClient {
                 .add("primerApellido", primerApellido)
                 .add("email", email)
                 .add("fechaNacimiento", fechaNacimiento.toString())
-                .add("clinicaRut", clinicaRut);
+                .add("tenantId", tenantId);
 
             // Agregar campos opcionales
             if (segundoNombre != null && !segundoNombre.isEmpty()) {
@@ -166,12 +168,69 @@ public class CentralAPIClient {
     }
 
     /**
+     * Lista todos los usuarios de una clínica desde el componente central
+     */
+    public java.util.List<usuario_salud_dto> getAllUsuariosByTenantId(String tenantId) {
+        try {
+            String url = API_USUARIOS + "?tenantId=" + tenantId;
+            LOGGER.info("Obteniendo todos los usuarios desde central: " + url);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(TIMEOUT)
+                .GET()
+                .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                return parseUsuariosListFromJson(response.body());
+            } else {
+                LOGGER.warning("Error al obtener usuarios. Status: " + response.statusCode());
+                return new java.util.ArrayList<>();
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener usuarios desde central", e);
+            throw new RuntimeException("Error al comunicarse con el componente central: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Busca usuarios por nombre o apellido filtrados por tenant_id desde el componente central
+     */
+    public java.util.List<usuario_salud_dto> searchUsuariosByTenantId(String searchTerm, String tenantId) {
+        try {
+            String encodedTerm = java.net.URLEncoder.encode(searchTerm, java.nio.charset.StandardCharsets.UTF_8);
+            String url = API_USUARIOS + "?tenantId=" + tenantId + "&search=" + encodedTerm;
+            LOGGER.info("Buscando usuarios en central: " + url);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(TIMEOUT)
+                .GET()
+                .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                return parseUsuariosListFromJson(response.body());
+            } else {
+                LOGGER.warning("Error al buscar usuarios. Status: " + response.statusCode());
+                return new java.util.ArrayList<>();
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al buscar usuarios en central", e);
+            throw new RuntimeException("Error al comunicarse con el componente central: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Desasocia un usuario de una clínica en el componente central
      */
-    public boolean deleteUsuarioDeClinica(String cedula, String clinicaRut) {
+    public boolean deleteUsuarioDeClinica(String cedula, String tenantId) {
         try {
-            String url = API_USUARIOS + "/" + cedula + "/clinica/" + clinicaRut;
-            LOGGER.info("Desasociando usuario de clínica en central: " + url);
+            String url = API_USUARIOS + "/" + cedula + "/clinica/" + tenantId;
+            LOGGER.info("Eliminando usuario de clínica en central: " + url);
 
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -214,7 +273,7 @@ public class CentralAPIClient {
             dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
             dto.setEmail(jsonObject.getString("email"));
 
-            String tipoDocStr = jsonObject.getString("tipoDocumento", "CI");
+            String tipoDocStr = jsonObject.getString("tipoDocumento", "DO");
             dto.setTipoDocumento(TipoDocumento.valueOf(tipoDocStr));
 
             String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
@@ -225,6 +284,43 @@ public class CentralAPIClient {
             return dto;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al parsear JSON de usuario", e);
+            throw new RuntimeException("Error al procesar respuesta del componente central", e);
+        }
+    }
+
+    /**
+     * Parsea una lista de usuarios desde JSON
+     */
+    private java.util.List<usuario_salud_dto> parseUsuariosListFromJson(String jsonString) {
+        java.util.List<usuario_salud_dto> usuarios = new java.util.ArrayList<>();
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonArray jsonArray = reader.readArray();
+
+            for (JsonValue jsonValue : jsonArray) {
+                JsonObject jsonObject = jsonValue.asJsonObject();
+
+                usuario_salud_dto dto = new usuario_salud_dto();
+                dto.setCedula(jsonObject.getString("cedula"));
+                dto.setPrimerNombre(jsonObject.getString("primerNombre"));
+                dto.setSegundoNombre(jsonObject.getString("segundoNombre", null));
+                dto.setPrimerApellido(jsonObject.getString("primerApellido"));
+                dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
+                dto.setEmail(jsonObject.getString("email"));
+
+                String tipoDocStr = jsonObject.getString("tipoDocumento", "DO");
+                dto.setTipoDocumento(TipoDocumento.valueOf(tipoDocStr));
+
+                String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
+                if (fechaNacStr != null) {
+                    dto.setFechaNacimiento(LocalDate.parse(fechaNacStr));
+                }
+
+                usuarios.add(dto);
+            }
+
+            return usuarios;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al parsear JSON de lista de usuarios", e);
             throw new RuntimeException("Error al procesar respuesta del componente central", e);
         }
     }

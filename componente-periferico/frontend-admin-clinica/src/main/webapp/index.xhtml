@@ -34,12 +34,17 @@
                     </div>
 
                     <div class="p-field" style="margin-bottom: 1rem;">
-                        <p:outputLabel for="clinicaRut" value="RUT Clínica"/>
-                        <p:inputText id="clinicaRut"
-                                    value="#{loginBean.clinicaRut}"
-                                    required="true"
-                                    requiredMessage="El RUT de la clínica es requerido"
-                                    placeholder="Ej: 211234560018"/>
+                        <p:outputLabel for="clinica" value="Clínica"/>
+                        <p:selectOneMenu id="clinica"
+                                        value="#{loginBean.selectedTenantId}"
+                                        required="true"
+                                        requiredMessage="Debe seleccionar una clínica">
+                            <f:selectItem itemLabel="-- Seleccione una clínica --" itemValue="" noSelectionOption="true"/>
+                            <f:selectItems value="#{loginBean.clinicas}"
+                                          var="clinica"
+                                          itemLabel="#{clinica.nombre}"
+                                          itemValue="#{clinica.tenantId}"/>
+                        </p:selectOneMenu>
                     </div>
 
                     <p:commandButton value="Iniciar Sesión"

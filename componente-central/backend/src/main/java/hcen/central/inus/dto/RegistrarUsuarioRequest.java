@@ -19,21 +19,21 @@ public class RegistrarUsuarioRequest implements Serializable {
     private String segundoApellido;
     private String email;
     private LocalDate fechaNacimiento;
-    private String clinicaRut;
+    private java.util.UUID tenantId;
 
     // Constructores
     public RegistrarUsuarioRequest() {}
 
     public RegistrarUsuarioRequest(String cedula, TipoDocumento tipoDocumento,
                                    String primerNombre, String primerApellido,
-                                   String email, LocalDate fechaNacimiento, String clinicaRut) {
+                                   String email, LocalDate fechaNacimiento, java.util.UUID tenantId) {
         this.cedula = cedula;
         this.tipoDocumento = tipoDocumento;
         this.primerNombre = primerNombre;
         this.primerApellido = primerApellido;
         this.email = email;
         this.fechaNacimiento = fechaNacimiento;
-        this.clinicaRut = clinicaRut;
+        this.tenantId = tenantId;
     }
 
     // Getters y Setters
@@ -101,12 +101,12 @@ public class RegistrarUsuarioRequest implements Serializable {
         this.fechaNacimiento = fechaNacimiento;
     }
 
-    public String getClinicaRut() {
-        return clinicaRut;
+    public java.util.UUID getTenantId() {
+        return tenantId;
     }
 
-    public void setClinicaRut(String clinicaRut) {
-        this.clinicaRut = clinicaRut;
+    public void setTenantId(java.util.UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     @Override
@@ -117,7 +117,7 @@ public class RegistrarUsuarioRequest implements Serializable {
                 ", primerNombre='" + primerNombre + '\'' +
                 ", primerApellido='" + primerApellido + '\'' +
                 ", email='" + email + '\'' +
-                ", clinicaRut='" + clinicaRut + '\'' +
+                ", tenantId=" + tenantId +
                 '}';
     }
 }

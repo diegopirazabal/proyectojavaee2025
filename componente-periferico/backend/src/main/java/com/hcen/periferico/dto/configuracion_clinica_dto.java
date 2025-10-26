@@ -8,7 +8,7 @@ public class configuracion_clinica_dto implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private UUID id;
-    private String clinicaRut;
+    private UUID tenantId;
     private String colorPrimario;
     private String colorSecundario;
     private String logoUrl;
@@ -29,12 +29,12 @@ public class configuracion_clinica_dto implements Serializable {
         this.id = id;
     }
 
-    public String getClinicaRut() {
-        return clinicaRut;
+    public UUID getTenantId() {
+        return tenantId;
     }
 
-    public void setClinicaRut(String clinicaRut) {
-        this.clinicaRut = clinicaRut;
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getColorPrimario() {

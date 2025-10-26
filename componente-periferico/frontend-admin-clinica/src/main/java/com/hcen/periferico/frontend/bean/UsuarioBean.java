@@ -40,7 +40,12 @@ public class UsuarioBean implements Serializable {
 
     public void loadUsuarios() {
         try {
-            usuarios = apiService.getAllUsuarios();
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                return;
+            }
+            usuarios = apiService.getAllUsuarios(tenantId);
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar usuarios: " + e.getMessage());
             e.printStackTrace();
@@ -49,10 +54,15 @@ public class UsuarioBean implements Serializable {
 
     public void search() {
         try {
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                return;
+            }
             if (searchTerm == null || searchTerm.trim().isEmpty()) {
                 loadUsuarios();
             } else {
-                usuarios = apiService.searchUsuarios(searchTerm);
+                usuarios = apiService.searchUsuarios(searchTerm, tenantId);
             }
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error en la búsqueda: " + e.getMessage());
@@ -62,9 +72,9 @@ public class UsuarioBean implements Serializable {
 
     public void registrarUsuario() {
         try {
-            // Obtener el RUT de la clínica desde la sesión
-            String clinicaRut = sessionBean.getClinicaRut();
-            if (clinicaRut == null || clinicaRut.trim().isEmpty()) {
+            // Obtener el tenant_id de la clínica desde la sesión
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.trim().isEmpty()) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "No se puede determinar la clínica. Por favor, recargue la sesión.");
                 return;
             }
@@ -105,7 +115,7 @@ public class UsuarioBean implements Serializable {
                 newUsuario.getSegundoApellido(),
                 newUsuario.getEmail(),
                 newUsuario.getFechaNacimiento(),
-                clinicaRut
+                tenantId
             );
 
             if (resultado != null) {
@@ -125,14 +135,14 @@ public class UsuarioBean implements Serializable {
 
     public void deleteUsuario(usuario_salud_dto usuario) {
         try {
-            // Obtener el RUT de la clínica desde la sesión
-            String clinicaRut = sessionBean.getClinicaRut();
-            if (clinicaRut == null || clinicaRut.trim().isEmpty()) {
+            // Obtener el tenant_id de la clínica desde la sesión
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.trim().isEmpty()) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "No se puede determinar la clínica. Por favor, recargue la sesión.");
                 return;
             }
 
-            boolean success = apiService.deleteUsuario(usuario.getCedula(), clinicaRut);
+            boolean success = apiService.deleteUsuario(usuario.getCedula(), tenantId);
             if (success) {
                 addMessage(FacesMessage.SEVERITY_INFO, "Usuario desasociado de la clínica exitosamente");
                 loadUsuarios();
@@ -154,8 +164,8 @@ public class UsuarioBean implements Serializable {
 
     public void prepareNew() {
         newUsuario = new usuario_salud_dto();
-        // Setear CI como tipo de documento por defecto
-        newUsuario.setTipoDocumento("CI");
+        // Setear DO como tipo de documento por defecto
+        newUsuario.setTipoDocumento("DO");
     }
 
     private void addMessage(FacesMessage.Severity severity, String message) {

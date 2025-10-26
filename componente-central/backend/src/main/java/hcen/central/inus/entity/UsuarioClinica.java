@@ -11,10 +11,10 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "usuario_clinica",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"usuario_cedula", "clinica_rut"}),
+       uniqueConstraints = @UniqueConstraint(columnNames = {"usuario_cedula", "tenant_id"}),
        indexes = {
            @Index(name = "idx_usuario_clinica_cedula", columnList = "usuario_cedula"),
-           @Index(name = "idx_usuario_clinica_rut", columnList = "clinica_rut")
+           @Index(name = "idx_usuario_clinica_tenant", columnList = "tenant_id")
        })
 public class UsuarioClinica implements Serializable {
 
@@ -29,8 +29,8 @@ public class UsuarioClinica implements Serializable {
     @Column(name = "usuario_cedula", nullable = false, length = 20)
     private String usuarioCedula;
 
-    @Column(name = "clinica_rut", nullable = false, length = 20)
-    private String clinicaRut;
+    @Column(name = "tenant_id", nullable = false, columnDefinition = "UUID")
+    private java.util.UUID tenantId;
 
     @Column(name = "fecha_asociacion", nullable = false, updatable = false)
     private Instant fechaAsociacion;
@@ -46,9 +46,9 @@ public class UsuarioClinica implements Serializable {
     // Constructores
     public UsuarioClinica() {}
 
-    public UsuarioClinica(String usuarioCedula, String clinicaRut) {
+    public UsuarioClinica(String usuarioCedula, java.util.UUID tenantId) {
         this.usuarioCedula = usuarioCedula;
-        this.clinicaRut = clinicaRut;
+        this.tenantId = tenantId;
         this.active = true;
     }
 
@@ -69,12 +69,12 @@ public class UsuarioClinica implements Serializable {
         this.usuarioCedula = usuarioCedula;
     }
 
-    public String getClinicaRut() {
-        return clinicaRut;
+    public java.util.UUID getTenantId() {
+        return tenantId;
     }
 
-    public void setClinicaRut(String clinicaRut) {
-        this.clinicaRut = clinicaRut;
+    public void setTenantId(java.util.UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     public Instant getFechaAsociacion() {
@@ -104,12 +104,12 @@ public class UsuarioClinica implements Serializable {
         UsuarioClinica that = (UsuarioClinica) o;
         return Objects.equals(id, that.id) &&
                Objects.equals(usuarioCedula, that.usuarioCedula) &&
-               Objects.equals(clinicaRut, that.clinicaRut);
+               Objects.equals(tenantId, that.tenantId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, usuarioCedula, clinicaRut);
+        return Objects.hash(id, usuarioCedula, tenantId);
     }
 
     @Override
@@ -117,7 +117,7 @@ public class UsuarioClinica implements Serializable {
         return "UsuarioClinica{" +
                 "id=" + id +
                 ", usuarioCedula='" + usuarioCedula + '\'' +
-                ", clinicaRut='" + clinicaRut + '\'' +
+                ", tenantId=" + tenantId +
                 ", fechaAsociacion=" + fechaAsociacion +
                 ", active=" + active +
                 '}';

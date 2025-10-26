@@ -34,14 +34,14 @@ public class UsuarioClinicaDAO {
     /**
      * Busca una asociación específica por usuario y clínica
      */
-    public Optional<UsuarioClinica> findByUsuarioCedulaAndClinicaRut(String usuarioCedula, String clinicaRut) {
+    public Optional<UsuarioClinica> findByUsuarioCedulaAndTenantId(String usuarioCedula, java.util.UUID tenantId) {
         try {
             TypedQuery<UsuarioClinica> query = em.createQuery(
-                "SELECT uc FROM UsuarioClinica uc WHERE uc.usuarioCedula = :cedula AND uc.clinicaRut = :rut",
+                "SELECT uc FROM UsuarioClinica uc WHERE uc.usuarioCedula = :cedula AND uc.tenantId = :tenantId",
                 UsuarioClinica.class
             );
             query.setParameter("cedula", usuarioCedula);
-            query.setParameter("rut", clinicaRut);
+            query.setParameter("tenantId", tenantId);
             return Optional.of(query.getSingleResult());
         } catch (NoResultException e) {
             return Optional.empty();
@@ -51,42 +51,42 @@ public class UsuarioClinicaDAO {
     /**
      * Verifica si existe una asociación activa entre usuario y clínica
      */
-    public boolean existsAssociation(String usuarioCedula, String clinicaRut) {
+    public boolean existsAssociation(String usuarioCedula, java.util.UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
             "SELECT COUNT(uc) FROM UsuarioClinica uc " +
-            "WHERE uc.usuarioCedula = :cedula AND uc.clinicaRut = :rut AND uc.active = true",
+            "WHERE uc.usuarioCedula = :cedula AND uc.tenantId = :tenantId AND uc.active = true",
             Long.class
         );
         query.setParameter("cedula", usuarioCedula);
-        query.setParameter("rut", clinicaRut);
+        query.setParameter("tenantId", tenantId);
         return query.getSingleResult() > 0;
     }
 
     /**
      * Lista todos los usuarios asociados a una clínica (activos)
      */
-    public List<UsuarioClinica> findByClinicaRut(String clinicaRut) {
+    public List<UsuarioClinica> findByTenantId(java.util.UUID tenantId) {
         TypedQuery<UsuarioClinica> query = em.createQuery(
             "SELECT uc FROM UsuarioClinica uc " +
-            "WHERE uc.clinicaRut = :rut AND uc.active = true " +
+            "WHERE uc.tenantId = :tenantId AND uc.active = true " +
             "ORDER BY uc.fechaAsociacion DESC",
             UsuarioClinica.class
         );
-        query.setParameter("rut", clinicaRut);
+        query.setParameter("tenantId", tenantId);
         return query.getResultList();
     }
 
     /**
      * Lista usuarios de una clínica con paginación
      */
-    public List<UsuarioClinica> findByClinicaRutPaginated(String clinicaRut, int page, int size) {
+    public List<UsuarioClinica> findByTenantIdPaginated(java.util.UUID tenantId, int page, int size) {
         TypedQuery<UsuarioClinica> query = em.createQuery(
             "SELECT uc FROM UsuarioClinica uc " +
-            "WHERE uc.clinicaRut = :rut AND uc.active = true " +
+            "WHERE uc.tenantId = :tenantId AND uc.active = true " +
             "ORDER BY uc.fechaAsociacion DESC",
             UsuarioClinica.class
         );
-        query.setParameter("rut", clinicaRut);
+        query.setParameter("tenantId", tenantId);
         query.setFirstResult(page * size);
         query.setMaxResults(size);
         return query.getResultList();
@@ -95,13 +95,13 @@ public class UsuarioClinicaDAO {
     /**
      * Cuenta total de usuarios asociados a una clínica
      */
-    public long countByClinicaRut(String clinicaRut) {
+    public long countByTenantId(java.util.UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
             "SELECT COUNT(uc) FROM UsuarioClinica uc " +
-            "WHERE uc.clinicaRut = :rut AND uc.active = true",
+            "WHERE uc.tenantId = :tenantId AND uc.active = true",
             Long.class
         );
-        query.setParameter("rut", clinicaRut);
+        query.setParameter("tenantId", tenantId);
         return query.getSingleResult();
     }
 
@@ -122,8 +122,8 @@ public class UsuarioClinicaDAO {
     /**
      * Desactiva la asociación entre un usuario y una clínica (soft delete)
      */
-    public void deactivateAssociation(String usuarioCedula, String clinicaRut) {
-        Optional<UsuarioClinica> association = findByUsuarioCedulaAndClinicaRut(usuarioCedula, clinicaRut);
+    public void deactivateAssociation(String usuarioCedula, java.util.UUID tenantId) {
+        Optional<UsuarioClinica> association = findByUsuarioCedulaAndTenantId(usuarioCedula, tenantId);
         association.ifPresent(uc -> {
             uc.setActive(false);
             em.merge(uc);
@@ -143,8 +143,8 @@ public class UsuarioClinicaDAO {
     /**
      * Elimina físicamente la asociación entre un usuario y una clínica
      */
-    public boolean deleteByUsuarioCedulaAndClinicaRut(String usuarioCedula, String clinicaRut) {
-        Optional<UsuarioClinica> association = findByUsuarioCedulaAndClinicaRut(usuarioCedula, clinicaRut);
+    public boolean deleteByUsuarioCedulaAndTenantId(String usuarioCedula, java.util.UUID tenantId) {
+        Optional<UsuarioClinica> association = findByUsuarioCedulaAndTenantId(usuarioCedula, tenantId);
         if (association.isPresent()) {
             em.remove(association.get());
             return true;

@@ -30,9 +30,9 @@ public class UsuarioSaludService {
                                                        String primerNombre, String segundoNombre,
                                                        String primerApellido, String segundoApellido,
                                                        String email, LocalDate fechaNacimiento,
-                                                       String clinicaRut) {
+                                                       String tenantId) {
         // Validaciones básicas
-        validateRegistroParams(cedula, primerNombre, primerApellido, email, fechaNacimiento, clinicaRut);
+        validateRegistroParams(cedula, primerNombre, primerApellido, email, fechaNacimiento, tenantId);
 
         LOGGER.info("Delegando registro de usuario al componente central: " + cedula);
 
@@ -40,14 +40,14 @@ public class UsuarioSaludService {
             // Delegar al componente central
             return centralClient.registrarUsuarioEnClinica(
                 cedula,
-                tipoDocumento != null ? tipoDocumento : TipoDocumento.CI,
+                tipoDocumento != null ? tipoDocumento : TipoDocumento.DO,
                 primerNombre.trim(),
                 segundoNombre != null ? segundoNombre.trim() : null,
                 primerApellido.trim(),
                 segundoApellido != null ? segundoApellido.trim() : null,
                 email.trim(),
                 fechaNacimiento,
-                clinicaRut.trim()
+                tenantId.trim()
             );
         } catch (Exception e) {
             LOGGER.severe("Error al registrar usuario en componente central: " + e.getMessage());
@@ -92,24 +92,63 @@ public class UsuarioSaludService {
     }
 
     /**
+     * Lista todos los usuarios de una clínica desde el componente central
+     */
+    public java.util.List<usuario_salud_dto> getAllUsuariosByTenantId(String tenantId) {
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            throw new IllegalArgumentException("El tenant_id es requerido");
+        }
+
+        LOGGER.info("Obteniendo todos los usuarios de la clínica desde componente central: " + tenantId);
+
+        try {
+            return centralClient.getAllUsuariosByTenantId(tenantId.trim());
+        } catch (Exception e) {
+            LOGGER.severe("Error al obtener usuarios desde componente central: " + e.getMessage());
+            throw new RuntimeException("No se pudieron obtener los usuarios del sistema central: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Busca usuarios por nombre o apellido filtrados por tenant_id desde el componente central
+     */
+    public java.util.List<usuario_salud_dto> searchUsuariosByTenantId(String searchTerm, String tenantId) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            throw new IllegalArgumentException("El término de búsqueda es requerido");
+        }
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            throw new IllegalArgumentException("El tenant_id es requerido");
+        }
+
+        LOGGER.info("Buscando usuarios en componente central: " + searchTerm + " (tenantId: " + tenantId + ")");
+
+        try {
+            return centralClient.searchUsuariosByTenantId(searchTerm.trim(), tenantId.trim());
+        } catch (Exception e) {
+            LOGGER.severe("Error al buscar usuarios en componente central: " + e.getMessage());
+            throw new RuntimeException("No se pudieron buscar usuarios en el sistema central: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Desasocia un usuario de una clínica eliminando la relación
      * Delega la operación al componente central
      */
-    public boolean deleteUsuarioDeClinica(String cedula, String clinicaRut) {
+    public boolean deleteUsuarioDeClinica(String cedula, String tenantId) {
         if (cedula == null || cedula.trim().isEmpty()) {
             throw new IllegalArgumentException("La cédula es requerida");
         }
-        if (clinicaRut == null || clinicaRut.trim().isEmpty()) {
-            throw new IllegalArgumentException("El RUT de la clínica es requerido");
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            throw new IllegalArgumentException("El tenant_id de la clínica es requerido");
         }
 
-        LOGGER.info("Delegando eliminación de asociación usuario-clínica al componente central: " + cedula);
+        LOGGER.info("Delegando eliminación de usuario de clínica al componente central: " + cedula);
 
         try {
-            return centralClient.deleteUsuarioDeClinica(cedula.trim(), clinicaRut.trim());
+            return centralClient.deleteUsuarioDeClinica(cedula.trim(), tenantId.trim());
         } catch (Exception e) {
-            LOGGER.severe("Error al eliminar asociación en componente central: " + e.getMessage());
-            throw new RuntimeException("No se pudo eliminar la asociación en el sistema central: " + e.getMessage(), e);
+            LOGGER.severe("Error al eliminar usuario en componente central: " + e.getMessage());
+            throw new RuntimeException("No se pudo eliminar el usuario en el sistema central: " + e.getMessage(), e);
         }
     }
 
@@ -117,7 +156,7 @@ public class UsuarioSaludService {
      * Validaciones de parámetros de registro
      */
     private void validateRegistroParams(String cedula, String primerNombre, String primerApellido,
-                                       String email, LocalDate fechaNacimiento, String clinicaRut) {
+                                       String email, LocalDate fechaNacimiento, String tenantId) {
         if (cedula == null || cedula.trim().isEmpty()) {
             throw new IllegalArgumentException("La cédula es requerida");
         }
@@ -136,8 +175,8 @@ public class UsuarioSaludService {
         if (fechaNacimiento.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("La fecha de nacimiento no puede ser en el futuro");
         }
-        if (clinicaRut == null || clinicaRut.trim().isEmpty()) {
-            throw new IllegalArgumentException("El RUT de la clínica es requerido");
+        if (tenantId == null || tenantId.trim().isEmpty()) {
+            throw new IllegalArgumentException("El tenant_id de la clínica es requerido");
         }
     }
 

@@ -6,7 +6,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "ADMINISTRADOR_CLINICA",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"USERNAME", "CLINICA_RUT"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"USERNAME", "TENANT_ID"}))
 public class administrador_clinica {
 
     @Id
@@ -26,20 +26,20 @@ public class administrador_clinica {
     @Column(name = "APELLIDOS", length = 100, nullable = false)
     private String apellidos;
 
-    @Column(name = "CLINICA_RUT", length = 20, nullable = false)
-    private String clinica;
+    @Column(name = "TENANT_ID", columnDefinition = "UUID", nullable = false)
+    private UUID tenantId;
 
     // Constructores
     public administrador_clinica() {
     }
 
     public administrador_clinica(String username, String password, String nombre,
-                               String apellidos, String clinica) {
+                               String apellidos, UUID tenantId) {
         this.username = username;
         this.password = password;
         this.nombre = nombre;
         this.apellidos = apellidos;
-        this.clinica = clinica;
+        this.tenantId = tenantId;
     }
 
     // Getters y Setters
@@ -79,12 +79,12 @@ public class administrador_clinica {
         this.apellidos = apellidos;
     }
 
-    public String getClinica() {
-        return clinica;
+    public UUID getTenantId() {
+        return tenantId;
     }
 
-    public void setClinica(String clinica) {
-        this.clinica = clinica;
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getNombreCompleto() {

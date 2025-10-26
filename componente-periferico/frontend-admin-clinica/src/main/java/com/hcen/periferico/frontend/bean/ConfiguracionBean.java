@@ -40,9 +40,9 @@ public class ConfiguracionBean implements Serializable {
 
     public void loadConfiguracion() {
         try {
-            String clinicaRut = sessionBean.getClinicaRut();
-            if (clinicaRut != null) {
-                configuracion = apiService.getConfiguracion(clinicaRut);
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId != null) {
+                configuracion = apiService.getConfiguracion(tenantId);
                 if (configuracion != null) {
                     // Cargar valores en campos temporales
                     colorPrimario = configuracion.getColorPrimario();
@@ -61,14 +61,14 @@ public class ConfiguracionBean implements Serializable {
 
     public void guardarLookAndFeel() {
         try {
-            String clinicaRut = sessionBean.getClinicaRut();
-            if (clinicaRut == null) {
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "No se puede determinar la clínica");
                 return;
             }
 
             configuracion = apiService.updateLookAndFeel(
-                clinicaRut,
+                tenantId,
                 colorPrimario,
                 colorSecundario,
                 logoUrl,
@@ -85,14 +85,14 @@ public class ConfiguracionBean implements Serializable {
 
     public void toggleNodoPeriferico() {
         try {
-            String clinicaRut = sessionBean.getClinicaRut();
-            if (clinicaRut == null) {
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "No se puede determinar la clínica");
                 return;
             }
 
             configuracion = apiService.toggleNodoPeriferico(
-                clinicaRut,
+                tenantId,
                 nodoPerifericoHabilitado != null ? nodoPerifericoHabilitado : false
             );
 
@@ -109,13 +109,13 @@ public class ConfiguracionBean implements Serializable {
 
     public void resetearConfiguracion() {
         try {
-            String clinicaRut = sessionBean.getClinicaRut();
-            if (clinicaRut == null) {
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "No se puede determinar la clínica");
                 return;
             }
 
-            configuracion = apiService.resetConfiguracion(clinicaRut);
+            configuracion = apiService.resetConfiguracion(tenantId);
             loadConfiguracion(); // Recargar campos
 
             addMessage(FacesMessage.SEVERITY_INFO, "Configuración restablecida a valores por defecto");

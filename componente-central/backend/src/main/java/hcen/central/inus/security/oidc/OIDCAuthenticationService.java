@@ -292,37 +292,36 @@ public class OIDCAuthenticationService {
      */
     private TipoDocumento mapTipoDocumento(String tipoDocGubUy) {
         if (tipoDocGubUy == null || tipoDocGubUy.isEmpty()) {
-            LOGGER.warning("tipo_documento vacío desde gub.uy, usando CI por defecto");
-            return hcen.central.inus.enums.TipoDocumento.CI;
+            LOGGER.warning("tipo_documento vacío desde gub.uy, usando DO por defecto");
+            return hcen.central.inus.enums.TipoDocumento.DO;
         }
-        
+
         // Normalizar: convertir a mayúsculas y quitar espacios
         String tipoNormalizado = tipoDocGubUy.trim().toUpperCase();
-        
+
         try {
             // Mapeo directo si coincide exactamente
             switch (tipoNormalizado) {
                 case "CI":
+                case "DO":
                 case "CEDULA":
                 case "CÉDULA":
                 case "CEDULA DE IDENTIDAD":
-                    return hcen.central.inus.enums.TipoDocumento.CI;
-                    
+                case "DOCUMENTO":
+                    return hcen.central.inus.enums.TipoDocumento.DO;
+
+                case "PA":
                 case "PASAPORTE":
                 case "PASSPORT":
-                    return hcen.central.inus.enums.TipoDocumento.PASAPORTE;
-                    
-                case "DNI":
-                case "DOCUMENTO NACIONAL DE IDENTIDAD":
-                    return hcen.central.inus.enums.TipoDocumento.DNI;
-                    
+                    return hcen.central.inus.enums.TipoDocumento.PA;
+
                 default:
-                    LOGGER.warning("Tipo de documento desconocido desde gub.uy: '" + tipoDocGubUy + "', usando CI por defecto");
-                    return hcen.central.inus.enums.TipoDocumento.CI;
+                    LOGGER.warning("Tipo de documento desconocido desde gub.uy: '" + tipoDocGubUy + "', usando OTRO");
+                    return hcen.central.inus.enums.TipoDocumento.OTRO;
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error mapeando tipo de documento: " + tipoDocGubUy, e);
-            return hcen.central.inus.enums.TipoDocumento.CI;
+            return hcen.central.inus.enums.TipoDocumento.DO;
         }
     }
     

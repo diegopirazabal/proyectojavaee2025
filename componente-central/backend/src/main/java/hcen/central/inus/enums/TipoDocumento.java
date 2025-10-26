@@ -1,7 +1,7 @@
 package hcen.central.inus.enums;
 
 public enum TipoDocumento {
-    CI,
-    PASAPORTE,
-    DNI
+    DO,  // Documento (equivalente a cédula)
+    PA,  // Pasaporte
+    OTRO // Otro tipo de documento
 }

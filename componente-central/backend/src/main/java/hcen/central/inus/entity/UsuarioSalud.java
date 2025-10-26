@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * JPA Entity for OpenID Connect authenticated users
@@ -65,7 +66,10 @@ public class UsuarioSalud {
     
     @Column(name = "last_login")
     private Instant lastLogin;
-    
+
+    @Column(name = "tenant_id", columnDefinition = "UUID")
+    private UUID tenantId;
+
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
@@ -132,7 +136,10 @@ public class UsuarioSalud {
     
     public Instant getLastLogin() { return lastLogin; }
     public void setLastLogin(Instant lastLogin) { this.lastLogin = lastLogin; }
-    
+
+    public UUID getTenantId() { return tenantId; }
+    public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
