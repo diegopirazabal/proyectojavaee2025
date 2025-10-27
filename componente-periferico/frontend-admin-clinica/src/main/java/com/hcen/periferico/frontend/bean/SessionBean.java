@@ -53,8 +53,10 @@ public class SessionBean implements Serializable {
         return "/index.xhtml?faces-redirect=true";
     }
 
-    public String getClinicaRut() {
-        return administradorLogueado != null ? administradorLogueado.getClinica() : null;
+    public String getTenantId() {
+        return administradorLogueado != null && administradorLogueado.getTenantId() != null
+            ? administradorLogueado.getTenantId().toString()
+            : null;
     }
 
     public String getNombreAdministrador() {

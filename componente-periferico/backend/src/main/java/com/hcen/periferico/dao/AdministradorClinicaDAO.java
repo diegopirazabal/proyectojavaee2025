@@ -32,26 +32,26 @@ public class AdministradorClinicaDAO {
         return Optional.ofNullable(admin);
     }
 
-    public Optional<administrador_clinica> findByUsernameAndClinica(String username, String clinicaRut) {
+    public Optional<administrador_clinica> findByUsernameAndTenant(String username, UUID tenantId) {
         try {
             TypedQuery<administrador_clinica> query = em.createQuery(
-                "SELECT a FROM administrador_clinica a WHERE a.username = :username AND a.clinica = :clinica",
+                "SELECT a FROM administrador_clinica a WHERE a.username = :username AND a.tenantId = :tenantId",
                 administrador_clinica.class
             );
             query.setParameter("username", username);
-            query.setParameter("clinica", clinicaRut);
+            query.setParameter("tenantId", tenantId);
             return Optional.of(query.getSingleResult());
         } catch (NoResultException e) {
             return Optional.empty();
         }
     }
 
-    public List<administrador_clinica> findByClinica(String clinicaRut) {
+    public List<administrador_clinica> findByTenant(UUID tenantId) {
         TypedQuery<administrador_clinica> query = em.createQuery(
-            "SELECT a FROM administrador_clinica a WHERE a.clinica = :clinica ORDER BY a.nombre, a.apellidos",
+            "SELECT a FROM administrador_clinica a WHERE a.tenantId = :tenantId ORDER BY a.nombre, a.apellidos",
             administrador_clinica.class
         );
-        query.setParameter("clinica", clinicaRut);
+        query.setParameter("tenantId", tenantId);
         return query.getResultList();
     }
 
@@ -64,13 +64,13 @@ public class AdministradorClinicaDAO {
         return query.getResultList();
     }
 
-    public boolean existsByUsernameAndClinica(String username, String clinicaRut) {
+    public boolean existsByUsernameAndTenant(String username, UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(a) FROM administrador_clinica a WHERE a.username = :username AND a.clinica = :clinica",
+            "SELECT COUNT(a) FROM administrador_clinica a WHERE a.username = :username AND a.tenantId = :tenantId",
             Long.class
         );
         query.setParameter("username", username);
-        query.setParameter("clinica", clinicaRut);
+        query.setParameter("tenantId", tenantId);
         return query.getSingleResult() > 0;
     }
 
@@ -87,7 +87,7 @@ public class AdministradorClinicaDAO {
 
     public List<administrador_clinica> findAll() {
         TypedQuery<administrador_clinica> query = em.createQuery(
-            "SELECT a FROM administrador_clinica a ORDER BY a.clinica, a.nombre, a.apellidos",
+            "SELECT a FROM administrador_clinica a ORDER BY a.tenantId, a.nombre, a.apellidos",
             administrador_clinica.class
         );
         return query.getResultList();

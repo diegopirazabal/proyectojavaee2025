@@ -40,42 +40,28 @@ public class UsuarioSaludService {
 
     /**
      * Registra un usuario en una clínica.
-     * Si el usuario NO existe: lo crea en usuario_salud
-     * Si el usuario existe: actualiza sus datos
-     * Siempre verifica/crea la asociación en usuario_clinica
+     * Verifica si ya existe la combinación cedula+tenant_id.
+     * Si YA existe: retorna error indicando que ya está registrado en esa clínica
+     * Si NO existe: crea nuevo usuario en usuario_salud con todos los datos
      */
     public UsuarioSaludDTO registrarUsuarioEnClinica(RegistrarUsuarioRequest request) {
         // Validaciones
         validateRequest(request);
 
         String cedula = request.getCedula().trim();
-        String clinicaRut = request.getClinicaRut().trim();
+        java.util.UUID tenantId = request.getTenantId();
 
-        // Buscar o crear usuario
-        Optional<UsuarioSalud> existingUsuario = usuarioDAO.findByCedula(cedula);
-        UsuarioSalud usuario;
-
-        if (existingUsuario.isPresent()) {
-            // Usuario existe, actualizar datos
-            LOGGER.info("Usuario con cédula " + cedula + " ya existe. Actualizando datos.");
-            usuario = existingUsuario.get();
-            updateUsuarioData(usuario, request);
-            usuario = usuarioDAO.save(usuario);
-        } else {
-            // Usuario no existe, crear nuevo
-            LOGGER.info("Creando nuevo usuario con cédula " + cedula);
-            usuario = createNuevoUsuario(request);
-            usuario = usuarioDAO.save(usuario);
+        // Verificar si ya existe un usuario con esta cedula+tenant_id
+        if (usuarioDAO.existsByCedulaAndTenantId(cedula, tenantId)) {
+            LOGGER.warning("Usuario con cédula " + cedula + " ya está registrado en la clínica " + tenantId);
+            throw new IllegalArgumentException("El usuario ya está registrado en esta clínica");
         }
 
-        // Verificar/crear asociación con clínica
-        if (!usuarioClinicaDAO.existsAssociation(cedula, clinicaRut)) {
-            LOGGER.info("Creando asociación usuario-clínica: " + cedula + " - " + clinicaRut);
-            UsuarioClinica asociacion = new UsuarioClinica(cedula, clinicaRut);
-            usuarioClinicaDAO.save(asociacion);
-        } else {
-            LOGGER.info("La asociación usuario-clínica ya existe: " + cedula + " - " + clinicaRut);
-        }
+        // Crear nuevo usuario en usuario_salud
+        LOGGER.info("Creando nuevo usuario con cédula " + cedula + " y tenant_id " + tenantId);
+        UsuarioSalud usuario = createNuevoUsuario(request);
+        usuario.setTenantId(tenantId);
+        usuario = usuarioDAO.save(usuario);
 
         return toDTO(usuario);
     }
@@ -88,6 +74,33 @@ public class UsuarioSaludService {
             throw new IllegalArgumentException("La cédula es requerida");
         }
         return usuarioDAO.findByCedula(cedula.trim()).map(this::toDTO);
+    }
+
+    /**
+     * Lista todos los usuarios de una clínica
+     */
+    public java.util.List<UsuarioSaludDTO> getUsuariosByTenantId(java.util.UUID tenantId) {
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenant_id es requerido");
+        }
+        return usuarioDAO.findByTenantId(tenantId).stream()
+            .map(this::toDTO)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Busca usuarios por nombre o apellido filtrados por tenant_id
+     */
+    public java.util.List<UsuarioSaludDTO> searchUsuariosByTenantId(String searchTerm, java.util.UUID tenantId) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            throw new IllegalArgumentException("El término de búsqueda es requerido");
+        }
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenant_id es requerido");
+        }
+        return usuarioDAO.searchByNombreOrApellidoAndTenantId(searchTerm.trim(), tenantId).stream()
+            .map(this::toDTO)
+            .collect(java.util.stream.Collectors.toList());
     }
 
     /**
@@ -115,11 +128,11 @@ public class UsuarioSaludService {
         if (request.getFechaNacimiento().isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("La fecha de nacimiento no puede ser en el futuro");
         }
-        if (request.getClinicaRut() == null || request.getClinicaRut().trim().isEmpty()) {
-            throw new IllegalArgumentException("El RUT de la clínica es requerido");
+        if (request.getTenantId() == null) {
+            throw new IllegalArgumentException("El ID de la clínica (tenant_id) es requerido");
         }
         if (request.getTipoDocumento() == null) {
-            request.setTipoDocumento(TipoDocumento.CI); // Default
+            request.setTipoDocumento(TipoDocumento.DO); // Default
         }
     }
 
@@ -191,32 +204,26 @@ public class UsuarioSaludService {
     }
 
     /**
-     * Desasocia un usuario de una clínica eliminando la relación
+     * Desasocia un usuario de una clínica eliminando el registro
      */
-    public boolean desasociarUsuarioDeClinica(String cedula, String clinicaRut) {
+    public boolean desasociarUsuarioDeClinica(String cedula, java.util.UUID tenantId) {
         // Validaciones
         if (cedula == null || cedula.trim().isEmpty()) {
             throw new IllegalArgumentException("La cédula es requerida");
         }
-        if (clinicaRut == null || clinicaRut.trim().isEmpty()) {
-            throw new IllegalArgumentException("El RUT de la clínica es requerido");
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenant_id de la clínica es requerido");
         }
 
-        LOGGER.info("Desasociando usuario " + cedula + " de clínica " + clinicaRut);
+        LOGGER.info("Desasociando usuario " + cedula + " de clínica " + tenantId);
 
-        // Verificar que el usuario existe
-        if (!verificarUsuarioExiste(cedula)) {
-            LOGGER.warning("Usuario no encontrado: " + cedula);
-            throw new IllegalArgumentException("Usuario no encontrado");
-        }
-
-        // Eliminar la asociación
-        boolean deleted = usuarioClinicaDAO.deleteByUsuarioCedulaAndClinicaRut(cedula.trim(), clinicaRut.trim());
+        // Buscar y eliminar el usuario con esa combinación cedula+tenant_id
+        boolean deleted = usuarioDAO.deleteByCedulaAndTenantId(cedula.trim(), tenantId);
 
         if (deleted) {
             LOGGER.info("Usuario desasociado exitosamente");
         } else {
-            LOGGER.warning("No se encontró la asociación usuario-clínica");
+            LOGGER.warning("No se encontró el usuario en esa clínica");
         }
 
         return deleted;

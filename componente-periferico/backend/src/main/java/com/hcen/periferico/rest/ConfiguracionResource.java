@@ -17,10 +17,10 @@ public class ConfiguracionResource {
     private ConfiguracionService configuracionService;
 
     @GET
-    @Path("/{clinicaRut}")
-    public Response getConfiguracion(@PathParam("clinicaRut") String clinicaRut) {
+    @Path("/{tenantId}")
+    public Response getConfiguracion(@PathParam("tenantId") String tenantId) {
         try {
-            configuracion_clinica config = configuracionService.getConfiguracion(clinicaRut);
+            configuracion_clinica config = configuracionService.getConfiguracion(tenantId);
             configuracion_clinica_dto dto = toDTO(config);
             return Response.ok(dto).build();
         } catch (Exception e) {
@@ -31,12 +31,12 @@ public class ConfiguracionResource {
     }
 
     @PUT
-    @Path("/{clinicaRut}/lookfeel")
-    public Response updateLookAndFeel(@PathParam("clinicaRut") String clinicaRut,
+    @Path("/{tenantId}/lookfeel")
+    public Response updateLookAndFeel(@PathParam("tenantId") String tenantId,
                                       LookFeelRequest request) {
         try {
             configuracion_clinica config = configuracionService.actualizarLookAndFeel(
-                clinicaRut,
+                tenantId,
                 request.getColorPrimario(),
                 request.getColorSecundario(),
                 request.getLogoUrl(),
@@ -53,12 +53,12 @@ public class ConfiguracionResource {
     }
 
     @PUT
-    @Path("/{clinicaRut}/nodo")
-    public Response toggleNodoPeriferico(@PathParam("clinicaRut") String clinicaRut,
+    @Path("/{tenantId}/nodo")
+    public Response toggleNodoPeriferico(@PathParam("tenantId") String tenantId,
                                          NodoRequest request) {
         try {
             configuracion_clinica config = configuracionService.toggleNodoPeriferico(
-                clinicaRut,
+                tenantId,
                 request.getHabilitado()
             );
             configuracion_clinica_dto dto = toDTO(config);
@@ -71,10 +71,10 @@ public class ConfiguracionResource {
     }
 
     @POST
-    @Path("/{clinicaRut}/reset")
-    public Response resetToDefault(@PathParam("clinicaRut") String clinicaRut) {
+    @Path("/{tenantId}/reset")
+    public Response resetToDefault(@PathParam("tenantId") String tenantId) {
         try {
-            configuracion_clinica config = configuracionService.resetToDefault(clinicaRut);
+            configuracion_clinica config = configuracionService.resetToDefault(tenantId);
             configuracion_clinica_dto dto = toDTO(config);
             return Response.ok(dto).build();
         } catch (Exception e) {
@@ -87,7 +87,7 @@ public class ConfiguracionResource {
     private configuracion_clinica_dto toDTO(configuracion_clinica entity) {
         configuracion_clinica_dto dto = new configuracion_clinica_dto();
         dto.setId(entity.getId());
-        dto.setClinicaRut(entity.getClinicaRut());
+        dto.setTenantId(entity.getTenantId());
         dto.setColorPrimario(entity.getColorPrimario());
         dto.setColorSecundario(entity.getColorSecundario());
         dto.setLogoUrl(entity.getLogoUrl());
