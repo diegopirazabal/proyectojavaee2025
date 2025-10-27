@@ -18,6 +18,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -278,49 +279,6 @@ public class OIDCAuthenticationService {
             return url.toString();
         } catch (Exception e) {
             throw new RuntimeException("Error construyendo URL de autorización", e);
-        }
-    }
-
-    /**
-     * Mapea el tipo de documento de gub.uy (String) al enum TipoDocumento
-     * <p>
-     * gub.uy devuelve valores como: "CI", "Pasaporte", "DNI", etc.
-     *
-     * @param tipoDocGubUy String del tipo de documento desde gub.uy
-     * @return TipoDocumento enum correspondiente
-     */
-    private TipoDocumento mapTipoDocumento(String tipoDocGubUy) {
-        if (tipoDocGubUy == null || tipoDocGubUy.isEmpty()) {
-            LOGGER.warning("tipo_documento vacío desde gub.uy, usando DO por defecto");
-            return hcen.central.inus.enums.TipoDocumento.DO;
-        }
-
-        // Normalizar: convertir a mayúsculas y quitar espacios
-        String tipoNormalizado = tipoDocGubUy.trim().toUpperCase();
-
-        try {
-            // Mapeo directo si coincide exactamente
-            switch (tipoNormalizado) {
-                case "CI":
-                case "DO":
-                case "CEDULA":
-                case "CÉDULA":
-                case "CEDULA DE IDENTIDAD":
-                case "DOCUMENTO":
-                    return hcen.central.inus.enums.TipoDocumento.DO;
-
-                case "PA":
-                case "PASAPORTE":
-                case "PASSPORT":
-                    return hcen.central.inus.enums.TipoDocumento.PA;
-
-                default:
-                    LOGGER.warning("Tipo de documento desconocido desde gub.uy: '" + tipoDocGubUy + "', usando OTRO");
-                    return hcen.central.inus.enums.TipoDocumento.OTRO;
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error mapeando tipo de documento: " + tipoDocGubUy, e);
-            return hcen.central.inus.enums.TipoDocumento.DO;
         }
     }
 

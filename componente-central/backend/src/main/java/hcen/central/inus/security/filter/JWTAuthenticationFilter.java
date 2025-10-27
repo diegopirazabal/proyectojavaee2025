@@ -170,6 +170,12 @@ public class JWTAuthenticationFilter implements Filter {
             return true;
         }
 
+        // Permitir GET /api/usuarios (con query parameters ?tenantId=... y ?search=...)
+        // Usado por clínicas periféricas para listar/buscar usuarios
+        if (requestURI.matches(".*/api/usuarios$")) {
+            return true;
+        }
+
         return false;
     }
 
