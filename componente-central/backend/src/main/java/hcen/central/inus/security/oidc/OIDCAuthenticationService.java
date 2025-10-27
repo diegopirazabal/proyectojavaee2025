@@ -6,9 +6,9 @@ import hcen.central.inus.dto.OIDCAuthRequest;
 import hcen.central.inus.dto.OIDCTokenResponse;
 import hcen.central.inus.dto.OIDCUserInfo;
 import hcen.central.inus.entity.UsuarioSalud;
-import hcen.central.inus.enums.TipoDocumento;
 import hcen.central.inus.security.config.OIDCConfiguration;
 import hcen.central.inus.security.jwt.JWTTokenProvider;
+import hcen.central.inus.util.TipoDocumentoMapper;
 // import hcen.central.inus.security.pkce.PKCEGenerator; // PKCE removido
 import io.jsonwebtoken.Claims;
 import jakarta.ejb.Stateless;
@@ -18,7 +18,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -163,8 +162,8 @@ public class OIDCAuthenticationService {
         user.setEmail(userInfo.getEmail());
         user.setEmailVerificado(userInfo.getEmailVerified() != null ? userInfo.getEmailVerified() : false);
         
-        // tipo_documento -> tipoDeDocumento: mapear String de gub.uy a enum
-        user.setTipoDeDocumento(mapTipoDocumento(userInfo.getTipoDocumento()));
+        // tipo_documento -> tipoDeDocumento: normalizar String de gub.uy
+        user.setTipoDeDocumento(TipoDocumentoMapper.toEnum(userInfo.getTipoDocumento()));
         
         user.setNombreCompleto(userInfo.getNombreCompleto());
         user.setPrimerNombre(userInfo.getPrimerNombre());
@@ -324,7 +323,7 @@ public class OIDCAuthenticationService {
             return hcen.central.inus.enums.TipoDocumento.DO;
         }
     }
-    
+
     /**
      * Genera un string random para state y nonce
      */
