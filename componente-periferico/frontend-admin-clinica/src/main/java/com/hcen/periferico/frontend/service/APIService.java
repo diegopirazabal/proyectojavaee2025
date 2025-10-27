@@ -35,26 +35,26 @@ import javax.net.ssl.SSLContext;
 public class APIService implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private static final String BACKEND_URL = "https://node5823-hcen-uy.web.elasticloud.uy/multitenant-api";
+    private static final String BACKEND_URL = "https://node5823-hcen-uy.web.elasticloud.uy/multitenant-api/";
 
     private CloseableHttpClient createHttpClient() {
         try {
             SSLContext sslContext = SSLContextBuilder.create()
-                .loadTrustMaterial(null, TrustAllStrategy.INSTANCE)
-                .build();
+                    .loadTrustMaterial(null, TrustAllStrategy.INSTANCE)
+                    .build();
 
             SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(
-                sslContext,
-                NoopHostnameVerifier.INSTANCE
+                    sslContext,
+                    NoopHostnameVerifier.INSTANCE
             );
 
             PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-                .setSSLSocketFactory(socketFactory)
-                .build();
+                    .setSSLSocketFactory(socketFactory)
+                    .build();
 
             return HttpClients.custom()
-                .setConnectionManager(connectionManager)
-                .build();
+                    .setConnectionManager(connectionManager)
+                    .build();
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("Unable to initialize insecure SSL context", e);
         }
@@ -67,10 +67,10 @@ public class APIService implements Serializable {
             HttpPost request = new HttpPost(BACKEND_URL + "/auth/login");
 
             JsonObject loginData = Json.createObjectBuilder()
-                .add("username", username)
-                .add("password", password)
-                .add("clinicaRut", clinicaRut)
-                .build();
+                    .add("username", username)
+                    .add("password", password)
+                    .add("clinicaRut", clinicaRut)
+                    .build();
 
             StringEntity entity = new StringEntity(loginData.toString(), ContentType.APPLICATION_JSON);
             request.setEntity(entity);
@@ -106,18 +106,18 @@ public class APIService implements Serializable {
     }
 
     public configuracion_clinica_dto updateLookAndFeel(String clinicaRut, String colorPrimario,
-                                                     String colorSecundario, String logoUrl,
-                                                     String nombreSistema, String tema) {
+                                                       String colorSecundario, String logoUrl,
+                                                       String nombreSistema, String tema) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPut request = new HttpPut(BACKEND_URL + "/configuracion/" + clinicaRut + "/lookfeel");
 
             JsonObject data = Json.createObjectBuilder()
-                .add("colorPrimario", colorPrimario != null ? colorPrimario : "")
-                .add("colorSecundario", colorSecundario != null ? colorSecundario : "")
-                .add("logoUrl", logoUrl != null ? logoUrl : "")
-                .add("nombreSistema", nombreSistema != null ? nombreSistema : "")
-                .add("tema", tema != null ? tema : "")
-                .build();
+                    .add("colorPrimario", colorPrimario != null ? colorPrimario : "")
+                    .add("colorSecundario", colorSecundario != null ? colorSecundario : "")
+                    .add("logoUrl", logoUrl != null ? logoUrl : "")
+                    .add("nombreSistema", nombreSistema != null ? nombreSistema : "")
+                    .add("tema", tema != null ? tema : "")
+                    .build();
 
             StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
             request.setEntity(entity);
@@ -139,8 +139,8 @@ public class APIService implements Serializable {
             HttpPut request = new HttpPut(BACKEND_URL + "/configuracion/" + clinicaRut + "/nodo");
 
             JsonObject data = Json.createObjectBuilder()
-                .add("habilitado", habilitado)
-                .build();
+                    .add("habilitado", habilitado)
+                    .build();
 
             StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
             request.setEntity(entity);
@@ -209,17 +209,17 @@ public class APIService implements Serializable {
     }
 
     public profesional_salud_dto saveProfesional(Integer ci, String nombre, String apellidos,
-                                               String especialidad, String email) {
+                                                 String especialidad, String email) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(BACKEND_URL + "/profesionales");
 
             JsonObject data = Json.createObjectBuilder()
-                .add("ci", ci)
-                .add("nombre", nombre)
-                .add("apellidos", apellidos)
-                .add("especialidad", especialidad != null ? especialidad : "")
-                .add("email", email != null ? email : "")
-                .build();
+                    .add("ci", ci)
+                    .add("nombre", nombre)
+                    .add("apellidos", apellidos)
+                    .add("especialidad", especialidad != null ? especialidad : "")
+                    .add("email", email != null ? email : "")
+                    .build();
 
             StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
             request.setEntity(entity);
@@ -370,21 +370,21 @@ public class APIService implements Serializable {
     }
 
     public usuario_salud_dto registrarUsuario(String cedula, String tipoDocumento,
-                                             String primerNombre, String segundoNombre,
-                                             String primerApellido, String segundoApellido,
-                                             String email, java.time.LocalDate fechaNacimiento,
-                                             String clinicaRut) {
+                                              String primerNombre, String segundoNombre,
+                                              String primerApellido, String segundoApellido,
+                                              String email, java.time.LocalDate fechaNacimiento,
+                                              String clinicaRut) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost request = new HttpPost(BACKEND_URL + "/usuarios");
 
             var builder = Json.createObjectBuilder()
-                .add("cedula", cedula)
-                .add("tipoDocumento", tipoDocumento)
-                .add("primerNombre", primerNombre)
-                .add("primerApellido", primerApellido)
-                .add("email", email)
-                .add("fechaNacimiento", fechaNacimiento.toString())
-                .add("clinicaRut", clinicaRut);
+                    .add("cedula", cedula)
+                    .add("tipoDocumento", tipoDocumento)
+                    .add("primerNombre", primerNombre)
+                    .add("primerApellido", primerApellido)
+                    .add("email", email)
+                    .add("fechaNacimiento", fechaNacimiento.toString())
+                    .add("clinicaRut", clinicaRut);
 
             if (segundoNombre != null && !segundoNombre.isEmpty()) {
                 builder.add("segundoNombre", segundoNombre);

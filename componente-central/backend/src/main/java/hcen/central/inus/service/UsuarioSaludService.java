@@ -119,7 +119,7 @@ public class UsuarioSaludService {
             throw new IllegalArgumentException("El RUT de la clínica es requerido");
         }
         if (request.getTipoDocumento() == null) {
-            request.setTipoDocumento(TipoDocumento.CI); // Default
+            request.setTipoDocumento(TipoDocumento.DO); // Default
         }
     }
 
