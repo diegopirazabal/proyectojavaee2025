@@ -65,8 +65,6 @@ public class APIService implements Serializable {
 
     public administrador_clinica_dto authenticate(String username, String password, String tenantId) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-    public administrador_clinica_dto authenticate(String username, String password, String clinicaRut) {
-        try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(BACKEND_URL + "/auth/login");
 
             JsonObject loginData = Json.createObjectBuilder()
