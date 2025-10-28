@@ -45,34 +45,17 @@ public class OidcAuthService {
 
     /**
      * Inicia el flujo de autenticación OIDC
-     * @return Intent para lanzar el navegador con la página de login de gub.uy
+     * SIMPLIFICADO: Solo abre el navegador con la URL del backend
+     * El backend maneja todo el flujo OIDC con gub.uy
      */
     public Intent createAuthorizationIntent() {
-        // Configuración del servicio de autorización
-        // En este caso, el backend HCEN actúa como intermediario con gub.uy
-        AuthorizationServiceConfiguration serviceConfig =
-                new AuthorizationServiceConfiguration(
-                        Uri.parse(AUTH_ENDPOINT),
-                        Uri.parse(TOKEN_ENDPOINT)
-                );
-
-        // Construir la solicitud de autorización
-        AuthorizationRequest.Builder authRequestBuilder = new AuthorizationRequest.Builder(
-                serviceConfig,
-                CLIENT_ID,
-                ResponseTypeValues.CODE,
-                Uri.parse(REDIRECT_URI)
-        );
-
-        // Agregar parámetro para identificar que viene de mobile
-        authRequestBuilder.setAdditionalParameters(
-                java.util.Collections.singletonMap("origin", "mobile")
-        );
-
-        AuthorizationRequest authRequest = authRequestBuilder.build();
-
-        // Crear intent para el navegador
-        return authService.getAuthorizationRequestIntent(authRequest);
+        // Construir URL simple como lo hace la web
+        String loginUrl = getOidcLoginUrl();
+        
+        // Crear intent para abrir navegador
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(loginUrl));
+        
+        return browserIntent;
     }
 
     /**
