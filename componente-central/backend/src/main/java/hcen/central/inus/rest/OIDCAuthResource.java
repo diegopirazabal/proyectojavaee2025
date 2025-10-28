@@ -68,24 +68,6 @@ public class OIDCAuthResource {
         try {
             LOGGER.info("··· Iniciando login OIDC");
 
-            // Validar redirect_uri
-            if (redirectUri == null || redirectUri.isEmpty()) {
-                return Response.status(Response.Status.BAD_REQUEST)
-                        .entity(createErrorResponse("redirect_uri es requerido"))
-                        .build();
-            }
-
-            // Generar request de autorización
-            OIDCAuthRequest authRequest = authService.initiateLogin(redirectUri);
-
-            // Guardar state y nonce en la sesión HTTP (PKCE removido)
-            HttpSession session = httpRequest.getSession(true);
-            session.setAttribute("oidc_state", authRequest.getState());
-            session.setAttribute("oidc_nonce", authRequest.getNonce());
-            // session.setAttribute("oidc_code_verifier", authRequest.getCodeVerifier()); // PKCE removido
-            // session.setAttribute("oidc_code_challenge", authRequest.getCodeChallenge()); // PKCE removido
-            session.setAttribute("oidc_redirect_uri", redirectUri);
-            
             // Detectar origen del login desde parámetro origin (prioritario) o Referer header
             String loginOrigin = origin; // Usar el parámetro origin si viene
             
@@ -102,6 +84,42 @@ public class OIDCAuthResource {
                     }
                 }
             }
+            
+            // Si es mobile, usar el redirect_uri del backend, no el de la app
+            String actualRedirectUri;
+            if ("mobile".equals(loginOrigin)) {
+                // Para mobile, usar el redirect_uri del backend registrado en gub.uy
+                String serverName = httpRequest.getServerName();
+                boolean isProduction = "hcen-uy.web.elasticloud.uy".equals(serverName);
+                
+                if (isProduction) {
+                    actualRedirectUri = "https://hcen-uy.web.elasticloud.uy/api/auth/callback";
+                } else {
+                    actualRedirectUri = "http://localhost:8080/hcen-central/api/auth/callback";
+                }
+                
+                LOGGER.info("Mobile detectado, usando redirect_uri del backend: " + actualRedirectUri);
+            } else {
+                // Para web, validar que venga redirect_uri
+                if (redirectUri == null || redirectUri.isEmpty()) {
+                    return Response.status(Response.Status.BAD_REQUEST)
+                            .entity(createErrorResponse("redirect_uri es requerido"))
+                            .build();
+                }
+                actualRedirectUri = redirectUri;
+            }
+
+            // Generar request de autorización
+            OIDCAuthRequest authRequest = authService.initiateLogin(actualRedirectUri);
+
+            // Guardar state y nonce en la sesión HTTP (PKCE removido)
+            HttpSession session = httpRequest.getSession(true);
+            session.setAttribute("oidc_state", authRequest.getState());
+            session.setAttribute("oidc_nonce", authRequest.getNonce());
+            // session.setAttribute("oidc_code_verifier", authRequest.getCodeVerifier()); // PKCE removido
+            // session.setAttribute("oidc_code_challenge", authRequest.getCodeChallenge()); // PKCE removido
+            session.setAttribute("oidc_redirect_uri", actualRedirectUri);
+            session.setAttribute("oidc_client_redirect_uri", redirectUri); // Guardar el redirect_uri del cliente
             
             session.setAttribute("oidc_login_origin", loginOrigin);
             LOGGER.info("Login origin detectado: '" + loginOrigin + "' (origin param: '" + origin + "')");
