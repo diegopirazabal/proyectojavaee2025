@@ -14,6 +14,11 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,13 +29,18 @@ public class UsuarioSaludDashboardBean implements Serializable {
 
     private static final Logger LOGGER = Logger.getLogger(UsuarioSaludDashboardBean.class.getName());
     private static final long serialVersionUID = 1L;
+    private static final ZoneId URUGUAY_ZONE = ZoneId.of("America/Montevideo");
 
     @Inject
     private DnicServiceClient dnicServiceClient;
 
+    @Inject
+    private UsuarioSaludLoginBean loginBean;
+
     private CiudadanoDetalle ciudadano;
     private String docType;
     private String docNumber;
+    private String warningMessage;
 
     @PostConstruct
     public void init() {
@@ -40,9 +50,11 @@ public class UsuarioSaludDashboardBean implements Serializable {
         // Verificar autenticación OIDC mediante cookie JWT
         HttpServletRequest request = (HttpServletRequest) externalContext.getRequest();
         String jwtToken = getJwtFromCookie(request);
-        
-        if (jwtToken == null || jwtToken.isBlank()) {
-            LOGGER.warning("No se encontró cookie JWT, redirigiendo a login");
+        boolean hasJwtCookie = jwtToken != null && !jwtToken.isBlank();
+        boolean hasSessionLogin = loginBean != null && loginBean.isLoggedIn();
+
+        if (!hasJwtCookie && !hasSessionLogin) {
+            LOGGER.warning("No se encontró cookie JWT ni sesión activa, redirigiendo a login");
             try {
                 externalContext.redirect(externalContext.getRequestContextPath() + "/login.xhtml");
             } catch (Exception e) {
@@ -51,13 +63,30 @@ public class UsuarioSaludDashboardBean implements Serializable {
             return;
         }
         
-        LOGGER.info("Cookie JWT encontrada, usuario autenticado");
+        if (hasJwtCookie) {
+            LOGGER.info("Cookie JWT encontrada, usuario autenticado");
+        } else {
+            LOGGER.info("Sesión local autenticada sin cookie JWT, permitiendo acceso");
+        }
         
         // Verificar sesión HTTP para datos de userInfo (opcional, puede no existir en este WAR)
         HttpSession session = (HttpSession) externalContext.getSession(false);
         
         // Intentar obtener datos de la sesión OIDC primero
         if (session != null) {
+            // Mostrar advertencia de menor de edad si viene en el JWT
+            Object jwtTokenObj = session.getAttribute("jwtToken");
+            if (jwtTokenObj != null) {
+                try {
+                    Object warning = jwtTokenObj.getClass().getMethod("getWarningMessage").invoke(jwtTokenObj);
+                    if (warning instanceof String warningText && !warningText.isBlank()) {
+                        showWarning(warningText);
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.FINE, "No se pudo obtener advertencia del JWT", e);
+                }
+            }
+
             // Buscar userInfo en la sesión (viene del callback OIDC)
             Object userInfoObj = session.getAttribute("userInfo");
             if (userInfoObj != null) {
@@ -105,6 +134,7 @@ public class UsuarioSaludDashboardBean implements Serializable {
         try {
             CiudadanoDetalle respuesta = dnicServiceClient.obtenerCiudadano(tipo, numero);
             ciudadano = respuesta;
+            LOGGER.info(() -> "Fecha de nacimiento recibida de DNIC para " + numero + ": '" + ciudadano.getFechaNacimiento() + "'");
             if (ciudadano.getEmail() == null) {
                 ciudadano.setEmail("");
             }
@@ -114,12 +144,14 @@ public class UsuarioSaludDashboardBean implements Serializable {
             if (ciudadano.getDireccion() == null) {
                 ciudadano.setDireccion("");
             }
+            updateWarningFromBirthDate(ciudadano.getFechaNacimiento());
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
                     "Datos cargados", "Información obtenida desde DNIC"));
         } catch (DocumentoNoEncontradoException e) {
             ciudadano = new CiudadanoDetalle();
             ciudadano.setTipoDocumento(tipo);
             ciudadano.setNumeroDocumento(numero);
+            warningMessage = null;
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN,
                     "Documento no se encuentra en DNIC", e.getMessage()));
         } catch (Exception e) {
@@ -127,6 +159,7 @@ public class UsuarioSaludDashboardBean implements Serializable {
             ciudadano = new CiudadanoDetalle();
             ciudadano.setTipoDocumento(tipo);
             ciudadano.setNumeroDocumento(numero);
+            warningMessage = null;
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR,
                     "Error al consultar DNIC", "No se pudo obtener la información del ciudadano"));
         }
@@ -135,11 +168,23 @@ public class UsuarioSaludDashboardBean implements Serializable {
         docNumber = numero;
     }
 
+    private void updateWarningFromBirthDate(String fechaNacimiento) {
+        if (esMenorDeEdad(fechaNacimiento)) {
+            showWarning("Advertencia: el usuario es menor de edad, verifique permisos de acceso.");
+        } else {
+            warningMessage = null;
+        }
+    }
+
     public CiudadanoDetalle getCiudadano() {
         if (ciudadano == null) {
             ciudadano = new CiudadanoDetalle();
         }
         return ciudadano;
+    }
+
+    public String getWarningMessage() {
+        return warningMessage;
     }
 
     public String getDocType() {
@@ -170,5 +215,41 @@ public class UsuarioSaludDashboardBean implements Serializable {
             }
         }
         return null;
+    }
+
+    private boolean esMenorDeEdad(String fechaNacimientoBruta) {
+        if (fechaNacimientoBruta == null || fechaNacimientoBruta.isBlank()) {
+            return false;
+        }
+        try {
+            LocalDate birthDate = parseFechaNacimiento(fechaNacimientoBruta.trim());
+            LocalDate today = LocalDate.now(URUGUAY_ZONE);
+            int age = Period.between(birthDate, today).getYears();
+            LOGGER.info(() -> "Edad calculada para fecha '" + fechaNacimientoBruta + "' con referencia " + today + ": " + age);
+            return age < 18;
+        } catch (DateTimeParseException e) {
+            LOGGER.log(Level.FINE, "No se pudo interpretar la fecha de nacimiento: {0}", fechaNacimientoBruta);
+            return false;
+        }
+    }
+
+    private void showWarning(String message) {
+        warningMessage = message;
+    }
+
+    private LocalDate parseFechaNacimiento(String raw) {
+        DateTimeParseException lastError = null;
+        for (DateTimeFormatter formatter : new DateTimeFormatter[] {
+                DateTimeFormatter.ISO_LOCAL_DATE,
+                DateTimeFormatter.ofPattern("yyyyMMdd"),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        }) {
+            try {
+                return LocalDate.parse(raw, formatter);
+            } catch (DateTimeParseException ex) {
+                lastError = ex;
+            }
+        }
+        throw lastError != null ? lastError : new DateTimeParseException("Formato desconocido", raw, 0);
     }
 }
