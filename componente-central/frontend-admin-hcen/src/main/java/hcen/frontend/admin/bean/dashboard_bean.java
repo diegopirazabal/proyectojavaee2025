@@ -15,12 +15,17 @@ import org.primefaces.PrimeFaces;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import jakarta.faces.context.ExternalContext;
+import jakarta.servlet.http.HttpSession;
 
 @Named
 @ViewScoped
 public class dashboard_bean implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = Logger.getLogger(dashboard_bean.class.getName());
 
     @Inject
     private api_service apiService;
@@ -31,6 +36,7 @@ public class dashboard_bean implements Serializable {
 
     @PostConstruct
     public void init() {
+        mostrarAdvertenciaMenorEdad();
         cargarUsuariosSalud();
         cargarPrestadores();
     }
@@ -100,5 +106,27 @@ public class dashboard_bean implements Serializable {
     private void addErrorMessage(String summary, String detail) {
         FacesContext.getCurrentInstance().addMessage(null,
                 new FacesMessage(FacesMessage.SEVERITY_ERROR, summary, detail));
+    }
+
+    private void mostrarAdvertenciaMenorEdad() {
+        FacesContext context = FacesContext.getCurrentInstance();
+        ExternalContext externalContext = context.getExternalContext();
+        HttpSession session = (HttpSession) externalContext.getSession(false);
+        if (session == null) {
+            return;
+        }
+        Object jwtTokenObj = session.getAttribute("jwtToken");
+        if (jwtTokenObj == null) {
+            return;
+        }
+        try {
+            Object warning = jwtTokenObj.getClass().getMethod("getWarningMessage").invoke(jwtTokenObj);
+            if (warning instanceof String warningText && !warningText.isBlank()) {
+                context.addMessage(null,
+                        new FacesMessage(FacesMessage.SEVERITY_WARN, "Aviso", warningText));
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "No se pudo obtener advertencia del JWT", e);
+        }
     }
 }

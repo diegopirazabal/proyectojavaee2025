@@ -17,6 +17,9 @@ import jakarta.inject.Inject;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,6 +32,7 @@ import java.util.logging.Logger;
 public class OIDCAuthenticationService {
 
     private static final Logger LOGGER = Logger.getLogger(OIDCAuthenticationService.class.getName());
+    private static final ZoneId URUGUAY_ZONE = ZoneId.of("America/Montevideo");
 
     @Inject
     private OIDCConfiguration oidcConfig;
@@ -207,6 +211,7 @@ public class OIDCAuthenticationService {
                 user.getCedula(), // Usar cédula como userSub
                 roles
         );
+        attachMinorWarningIfNeeded(user, jwtResponse);
 
         LOGGER.info("JWT generados exitosamente");
         return jwtResponse;
@@ -245,6 +250,7 @@ public class OIDCAuthenticationService {
                 cedula,
                 roles
         );
+        attachMinorWarningIfNeeded(user, jwtResponse);
 
         LOGGER.info("JWT refrescado exitosamente para usuario con cédula: " + cedula);
         return jwtResponse;
@@ -289,5 +295,33 @@ public class OIDCAuthenticationService {
         byte[] randomBytes = new byte[length];
         new Random().nextBytes(randomBytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+    }
+
+    private void attachMinorWarningIfNeeded(UsuarioSalud user, JWTTokenResponse jwtResponse) {
+        if (user == null) {
+            return;
+        }
+        LocalDate birthDate = user.getFechaNacimiento();
+        if (birthDate == null) {
+            try {
+                UsuarioSalud persisted = userDAO.findByCedula(user.getCedula());
+                birthDate = persisted != null ? persisted.getFechaNacimiento() : null;
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "No se pudo recuperar la fecha de nacimiento para advertencia de menor", e);
+            }
+            if (birthDate == null) {
+                LOGGER.fine(() -> "No se pudo determinar la fecha de nacimiento para el usuario " + user.getCedula());
+                return;
+            }
+        }
+        LocalDate today = LocalDate.now(URUGUAY_ZONE);
+        int age = Period.between(birthDate, today).getYears();
+        LOGGER.log(Level.INFO,
+                "Evaluando advertencia de menor para cédula {0} con fecha de nacimiento {1} (edad {2} al {3})",
+                new Object[]{user.getCedula(), birthDate, age, today});
+        if (age < 18) {
+            jwtResponse.setWarningMessage("Advertencia: el usuario es menor de edad, verifique permisos de acceso.");
+            LOGGER.log(Level.INFO, "Advertencia de menor aplicada para cédula {0}", user.getCedula());
+        }
     }
 }

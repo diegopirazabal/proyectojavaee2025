@@ -21,7 +21,7 @@ public class UsuarioSaludLoginBean implements Serializable {
 
     private static final String TEMP_USERNAME = "user";
     private static final String TEMP_PASSWORD = "user";
-    private static final String DEFAULT_DOC_TYPE = "DO";
+    private static final String DEFAULT_DOC_TYPE = "OTRO";
     private static final String DEFAULT_DOC_NUMBER = "85335898";
 
     private String username;
