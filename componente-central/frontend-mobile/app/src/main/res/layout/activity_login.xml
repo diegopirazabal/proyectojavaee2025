@@ -1,38 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
-    android:padding="24dp"
+    android:background="@drawable/gradient_background"
+    android:fillViewport="true"
     tools:context=".ui.login.LoginActivity">
 
-    <!-- Logo o Icono -->
-    <ImageView
-        android:id="@+id/logo"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginTop="64dp"
-        android:contentDescription="@string/app_name"
-        android:src="@drawable/ic_launcher_foreground"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+<androidx.constraintlayout.widget.ConstraintLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="24dp">
 
-    <!-- Título -->
+    <!-- Título HCEN -->
     <TextView
         android:id="@+id/text_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="32dp"
         android:text="@string/login_title"
-        android:textColor="@color/black"
-        android:textSize="28sp"
+        android:textColor="@color/white"
+        android:textSize="48sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/logo" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Subtítulo -->
     <TextView
@@ -41,29 +34,55 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="@string/login_subtitle"
-        android:textColor="@android:color/darker_gray"
-        android:textSize="16sp"
+        android:textColor="@color/white"
+        android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/text_title" />
 
-    <!-- Card contenedor del formulario -->
+    <!-- Descripción -->
+    <TextView
+        android:id="@+id/text_description"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/login_description"
+        android:textColor="@color/white"
+        android:alpha="0.8"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/text_subtitle" />
+
+    <!-- Card contenedor principal -->
     <androidx.cardview.widget.CardView
         android:id="@+id/card_form"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="32dp"
         app:cardCornerRadius="12dp"
-        app:cardElevation="4dp"
+        app:cardElevation="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/text_subtitle">
+        app:layout_constraintTop_toBottomOf="@id/text_description">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="24dp">
+
+            <!-- Nota de acceso temporal -->
+            <TextView
+                android:id="@+id/text_temp_note"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/note_background"
+                android:padding="12dp"
+                android:text="@string/login_temp_note"
+                android:textColor="@color/login_note_text"
+                android:textSize="13sp"
+                android:layout_marginBottom="16dp" />
 
             <!-- Campo de Cédula -->
             <com.google.android.material.textfield.TextInputLayout
@@ -81,7 +100,7 @@
                     android:layout_height="wrap_content"
                     android:inputType="number"
                     android:maxLength="8"
-                    android:textSize="18sp" />
+                    android:textSize="16sp" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -89,30 +108,116 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_login"
                 android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:layout_marginTop="24dp"
+                android:layout_height="56dp"
+                android:layout_marginTop="20dp"
                 android:text="@string/login_button"
                 android:textSize="16sp"
-                app:cornerRadius="8dp" />
+                app:cornerRadius="6dp"
+                app:icon="@android:drawable/ic_input_add" />
+
+            <!-- Divider -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"
+                    android:background="@color/login_divider" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/login_divider"
+                    android:textColor="@color/login_divider_text"
+                    android:textSize="13sp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"
+                    android:background="@color/login_divider" />
+            </LinearLayout>
+
+            <!-- Sección OIDC -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/oidc_section_background"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:text="@string/login_oidc_title"
+                    android:textColor="@color/login_gray_text"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="@string/login_oidc_description"
+                    android:textColor="@color/oidc_text"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_oidc_login"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="16dp"
+                    android:backgroundTint="@color/oidc_button_start"
+                    android:text="@string/login_oidc_button"
+                    android:textSize="15sp"
+                    app:cornerRadius="6dp"
+                    app:icon="@android:drawable/ic_secure" />
+            </LinearLayout>
 
         </LinearLayout>
 
     </androidx.cardview.widget.CardView>
 
-    <!-- Información adicional -->
-    <TextView
-        android:id="@+id/text_info"
-        android:layout_width="0dp"
+    <!-- Footer -->
+    <LinearLayout
+        android:id="@+id/layout_footer"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="24dp"
+        android:orientation="vertical"
         android:gravity="center"
-        android:text="Sistema de Historia Clínica Electrónica Nacional"
-        android:textColor="@android:color/darker_gray"
-        android:textSize="12sp"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/card_form"
-        app:layout_constraintVertical_bias="1" />
+        app:layout_constraintTop_toBottomOf="@id/card_form">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/login_footer_text"
+            android:textColor="@color/white"
+            android:alpha="0.7"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/login_footer_copyright"
+            android:textColor="@color/white"
+            android:alpha="0.7"
+            android:textSize="11sp" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
+</ScrollView>

@@ -17,7 +17,10 @@ public class Constants {
     public static final String PREF_FCM_TOKEN = "fcm_token";
     public static final String PREF_USER_ID = "user_id";
     public static final String PREF_USER_CI = "user_ci";
+    public static final String PREF_USER_NAME = "user_name";
     public static final String PREF_IS_LOGGED_IN = "is_logged_in";
+    public static final String PREF_JWT_TOKEN = "jwt_token";
+    public static final String PREF_IS_OIDC_AUTH = "is_oidc_auth";
 
     // Login
     public static final int MIN_CI_LENGTH = 6;
