@@ -3,6 +3,7 @@ package com.example.hcenmobile.ui.login;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Toast;
@@ -11,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.hcenmobile.MainActivity;
 import com.example.hcenmobile.R;
+import com.example.hcenmobile.service.OidcAuthService;
 import com.example.hcenmobile.util.Constants;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -24,6 +26,8 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText editTextCedula;
     private TextInputLayout textInputLayoutCedula;
     private MaterialButton buttonLogin;
+    private MaterialButton buttonOidcLogin;
+    private OidcAuthService oidcAuthService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +39,8 @@ public class LoginActivity extends AppCompatActivity {
             getSupportActionBar().hide();
         }
 
+        oidcAuthService = new OidcAuthService(this);
+        
         initViews();
         setupListeners();
     }
@@ -43,10 +49,13 @@ public class LoginActivity extends AppCompatActivity {
         editTextCedula = findViewById(R.id.edit_text_cedula);
         textInputLayoutCedula = findViewById(R.id.text_input_layout_cedula);
         buttonLogin = findViewById(R.id.button_login);
+        buttonOidcLogin = findViewById(R.id.button_oidc_login);
     }
 
     private void setupListeners() {
         buttonLogin.setOnClickListener(v -> intentarLogin());
+        
+        buttonOidcLogin.setOnClickListener(v -> iniciarAutenticacionOidc());
 
         // Limpiar error al escribir
         editTextCedula.setOnFocusChangeListener((v, hasFocus) -> {
@@ -102,6 +111,37 @@ public class LoginActivity extends AppCompatActivity {
                 .putString(Constants.PREF_USER_CI, cedula)
                 .putString(Constants.PREF_USER_ID, cedula) // Usar C.I. como userId
                 .putBoolean(Constants.PREF_IS_LOGGED_IN, true)
+                .putBoolean(Constants.PREF_IS_OIDC_AUTH, false)
                 .apply();
+    }
+    
+    /**
+     * Inicia el flujo de autenticación OIDC con gub.uy
+     */
+    private void iniciarAutenticacionOidc() {
+        try {
+            // Construir la URL de login OIDC
+            String oidcUrl = OidcAuthService.getOidcLoginUrl();
+            
+            // Abrir en el navegador para iniciar el flujo OIDC
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(oidcUrl));
+            startActivity(browserIntent);
+            
+            Toast.makeText(this, 
+                "Redirigiendo a gub.uy...", 
+                Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this,
+                "Error al iniciar autenticación: " + e.getMessage(),
+                Toast.LENGTH_LONG).show();
+        }
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (oidcAuthService != null) {
+            oidcAuthService.dispose();
+        }
     }
 }

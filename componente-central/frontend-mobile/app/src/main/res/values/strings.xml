@@ -7,13 +7,21 @@
     <string name="title_notifications">Notificaciones</string>
 
     <!-- Login -->
-    <string name="login_title">Iniciar Sesión</string>
-    <string name="login_subtitle">Ingrese su cédula de identidad</string>
+    <string name="login_title">HCEN</string>
+    <string name="login_subtitle">Portal Móvil</string>
+    <string name="login_description">Historia Clínica Electrónica Nacional</string>
+    <string name="login_temp_note">Acceso temporal habilitado con usuario admin / admin.</string>
     <string name="login_cedula_hint">Cédula (sin puntos ni guiones)</string>
     <string name="login_button">Ingresar</string>
     <string name="login_error_empty">Debe ingresar su cédula</string>
     <string name="login_error_invalid">Cédula inválida. Solo números</string>
     <string name="login_success">Bienvenido</string>
+    <string name="login_divider">o</string>
+    <string name="login_oidc_title">Autenticación con gub.uy</string>
+    <string name="login_oidc_description">Serás redirigido a gub.uy para iniciar sesión con tu identidad digital.</string>
+    <string name="login_oidc_button">Iniciar sesión con gub.uy</string>
+    <string name="login_footer_text">Sistema de Salud - Universidad de la República</string>
+    <string name="login_footer_copyright">© 2025 HCEN - Todos los derechos reservados</string>
 
     <!-- Home -->
     <string name="home_welcome">Bienvenido</string>
