@@ -1,5 +1,7 @@
 package hcen.frontend.admin.bean;
 
+import hcen.frontend.admin.dto.clinica_dto;
+import hcen.frontend.admin.dto.clinica_form;
 import hcen.frontend.admin.dto.prestador_dto;
 import hcen.frontend.admin.dto.prestador_form;
 import hcen.frontend.admin.dto.usuario_salud_dto;
@@ -33,12 +35,15 @@ public class dashboard_bean implements Serializable {
     private List<usuario_salud_dto> usuariosSalud = new ArrayList<>();
     private List<prestador_dto> prestadores = new ArrayList<>();
     private prestador_form nuevoPrestador = new prestador_form();
+    private List<clinica_dto> clinicas = new ArrayList<>();
+    private clinica_form nuevaClinica = new clinica_form();
 
     @PostConstruct
     public void init() {
         mostrarAdvertenciaMenorEdad();
         cargarUsuariosSalud();
         cargarPrestadores();
+        cargarClinicas();
     }
 
     public void cargarUsuariosSalud() {
@@ -56,6 +61,15 @@ public class dashboard_bean implements Serializable {
         } catch (Exception e) {
             prestadores = new ArrayList<>();
             addErrorMessage("Error al cargar prestadores", e.getMessage());
+        }
+    }
+
+    public void cargarClinicas() {
+        try {
+            clinicas = apiService.obtenerClinicas();
+        } catch (Exception e) {
+            clinicas = new ArrayList<>();
+            addErrorMessage("Error al cargar clínicas", e.getMessage());
         }
     }
 
@@ -86,6 +100,20 @@ public class dashboard_bean implements Serializable {
         }
     }
 
+    public void crearClinica() {
+        String nombreClinica = nuevaClinica.getNombre();
+        String resultado = apiService.crearClinica(nuevaClinica);
+        boolean exito = resultado == null;
+        PrimeFaces.current().ajax().addCallbackParam("clinicaCreada", exito);
+        if (exito) {
+            addInfoMessage("Clínica creada", "Se creó la clínica " + nombreClinica);
+            nuevaClinica.reset();
+            cargarClinicas();
+        } else {
+            addErrorMessage("Alta de clínica", resultado);
+        }
+    }
+
     public List<usuario_salud_dto> getUsuariosSalud() {
         return usuariosSalud;
     }
@@ -96,6 +124,14 @@ public class dashboard_bean implements Serializable {
 
     public prestador_form getNuevoPrestador() {
         return nuevoPrestador;
+    }
+
+    public List<clinica_dto> getClinicas() {
+        return clinicas;
+    }
+
+    public clinica_form getNuevaClinica() {
+        return nuevaClinica;
     }
 
     private void addInfoMessage(String summary, String detail) {

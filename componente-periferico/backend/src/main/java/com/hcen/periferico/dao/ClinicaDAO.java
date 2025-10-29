@@ -30,6 +30,16 @@ public class ClinicaDAO {
         return Optional.ofNullable(c);
     }
 
+    public Optional<clinica> findByNombreIgnoreCase(String nombre) {
+        TypedQuery<clinica> query = em.createQuery(
+            "SELECT c FROM clinica c WHERE LOWER(c.nombre) = :nombre",
+            clinica.class
+        );
+        query.setParameter("nombre", nombre != null ? nombre.toLowerCase(java.util.Locale.ROOT) : null);
+        List<clinica> results = query.getResultList();
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+
     public List<clinica> findAll() {
         TypedQuery<clinica> query = em.createQuery(
             "SELECT c FROM clinica c ORDER BY c.nombre",
