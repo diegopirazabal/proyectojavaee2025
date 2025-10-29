@@ -1,6 +1,8 @@
 package hcen.frontend.admin.service;
 
 import hcen.frontend.admin.dto.admin_hcen_dto;
+import hcen.frontend.admin.dto.clinica_dto;
+import hcen.frontend.admin.dto.clinica_form;
 import hcen.frontend.admin.dto.prestador_dto;
 import hcen.frontend.admin.dto.prestador_form;
 import hcen.frontend.admin.dto.usuario_salud_dto;
@@ -46,7 +48,7 @@ public class api_service {
 
     private static final String PERIPHERAL_ENV_VAR = "HCEN_PERIPHERAL_API_BASE_URL";
     private static final String PERIPHERAL_SYS_PROP = "hcen.peripheralApiBaseUrl";
-    private static final String DEFAULT_PERIPHERAL_URL = "http://localhost:8081/hcen-periferico/api";
+    private static final String DEFAULT_PERIPHERAL_URL = "http://localhost:8080/multitenant-api";
 
     private static final Logger LOGGER = Logger.getLogger(api_service.class.getName());
 
@@ -140,6 +142,22 @@ public class api_service {
         }
     }
 
+    public List<clinica_dto> obtenerClinicas() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(peripheralUrl + "/clinicas");
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = readEntityContent(response);
+                    return parseClinicas(responseBody);
+                }
+                throw new IOException("Código inesperado al obtener clínicas: " + response.getCode());
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener clínicas", e);
+            throw new RuntimeException("No se pudo obtener la lista de clínicas", e);
+        }
+    }
+
     public String crearPrestador(prestador_form form) {
         if (form == null) {
             return "Formulario de prestador inválido.";
@@ -176,6 +194,43 @@ public class api_service {
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Error al crear prestador", e);
+            return "Error de comunicación con el nodo periférico.";
+        }
+    }
+
+    public String crearClinica(clinica_form form) {
+        if (form == null) {
+            return "Formulario de clínica inválido.";
+        }
+        if (form.getNombre() == null || form.getNombre().isBlank()) {
+            return "El nombre de la clínica es obligatorio.";
+        }
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPost request = new HttpPost(peripheralUrl + "/clinicas");
+
+            JsonObject payload = Json.createObjectBuilder()
+                    .add("nombre", form.getNombre() == null ? "" : form.getNombre())
+                    .add("direccion", form.getDireccion() == null ? "" : form.getDireccion())
+                    .add("email", form.getEmail() == null ? "" : form.getEmail())
+                    .build();
+
+            request.setEntity(new StringEntity(payload.toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int status = response.getCode();
+                if (status == 201 || status == 200) {
+                    return null;
+                }
+                String body = readEntityContent(response);
+                LOGGER.warning(() -> "Alta de clínica falló con código " + status + ". Respuesta: " + body);
+                String message = extractErrorMessage(body);
+                if (message == null || message.isBlank()) {
+                    message = "No se pudo crear la clínica. Código HTTP " + status + ".";
+                }
+                return message;
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al crear clínica", e);
             return "Error de comunicación con el nodo periférico.";
         }
     }
@@ -345,6 +400,51 @@ public class api_service {
             throw new RuntimeException("No se pudo interpretar la lista de prestadores", e);
         }
         return prestadores;
+    }
+
+    private List<clinica_dto> parseClinicas(String jsonString) {
+        List<clinica_dto> clinicas = new ArrayList<>();
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonArray array = reader.readArray();
+            for (JsonValue value : array) {
+                if (value.getValueType() != JsonValue.ValueType.OBJECT) {
+                    continue;
+                }
+                JsonObject obj = value.asJsonObject();
+                clinica_dto dto = new clinica_dto();
+
+                if (obj.containsKey("tenantId") && !obj.isNull("tenantId")) {
+                    String tenantRaw = obj.getString("tenantId");
+                    if (tenantRaw != null && !tenantRaw.isBlank()) {
+                        dto.setTenantId(UUID.fromString(tenantRaw));
+                    }
+                }
+                if (obj.containsKey("nombre") && !obj.isNull("nombre")) {
+                    dto.setNombre(obj.getString("nombre"));
+                }
+                if (obj.containsKey("direccion") && !obj.isNull("direccion")) {
+                    dto.setDireccion(obj.getString("direccion"));
+                }
+                if (obj.containsKey("email") && !obj.isNull("email")) {
+                    dto.setEmail(obj.getString("email"));
+                }
+                if (obj.containsKey("estado") && !obj.isNull("estado")) {
+                    dto.setEstado(obj.getString("estado"));
+                }
+                if (obj.containsKey("fecRegistro") && !obj.isNull("fecRegistro")) {
+                    String fecRegistroRaw = obj.getString("fecRegistro");
+                    if (fecRegistroRaw != null && !fecRegistroRaw.isBlank()) {
+                        dto.setFecRegistro(LocalDateTime.parse(fecRegistroRaw));
+                    }
+                }
+
+                clinicas.add(dto);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error parsing clínicas payload", e);
+            throw new RuntimeException("No se pudo interpretar la lista de clínicas", e);
+        }
+        return clinicas;
     }
 
     private String extractErrorMessage(String body) {
