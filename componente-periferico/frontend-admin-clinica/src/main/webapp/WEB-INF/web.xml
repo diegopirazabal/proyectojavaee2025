@@ -35,6 +35,12 @@
         <param-value>saga</param-value>
     </context-param>
 
+    <!-- Backend REST base URL for multi-tenant API (configurable) -->
+    <context-param>
+        <param-name>BACKEND_URL</param-name>
+        <param-value>https://node5823-hcen-uy.web.elasticloud.uy/multitenant-api</param-value>
+    </context-param>
+
     <!-- Página de bienvenida -->
     <welcome-file-list>
         <welcome-file>index.xhtml</welcome-file>
