@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
+import hcen.central.inus.enums.TipoDocumento;
 import hcen.central.inus.util.TipoDocumentoMapper;
 import java.io.IOException;
 import java.util.logging.Logger;
@@ -21,6 +22,7 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
     @Override
     public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         JsonNode node = p.getCodec().readTree(p);
+        final String nodeDebug = node.toString();
         
         String rawValue = null;
 
@@ -31,7 +33,7 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
 
         // Si es un objeto, intenta extraer el campo "descripcion" o "codigo"
         if (rawValue == null && node.isObject()) {
-            LOGGER.fine(() -> "tipo_documento recibido como objeto: " + node.toString());
+            LOGGER.info(() -> "tipo_documento recibido como objeto: " + nodeDebug);
             // Primero intenta obtener "descripcion"
             if (node.has("descripcion")) {
                 rawValue = node.get("descripcion").asText();
@@ -39,7 +41,7 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
             // Si no, intenta "codigo"
             if (node.has("codigo")) {
                 String codigo = node.get("codigo").asText();
-                LOGGER.fine(() -> "tipo_documento codigo recibido: '" + codigo + "'");
+                LOGGER.info(() -> "tipo_documento codigo recibido: '" + codigo + "'");
                 // Mapeo de códigos comunes a descripciones
                 switch (codigo) {
                     case "1":
@@ -63,8 +65,12 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
         }
 
         final String rawValueLog = rawValue;
-        final String tipoNormalizado = TipoDocumentoMapper.toEnum(rawValueLog).name();
-        LOGGER.fine(() -> "tipo_documento mapeado a '" + tipoNormalizado + "' desde '" + rawValueLog + "'");
-        return tipoNormalizado;
+        final TipoDocumento tipoDocumento = TipoDocumentoMapper.toEnum(rawValueLog);
+        if (tipoDocumento == TipoDocumento.OTRO && rawValueLog.matches("\\d+")) {
+            LOGGER.warning(() -> "tipo_documento con código no mapeado: '" + rawValueLog + "' payload: " + nodeDebug);
+        } else {
+            LOGGER.fine(() -> "tipo_documento mapeado a '" + tipoDocumento.name() + "' desde '" + rawValueLog + "'");
+        }
+        return tipoDocumento.name();
     }
 }

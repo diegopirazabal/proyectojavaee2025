@@ -11,6 +11,8 @@ import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 
 import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -21,6 +23,7 @@ import java.util.logging.Logger;
 public class UsuarioSaludService {
 
     private static final Logger LOGGER = Logger.getLogger(UsuarioSaludService.class.getName());
+    private static final ZoneId URUGUAY_ZONE = ZoneId.of("America/Montevideo");
 
     @EJB
     private UsuarioSaludDAO usuarioDAO;
@@ -125,8 +128,12 @@ public class UsuarioSaludService {
         if (request.getFechaNacimiento() == null) {
             throw new IllegalArgumentException("La fecha de nacimiento es requerida");
         }
-        if (request.getFechaNacimiento().isAfter(LocalDate.now())) {
+        LocalDate today = LocalDate.now(URUGUAY_ZONE);
+        if (request.getFechaNacimiento().isAfter(today)) {
             throw new IllegalArgumentException("La fecha de nacimiento no puede ser en el futuro");
+        }
+        if (Period.between(request.getFechaNacimiento(), today).getYears() < 18) {
+            LOGGER.warning(() -> "Registro permitido para usuario menor de edad: " + request.getCedula());
         }
         if (request.getTenantId() == null) {
             throw new IllegalArgumentException("El ID de la clínica (tenant_id) es requerido");
