@@ -1,6 +1,7 @@
 package hcen.central.inus.security.filter;
 
 import hcen.central.inus.security.jwt.JWTTokenProvider;
+import hcen.central.inus.service.ClientAuthenticationService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.inject.Inject;
@@ -32,12 +33,16 @@ public class JWTAuthenticationFilter implements Filter {
 
     @Inject
     private JWTTokenProvider jwtTokenProvider;
+    
+    @Inject
+    private ClientAuthenticationService clientAuthService;
 
     // Rutas públicas que NO requieren autenticación
     private static final List<String> PUBLIC_PATHS = Arrays.asList(
             "/api/auth/login",
             "/api/auth/callback",
             "/api/auth/refresh",
+            "/api/auth/token",                // Autenticación de clientes
             "/api/fcm/register",              // Registro de token FCM desde mobile
             "/api/fcm/unregister",            // Eliminación de token FCM
             "/api/notifications/broadcast-test",  // Envío de notificación de prueba desde AdminHCEN
@@ -87,15 +92,28 @@ public class JWTAuthenticationFilter implements Filter {
                 return;
             }
 
-            // Validar token
+            // Validar token JWT (firma y expiración)
             Claims claims = jwtTokenProvider.validateAccessToken(token);
-
+            
             // Extraer información del token
             String userSub = claims.getSubject();
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get("roles", List.class);
-
-            LOGGER.info("Token válido para usuario: " + userSub + ", roles: " + roles);
+            
+            // Verificar si es un token de cliente (componente-periferico)
+            boolean isClientToken = roles != null && roles.contains("ROLE_CLIENT");
+            
+            if (isClientToken) {
+                // Validar token de cliente en BD
+                if (!clientAuthService.validateToken(token)) {
+                    LOGGER.warning("Token de cliente no válido o expirado en BD");
+                    sendUnauthorizedResponse(httpResponse, "Token Expired");
+                    return;
+                }
+                LOGGER.info("Token de cliente válido: " + userSub);
+            } else {
+                LOGGER.info("Token válido para usuario: " + userSub + ", roles: " + roles);
+            }
 
             // Setear atributos en el request para uso posterior
             httpRequest.setAttribute("userSub", userSub);

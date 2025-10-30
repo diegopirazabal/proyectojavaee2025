@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,6 +24,8 @@ import com.google.android.material.textfield.TextInputLayout;
  */
 public class LoginActivity extends AppCompatActivity {
 
+    private static final String TAG = "LoginActivity";
+    
     private TextInputEditText editTextCedula;
     private TextInputLayout textInputLayoutCedula;
     private MaterialButton buttonLogin;
@@ -123,6 +126,10 @@ public class LoginActivity extends AppCompatActivity {
             // Construir la URL de login OIDC
             String oidcUrl = OidcAuthService.getOidcLoginUrl();
             
+            Log.d(TAG, "==== INICIANDO LOGIN OIDC ====");
+            Log.d(TAG, "URL completa: " + oidcUrl);
+            Log.d(TAG, "================================");
+            
             // Abrir en el navegador para iniciar el flujo OIDC
             Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(oidcUrl));
             startActivity(browserIntent);
@@ -131,6 +138,7 @@ public class LoginActivity extends AppCompatActivity {
                 "Redirigiendo a gub.uy...", 
                 Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
+            Log.e(TAG, "Error al iniciar autenticación OIDC", e);
             Toast.makeText(this,
                 "Error al iniciar autenticación: " + e.getMessage(),
                 Toast.LENGTH_LONG).show();

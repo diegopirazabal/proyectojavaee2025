@@ -16,7 +16,7 @@ import java.util.UUID;
 public class AuthenticationResource {
 
     @EJB
-    private AuthenticationService authService;
+    private  AuthenticationService authService;
 
     @POST
     @Path("/login")

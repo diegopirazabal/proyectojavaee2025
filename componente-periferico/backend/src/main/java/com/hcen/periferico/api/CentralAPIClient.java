@@ -1,7 +1,10 @@
 package com.hcen.periferico.api;
 
+import com.hcen.periferico.config.ClientCredentialsConfig;
 import com.hcen.periferico.dto.usuario_salud_dto;
 import com.hcen.periferico.enums.TipoDocumento;
+import com.hcen.periferico.service.CentralAuthService;
+import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -36,6 +39,13 @@ public class CentralAPIClient {
 
     private static final String API_USUARIOS = CENTRAL_BASE_URL + "/api/usuarios";
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
+    
+    // Nuevos servicios para autenticación JWT (no tocar código existente)
+    @EJB
+    private ClientCredentialsConfig credentialsConfig;
+    
+    @EJB
+    private CentralAuthService authService;
 
     private final HttpClient httpClient;
 
@@ -323,5 +333,52 @@ public class CentralAPIClient {
             LOGGER.log(Level.SEVERE, "Error al parsear JSON de lista de usuarios", e);
             throw new RuntimeException("Error al procesar respuesta del componente central", e);
         }
+    }
+    
+    // ========== MÉTODOS AUXILIARES PARA JWT (NUEVA FUNCIONALIDAD) ==========
+    
+    /**
+     * Crea un HttpRequest.Builder con JWT inyectado automáticamente
+     * Usar este método para nuevas peticiones que requieran JWT
+     */
+    private HttpRequest.Builder createAuthenticatedRequestBuilder(String url) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .timeout(TIMEOUT);
+        
+        // Inyectar JWT si está disponible
+        if (authService != null && authService.hasToken()) {
+            String token = authService.getToken();
+            builder.header("Authorization", "Bearer " + token);
+        }
+        
+        return builder;
+    }
+    
+    /**
+     * Método auxiliar para hacer GET con JWT
+     */
+    private HttpResponse<String> executeAuthenticatedGet(String url) throws IOException, InterruptedException {
+        HttpRequest request = createAuthenticatedRequestBuilder(url).GET().build();
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+    
+    /**
+     * Método auxiliar para hacer POST con JWT
+     */
+    private HttpResponse<String> executeAuthenticatedPost(String url, String jsonBody) throws IOException, InterruptedException {
+        HttpRequest request = createAuthenticatedRequestBuilder(url)
+            .header("Content-Type", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+            .build();
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+    
+    /**
+     * Método auxiliar para hacer DELETE con JWT
+     */
+    private HttpResponse<String> executeAuthenticatedDelete(String url) throws IOException, InterruptedException {
+        HttpRequest request = createAuthenticatedRequestBuilder(url).DELETE().build();
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 }

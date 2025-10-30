@@ -13,10 +13,11 @@
         <class>hcen.central.inus.entity.UsuarioClinica</class>
         <class>hcen.central.inus.entity.admin_hcen</class>
         <class>hcen.central.notifications.entity.FCMToken</class>
+        <class>hcen.central.inus.entity.JWTSession</class>
 
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
-            <property name="hibernate.hbm2ddl.auto" value="update"/>
+            <property name="hibernate.hbm2ddl.auto" value="none"/>
             <property name="hibernate.show_sql" value="true"/>
             <property name="hibernate.format_sql" value="true"/>
             <property name="hibernate.jdbc.batch_size" value="20"/>
