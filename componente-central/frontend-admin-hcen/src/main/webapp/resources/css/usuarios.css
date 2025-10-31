@@ -1,0 +1,70 @@
+.filtros-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.filtro-bloque {
+    background: #ffffff;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.filtro-bloque h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    color: #4a4a4a;
+}
+
+.filtro-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.filtro-select {
+    min-width: 110px;
+}
+
+.filtro-acciones {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.col-acciones {
+    text-align: right;
+    width: 140px;
+}
+
+.usuario-row {
+    background-color: #f7f7f7;
+}
+
+.usuario-salud-row {
+    background-color: #f8f8f8;
+}
+
+.usuario-profesional-row {
+    background-color: #f1f1f1;
+}
+
+.usuario-admin-row {
+    background-color: #ebebeb;
+}
+
+.usuario-salud-row:hover,
+.usuario-profesional-row:hover,
+.usuario-admin-row:hover {
+    background-color: #e2e2e2 !important;
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}

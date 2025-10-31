@@ -1,6 +1,7 @@
 package hcen.central.inus.dao;
 
 import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.enums.TipoDocumento;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
@@ -90,6 +91,86 @@ public class UsuarioSaludDAO {
         query.setFirstResult(page * size);
         query.setMaxResults(size);
         return query.getResultList();
+    }
+
+    /**
+     * Busca usuarios aplicando filtros opcionales
+     */
+    public List<UsuarioSalud> findByFilters(TipoDocumento tipoDocumento,
+                                            String numeroDocumento,
+                                            String nombre,
+                                            String apellido,
+                                            int page,
+                                            int size) {
+        StringBuilder jpql = new StringBuilder("SELECT u FROM UsuarioSalud u WHERE u.active = true");
+
+        if (tipoDocumento != null && numeroDocumento != null && !numeroDocumento.isBlank()) {
+            jpql.append(" AND u.tipoDeDocumento = :tipoDocumento AND u.cedula = :cedula");
+        } else {
+            if (nombre != null && !nombre.isBlank()) {
+                jpql.append(" AND LOWER(u.primerNombre) LIKE LOWER(:nombre)");
+            }
+            if (apellido != null && !apellido.isBlank()) {
+                jpql.append(" AND LOWER(u.primerApellido) LIKE LOWER(:apellido)");
+            }
+        }
+
+        jpql.append(" ORDER BY u.primerApellido, u.primerNombre");
+
+        TypedQuery<UsuarioSalud> query = em.createQuery(jpql.toString(), UsuarioSalud.class);
+
+        if (tipoDocumento != null && numeroDocumento != null && !numeroDocumento.isBlank()) {
+            query.setParameter("tipoDocumento", tipoDocumento);
+            query.setParameter("cedula", numeroDocumento.trim());
+        } else {
+            if (nombre != null && !nombre.isBlank()) {
+                query.setParameter("nombre", "%" + nombre.trim() + "%");
+            }
+            if (apellido != null && !apellido.isBlank()) {
+                query.setParameter("apellido", "%" + apellido.trim() + "%");
+            }
+        }
+
+        query.setFirstResult(page * size);
+        query.setMaxResults(size);
+        return query.getResultList();
+    }
+
+    /**
+     * Cuenta usuarios aplicando filtros
+     */
+    public long countByFilters(TipoDocumento tipoDocumento,
+                               String numeroDocumento,
+                               String nombre,
+                               String apellido) {
+        StringBuilder jpql = new StringBuilder("SELECT COUNT(u) FROM UsuarioSalud u WHERE u.active = true");
+
+        if (tipoDocumento != null && numeroDocumento != null && !numeroDocumento.isBlank()) {
+            jpql.append(" AND u.tipoDeDocumento = :tipoDocumento AND u.cedula = :cedula");
+        } else {
+            if (nombre != null && !nombre.isBlank()) {
+                jpql.append(" AND LOWER(u.primerNombre) LIKE LOWER(:nombre)");
+            }
+            if (apellido != null && !apellido.isBlank()) {
+                jpql.append(" AND LOWER(u.primerApellido) LIKE LOWER(:apellido)");
+            }
+        }
+
+        TypedQuery<Long> query = em.createQuery(jpql.toString(), Long.class);
+
+        if (tipoDocumento != null && numeroDocumento != null && !numeroDocumento.isBlank()) {
+            query.setParameter("tipoDocumento", tipoDocumento);
+            query.setParameter("cedula", numeroDocumento.trim());
+        } else {
+            if (nombre != null && !nombre.isBlank()) {
+                query.setParameter("nombre", "%" + nombre.trim() + "%");
+            }
+            if (apellido != null && !apellido.isBlank()) {
+                query.setParameter("apellido", "%" + apellido.trim() + "%");
+            }
+        }
+
+        return query.getSingleResult();
     }
 
     /**
