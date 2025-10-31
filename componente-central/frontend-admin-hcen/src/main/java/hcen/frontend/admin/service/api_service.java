@@ -6,6 +6,7 @@ import hcen.frontend.admin.dto.clinica_form;
 import hcen.frontend.admin.dto.prestador_dto;
 import hcen.frontend.admin.dto.prestador_form;
 import hcen.frontend.admin.dto.usuario_salud_dto;
+import hcen.frontend.admin.dto.usuario_sistema_dto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
@@ -14,8 +15,11 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonValue;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -23,12 +27,15 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuil
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
+import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -82,6 +89,7 @@ public class api_service {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(backendUrl + "/notifications/broadcast-test");
             request.setEntity(new StringEntity("{}", ContentType.APPLICATION_JSON));
+            attachAuthorizationHeader(request);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() == 200;
@@ -95,6 +103,7 @@ public class api_service {
     public List<usuario_salud_dto> obtenerUsuariosSalud() {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpGet request = new HttpGet(backendUrl + "/usuarios-salud");
+            attachAuthorizationHeader(request);
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
                     String responseBody = readEntityContent(response);
@@ -108,9 +117,51 @@ public class api_service {
         }
     }
 
+    public List<usuario_sistema_dto> obtenerUsuariosSistema(String tipoDoc,
+                                                            String numeroDoc,
+                                                            String nombre,
+                                                            String apellido) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            StringBuilder urlBuilder = new StringBuilder(backendUrl).append("/usuarios-sistema");
+            List<String> params = new ArrayList<>();
+            if (tipoDoc != null && !tipoDoc.isBlank()) {
+                params.add("tipoDoc=" + encode(tipoDoc));
+            }
+            if (numeroDoc != null && !numeroDoc.isBlank()) {
+                params.add("numeroDoc=" + encode(numeroDoc));
+            }
+            if (nombre != null && !nombre.isBlank()) {
+                params.add("nombre=" + encode(nombre));
+            }
+            if (apellido != null && !apellido.isBlank()) {
+                params.add("apellido=" + encode(apellido));
+            }
+            params.add("limit=150");
+            if (!params.isEmpty()) {
+                urlBuilder.append('?').append(String.join("&", params));
+            }
+
+            HttpGet request = new HttpGet(urlBuilder.toString());
+            LOGGER.fine(() -> "GET " + request.getRequestUri());
+            attachAuthorizationHeader(request);
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int status = response.getCode();
+                LOGGER.fine(() -> "Respuesta usuarios-sistema status=" + status);
+                if (response.getCode() == 200) {
+                    return parseUsuariosSistema(readEntityContent(response));
+                }
+                throw new IOException("Código inesperado al obtener catálogo de usuarios: " + status);
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener catálogo de usuarios", e);
+            throw new RuntimeException("No se pudo obtener el catálogo de usuarios", e);
+        }
+    }
+
     public boolean enviarNotificacionUsuario(String cedula, String mensaje) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(backendUrl + "/notifications/usuarios/" + cedula);
+            attachAuthorizationHeader(request);
 
             JsonObject payload = Json.createObjectBuilder()
                     .add("message", mensaje != null ? mensaje : "mensaje de prueba")
@@ -122,6 +173,117 @@ public class api_service {
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Error enviando notificación al usuario " + cedula, e);
+            return false;
+        }
+    }
+
+    public boolean actualizarUsuarioSalud(usuario_sistema_dto usuario) {
+        if (usuario == null || usuario.getNumeroDocumento() == null || usuario.getNumeroDocumento().isBlank()) {
+            return false;
+        }
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPut request = new HttpPut(backendUrl + "/usuarios-salud/" + usuario.getNumeroDocumento());
+            attachAuthorizationHeader(request);
+
+            var builder = Json.createObjectBuilder()
+                .add("primerNombre", required(usuario.getPrimerNombre(), "El nombre es requerido"))
+                .add("primerApellido", required(usuario.getPrimerApellido(), "El apellido es requerido"))
+                .add("email", required(usuario.getEmail(), "El email es requerido"));
+
+            if (usuario.getSegundoNombre() != null) {
+                builder.add("segundoNombre", usuario.getSegundoNombre());
+            } else {
+                builder.addNull("segundoNombre");
+            }
+            if (usuario.getSegundoApellido() != null) {
+                builder.add("segundoApellido", usuario.getSegundoApellido());
+            } else {
+                builder.addNull("segundoApellido");
+            }
+            if (usuario.getActivo() != null) {
+                builder.add("activo", usuario.getActivo());
+            }
+            if (usuario.getFechaNacimiento() != null && !usuario.getFechaNacimiento().isBlank()) {
+                builder.add("fechaNacimiento", usuario.getFechaNacimiento());
+            }
+            if (usuario.getTenantId() != null && !usuario.getTenantId().isBlank()) {
+                builder.add("tenantId", usuario.getTenantId());
+            }
+
+            request.setEntity(new StringEntity(builder.build().toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                return response.getCode() == 200;
+            }
+        } catch (IllegalArgumentException e) {
+            LOGGER.log(Level.WARNING, e.getMessage());
+            return false;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al actualizar usuario de salud", e);
+            return false;
+        }
+    }
+
+    public boolean actualizarProfesional(usuario_sistema_dto usuario) {
+        if (usuario == null || usuario.getNumeroDocumento() == null || usuario.getNumeroDocumento().isBlank()) {
+            return false;
+        }
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPut request = new HttpPut(peripheralUrl + "/profesionales/" + usuario.getNumeroDocumento());
+            var builder = Json.createObjectBuilder()
+                .add("nombre", required(usuario.getPrimerNombre(), "El nombre del profesional es requerido"))
+                .add("apellidos", required(usuario.getPrimerApellido(), "Los apellidos son requeridos"));
+
+            if (usuario.getEspecialidad() != null) {
+                builder.add("especialidad", usuario.getEspecialidad());
+            } else {
+                builder.addNull("especialidad");
+            }
+            if (usuario.getEmail() != null) {
+                builder.add("email", usuario.getEmail());
+            } else {
+                builder.addNull("email");
+            }
+
+            request.setEntity(new StringEntity(builder.build().toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                return response.getCode() == 200;
+            }
+        } catch (IllegalArgumentException e) {
+            LOGGER.log(Level.WARNING, e.getMessage());
+            return false;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al actualizar profesional de salud", e);
+            return false;
+        }
+    }
+
+    public boolean actualizarAdministradorClinica(usuario_sistema_dto usuario) {
+        if (usuario == null || usuario.getId() == null || usuario.getId().isBlank()) {
+            return false;
+        }
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPut request = new HttpPut(peripheralUrl + "/administradores/" + usuario.getId());
+            var builder = Json.createObjectBuilder()
+                .add("username", required(usuario.getUsername(), "El usuario es requerido"))
+                .add("nombre", required(usuario.getPrimerNombre(), "El nombre es requerido"))
+                .add("apellidos", required(usuario.getPrimerApellido(), "Los apellidos son requeridos"));
+
+            if (usuario.getTenantId() != null && !usuario.getTenantId().isBlank()) {
+                builder.add("tenantId", usuario.getTenantId());
+            }
+
+            request.setEntity(new StringEntity(builder.build().toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                return response.getCode() == 200;
+            }
+        } catch (IllegalArgumentException e) {
+            LOGGER.log(Level.WARNING, e.getMessage());
+            return false;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al actualizar administrador de clínica", e);
             return false;
         }
     }
@@ -236,25 +398,13 @@ public class api_service {
     }
 
     public String getOidcLoginUrl() {
-        // redirect_uri DEBE ser fija y estar registrada en gub.uy
-        ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
-        String serverName = external.getRequestServerName();
-        
-        // Determinar si es producción o desarrollo
-        boolean isProduction = "hcen-uy.web.elasticloud.uy".equals(serverName);
-        String redirectUri;
-        String baseUrl;
-        
-        if (isProduction) {
-            // Producción
-            baseUrl = "https://hcen-uy.web.elasticloud.uy";
-            redirectUri = "https://hcen-uy.web.elasticloud.uy/api/auth/callback";
-        } else {
-            // Desarrollo - backend en /hcen-central
-            baseUrl = "http://localhost:8080/hcen-central";
-            redirectUri = "http://localhost:8080/hcen-central/api/auth/callback";
+        String apiBase = backendUrl;
+        String baseUrl = apiBase.endsWith("/api") ? apiBase.substring(0, apiBase.length() - 4) : apiBase;
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
-        
+        String redirectUri = baseUrl + "/api/auth/callback";
+
         try {
             return baseUrl + "/api/auth/login?redirect_uri=" + java.net.URLEncoder.encode(redirectUri, StandardCharsets.UTF_8) + "&origin=admin";
         } catch (Exception e) {
@@ -266,6 +416,7 @@ public class api_service {
     public boolean isBackendAvailable() {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(backendUrl + "/health");
+            attachAuthorizationHeader(request);
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() == 200;
             }
@@ -353,6 +504,41 @@ public class api_service {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error parsing usuarios de salud payload", e);
             throw new RuntimeException("No se pudo interpretar la lista de usuarios de salud", e);
+        }
+        return usuarios;
+    }
+
+    private List<usuario_sistema_dto> parseUsuariosSistema(String jsonString) {
+        List<usuario_sistema_dto> usuarios = new ArrayList<>();
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonArray array = reader.readArray();
+            for (JsonValue value : array) {
+                if (value.getValueType() != JsonValue.ValueType.OBJECT) {
+                    continue;
+                }
+                JsonObject obj = value.asJsonObject();
+                usuario_sistema_dto dto = new usuario_sistema_dto();
+                dto.setTipoUsuario(getString(obj, "tipo"));
+                dto.setOrigen(getString(obj, "origen"));
+                dto.setId(getString(obj, "id"));
+                dto.setTipoDocumento(getString(obj, "tipoDocumento"));
+                dto.setNumeroDocumento(getString(obj, "numeroDocumento"));
+                dto.setPrimerNombre(getString(obj, "primerNombre"));
+                dto.setSegundoNombre(getString(obj, "segundoNombre"));
+                dto.setPrimerApellido(getString(obj, "primerApellido"));
+                dto.setSegundoApellido(getString(obj, "segundoApellido"));
+                dto.setNombreCompleto(getString(obj, "nombreCompleto"));
+                dto.setEmail(getString(obj, "email"));
+                dto.setActivo(getBoolean(obj, "activo"));
+                dto.setFechaNacimiento(getString(obj, "fechaNacimiento"));
+                dto.setEspecialidad(getString(obj, "especialidad"));
+                dto.setTenantId(getString(obj, "tenantId"));
+                dto.setUsername(getString(obj, "username"));
+                usuarios.add(dto);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error parsing catálogo de usuarios", e);
+            throw new RuntimeException("No se pudo interpretar el catálogo de usuarios", e);
         }
         return usuarios;
     }
@@ -447,6 +633,34 @@ public class api_service {
         return clinicas;
     }
 
+    private String getString(JsonObject obj, String key) {
+        return obj.containsKey(key) && !obj.isNull(key) ? obj.getString(key) : null;
+    }
+
+    private Boolean getBoolean(JsonObject obj, String key) {
+        if (obj.containsKey(key) && !obj.isNull(key)) {
+            JsonValue value = obj.get(key);
+            if (value.getValueType() == JsonValue.ValueType.TRUE) {
+                return Boolean.TRUE;
+            }
+            if (value.getValueType() == JsonValue.ValueType.FALSE) {
+                return Boolean.FALSE;
+            }
+        }
+        return null;
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String required(String value, String message) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException(message);
+        }
+        return value.trim();
+    }
+
     private String extractErrorMessage(String body) {
         if (body == null || body.isBlank()) {
             return null;
@@ -511,6 +725,49 @@ public class api_service {
             return trimmed.substring(0, trimmed.length() - 1);
         }
         return trimmed;
+    }
+
+    private void attachAuthorizationHeader(ClassicHttpRequest request) {
+        if (request == null) {
+            return;
+        }
+        String token = resolveJwtToken();
+        if (token != null && !token.isBlank()) {
+            request.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+        }
+    }
+
+    private String resolveJwtToken() {
+        try {
+            FacesContext facesContext = FacesContext.getCurrentInstance();
+            if (facesContext == null) {
+                return null;
+            }
+            ExternalContext externalContext = facesContext.getExternalContext();
+            if (externalContext == null) {
+                return null;
+            }
+
+            Object requestObj = externalContext.getRequest();
+            if (requestObj instanceof HttpServletRequest httpRequest) {
+                Cookie[] cookies = httpRequest.getCookies();
+                if (cookies != null) {
+                    for (Cookie cookie : cookies) {
+                        if ("jwt_token".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                            return cookie.getValue();
+                        }
+                    }
+                }
+            }
+
+            Object tokenAttr = externalContext.getSessionMap().get("jwtToken");
+            if (tokenAttr instanceof String tokenStr && !tokenStr.isBlank()) {
+                return tokenStr;
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "No se pudo resolver JWT para las llamadas al backend", e);
+        }
+        return null;
     }
 
     private String readEntityContent(CloseableHttpResponse response) throws IOException {

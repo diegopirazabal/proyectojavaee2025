@@ -12,6 +12,7 @@ import java.util.Optional;
 public class ProfesionalService {
 
     private static final int PAGE_SIZE = 10;
+    private static final int MAX_PAGE_SIZE = 200;
 
     @EJB
     private ProfesionalSaludDAO profesionalDAO;
@@ -101,17 +102,27 @@ public class ProfesionalService {
      * Lista profesionales paginados
      */
     public List<profesional_salud> getProfesionalesPaginated(int page) {
-        return profesionalDAO.findAllPaginated(page, PAGE_SIZE);
+        return getProfesionalesPaginated(page, PAGE_SIZE);
+    }
+
+    public List<profesional_salud> getProfesionalesPaginated(int page, Integer size) {
+        int resolvedSize = normalizePageSize(size);
+        return profesionalDAO.findAllPaginated(page, resolvedSize);
     }
 
     /**
      * Busca profesionales por nombre o apellido con paginación
      */
     public List<profesional_salud> searchProfesionalesPaginated(String searchTerm, int page) {
+        return searchProfesionalesPaginated(searchTerm, page, PAGE_SIZE);
+    }
+
+    public List<profesional_salud> searchProfesionalesPaginated(String searchTerm, int page, Integer size) {
+        int resolvedSize = normalizePageSize(size);
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
-            return getProfesionalesPaginated(page);
+            return profesionalDAO.findAllPaginated(page, resolvedSize);
         }
-        return profesionalDAO.findByNombreOrApellidoPaginated(searchTerm.trim(), page, PAGE_SIZE);
+        return profesionalDAO.findByNombreOrApellidoPaginated(searchTerm.trim(), page, resolvedSize);
     }
 
     /**
@@ -129,5 +140,12 @@ public class ProfesionalService {
             return countProfesionales();
         }
         return profesionalDAO.countByNombreOrApellido(searchTerm.trim());
+    }
+
+    private int normalizePageSize(Integer size) {
+        if (size == null || size <= 0) {
+            return PAGE_SIZE;
+        }
+        return Math.min(size, MAX_PAGE_SIZE);
     }
 }

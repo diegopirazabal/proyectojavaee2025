@@ -4,6 +4,7 @@ import hcen.central.inus.dao.UsuarioClinicaDAO;
 import hcen.central.inus.dao.UsuarioSaludDAO;
 import hcen.central.inus.dto.RegistrarUsuarioRequest;
 import hcen.central.inus.dto.UsuarioSaludDTO;
+import hcen.central.inus.dto.ActualizarUsuarioSaludRequest;
 import hcen.central.inus.entity.UsuarioClinica;
 import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.enums.TipoDocumento;
@@ -104,6 +105,69 @@ public class UsuarioSaludService {
         return usuarioDAO.searchByNombreOrApellidoAndTenantId(searchTerm.trim(), tenantId).stream()
             .map(this::toDTO)
             .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Actualiza los datos de un usuario sin modificar su documento
+     */
+    public UsuarioSaludDTO actualizarUsuario(String cedula, ActualizarUsuarioSaludRequest request) {
+        if (cedula == null || cedula.trim().isEmpty()) {
+            throw new IllegalArgumentException("La cédula es requerida");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("La solicitud de actualización es requerida");
+        }
+
+        UsuarioSalud usuario = usuarioDAO.findByCedula(cedula.trim())
+            .orElseThrow(() -> new IllegalArgumentException("No existe un usuario con la cédula indicada"));
+
+        if (request.getPrimerNombre() != null) {
+            String primerNombre = request.getPrimerNombre().trim();
+            if (primerNombre.isEmpty()) {
+                throw new IllegalArgumentException("El primer nombre no puede quedar vacío");
+            }
+            usuario.setPrimerNombre(primerNombre);
+        }
+        if (request.getSegundoNombre() != null) {
+            usuario.setSegundoNombre(request.getSegundoNombre().trim().isEmpty() ? null : request.getSegundoNombre().trim());
+        }
+        if (request.getPrimerApellido() != null) {
+            String primerApellido = request.getPrimerApellido().trim();
+            if (primerApellido.isEmpty()) {
+                throw new IllegalArgumentException("El primer apellido no puede quedar vacío");
+            }
+            usuario.setPrimerApellido(primerApellido);
+        }
+        if (request.getSegundoApellido() != null) {
+            usuario.setSegundoApellido(request.getSegundoApellido().trim().isEmpty() ? null : request.getSegundoApellido().trim());
+        }
+        if (request.getEmail() != null) {
+            String email = request.getEmail().trim();
+            if (email.isEmpty()) {
+                throw new IllegalArgumentException("El email no puede quedar vacío");
+            }
+            usuario.setEmail(email);
+        }
+        if (request.getActivo() != null) {
+            usuario.setActive(request.getActivo());
+        }
+        if (request.getFechaNacimiento() != null) {
+            LocalDate fecha = LocalDate.parse(request.getFechaNacimiento());
+            usuario.setFechaNacimiento(fecha);
+        }
+        if (request.getTenantId() != null && !request.getTenantId().isBlank()) {
+            usuario.setTenantId(java.util.UUID.fromString(request.getTenantId()));
+        }
+
+        usuario.setNombreCompleto(buildNombreCompleto(
+            usuario.getPrimerNombre(),
+            usuario.getSegundoNombre(),
+            usuario.getPrimerApellido(),
+            usuario.getSegundoApellido()
+        ));
+
+        UsuarioSalud actualizado = usuarioDAO.save(usuario);
+        return toDTO(actualizado);
     }
 
     /**
