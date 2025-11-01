@@ -6,6 +6,7 @@ import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Stateless
 public class ConfiguracionService {
@@ -16,17 +17,18 @@ public class ConfiguracionService {
     /**
      * Obtiene la configuración de una clínica, creándola si no existe
      */
-    public configuracion_clinica getConfiguracion(String clinicaRut) {
-        return configuracionDAO.getOrCreateDefault(clinicaRut);
+    public configuracion_clinica getConfiguracion(String tenantIdStr) {
+        UUID tenantId = UUID.fromString(tenantIdStr);
+        return configuracionDAO.getOrCreateDefault(tenantId);
     }
 
     /**
      * Actualiza la configuración de look & feel de una clínica
      */
-    public configuracion_clinica actualizarLookAndFeel(String clinicaRut, String colorPrimario,
+    public configuracion_clinica actualizarLookAndFeel(String tenantIdStr, String colorPrimario,
                                                       String colorSecundario, String logoUrl,
                                                       String nombreSistema, String tema) {
-        configuracion_clinica config = getConfiguracion(clinicaRut);
+        configuracion_clinica config = getConfiguracion(tenantIdStr);
 
         if (colorPrimario != null && isValidColor(colorPrimario)) {
             config.setColorPrimario(colorPrimario);
@@ -50,8 +52,8 @@ public class ConfiguracionService {
     /**
      * Habilita o deshabilita la conexión como nodo periférico
      */
-    public configuracion_clinica toggleNodoPeriferico(String clinicaRut, boolean habilitado) {
-        configuracion_clinica config = getConfiguracion(clinicaRut);
+    public configuracion_clinica toggleNodoPeriferico(String tenantIdStr, boolean habilitado) {
+        configuracion_clinica config = getConfiguracion(tenantIdStr);
         config.setNodoPerifericoHabilitado(habilitado);
         return configuracionDAO.save(config);
     }
@@ -66,8 +68,9 @@ public class ConfiguracionService {
     /**
      * Resetea la configuración a valores por defecto
      */
-    public configuracion_clinica resetToDefault(String clinicaRut) {
-        Optional<configuracion_clinica> existing = configuracionDAO.findByClinicaRut(clinicaRut);
+    public configuracion_clinica resetToDefault(String tenantIdStr) {
+        UUID tenantId = UUID.fromString(tenantIdStr);
+        Optional<configuracion_clinica> existing = configuracionDAO.findByTenantId(tenantId);
         if (existing.isPresent()) {
             configuracion_clinica config = existing.get();
             config.setColorPrimario("#007bff");
@@ -78,6 +81,6 @@ public class ConfiguracionService {
             config.setNodoPerifericoHabilitado(false);
             return configuracionDAO.save(config);
         }
-        return configuracionDAO.getOrCreateDefault(clinicaRut);
+        return configuracionDAO.getOrCreateDefault(tenantId);
     }
 }

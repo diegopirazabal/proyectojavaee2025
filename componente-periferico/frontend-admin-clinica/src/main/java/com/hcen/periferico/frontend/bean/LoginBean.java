@@ -1,6 +1,7 @@
 package com.hcen.periferico.frontend.bean;
 
 import com.hcen.periferico.frontend.dto.administrador_clinica_dto;
+import com.hcen.periferico.frontend.dto.clinica_dto;
 import com.hcen.periferico.frontend.service.APIService;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.RequestScoped;
@@ -10,6 +11,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Named
 @RequestScoped
@@ -25,7 +27,8 @@ public class LoginBean implements Serializable {
 
     private String username;
     private String password;
-    private String clinicaRut;
+    private String selectedTenantId;
+    private List<clinica_dto> clinicas;
 
     @PostConstruct
     public void init() {
@@ -38,6 +41,14 @@ public class LoginBean implements Serializable {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+
+        // Cargar lista de clínicas
+        try {
+            clinicas = apiService.getClinicas();
+        } catch (Exception e) {
+            e.printStackTrace();
+            addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar clínicas: " + e.getMessage());
         }
     }
 
@@ -52,8 +63,8 @@ public class LoginBean implements Serializable {
                 addMessage(FacesMessage.SEVERITY_ERROR, "La contraseña es requerida");
                 return null;
             }
-            if (clinicaRut == null || clinicaRut.trim().isEmpty()) {
-                addMessage(FacesMessage.SEVERITY_ERROR, "El RUT de la clínica es requerido");
+            if (selectedTenantId == null || selectedTenantId.trim().isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "Debe seleccionar una clínica");
                 return null;
             }
 
@@ -61,7 +72,7 @@ public class LoginBean implements Serializable {
             administrador_clinica_dto admin = apiService.authenticate(
                 username.trim(),
                 password,
-                clinicaRut.trim()
+                selectedTenantId.trim()
             );
 
             if (admin != null) {
@@ -71,7 +82,7 @@ public class LoginBean implements Serializable {
                 return "/pages/dashboard.xhtml?faces-redirect=true";
             } else {
                 // Credenciales inválidas
-                addMessage(FacesMessage.SEVERITY_ERROR, "Usuario, contraseña o RUT de clínica incorrectos");
+                addMessage(FacesMessage.SEVERITY_ERROR, "Usuario, contraseña o clínica incorrectos");
                 return null;
             }
 
@@ -104,11 +115,19 @@ public class LoginBean implements Serializable {
         this.password = password;
     }
 
-    public String getClinicaRut() {
-        return clinicaRut;
+    public String getSelectedTenantId() {
+        return selectedTenantId;
     }
 
-    public void setClinicaRut(String clinicaRut) {
-        this.clinicaRut = clinicaRut;
+    public void setSelectedTenantId(String selectedTenantId) {
+        this.selectedTenantId = selectedTenantId;
+    }
+
+    public List<clinica_dto> getClinicas() {
+        return clinicas;
+    }
+
+    public void setClinicas(List<clinica_dto> clinicas) {
+        this.clinicas = clinicas;
     }
 }

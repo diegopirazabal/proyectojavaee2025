@@ -31,25 +31,25 @@ public class ConfiguracionClinicaDAO {
         return Optional.ofNullable(config);
     }
 
-    public Optional<configuracion_clinica> findByClinicaRut(String clinicaRut) {
+    public Optional<configuracion_clinica> findByTenantId(UUID tenantId) {
         try {
             TypedQuery<configuracion_clinica> query = em.createQuery(
-                "SELECT c FROM configuracion_clinica c WHERE c.clinicaRut = :rut",
+                "SELECT c FROM configuracion_clinica c WHERE c.tenantId = :tenantId",
                 configuracion_clinica.class
             );
-            query.setParameter("rut", clinicaRut);
+            query.setParameter("tenantId", tenantId);
             return Optional.of(query.getSingleResult());
         } catch (NoResultException e) {
             return Optional.empty();
         }
     }
 
-    public boolean existsByClinicaRut(String clinicaRut) {
+    public boolean existsByTenantId(UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(c) FROM configuracion_clinica c WHERE c.clinicaRut = :rut",
+            "SELECT COUNT(c) FROM configuracion_clinica c WHERE c.tenantId = :tenantId",
             Long.class
         );
-        query.setParameter("rut", clinicaRut);
+        query.setParameter("tenantId", tenantId);
         return query.getSingleResult() > 0;
     }
 
@@ -66,15 +66,15 @@ public class ConfiguracionClinicaDAO {
 
     public List<configuracion_clinica> findAll() {
         TypedQuery<configuracion_clinica> query = em.createQuery(
-            "SELECT c FROM configuracion_clinica c ORDER BY c.clinicaRut",
+            "SELECT c FROM configuracion_clinica c ORDER BY c.tenantId",
             configuracion_clinica.class
         );
         return query.getResultList();
     }
 
-    public configuracion_clinica getOrCreateDefault(String clinicaRut) {
-        return findByClinicaRut(clinicaRut).orElseGet(() -> {
-            configuracion_clinica config = new configuracion_clinica(clinicaRut);
+    public configuracion_clinica getOrCreateDefault(UUID tenantId) {
+        return findByTenantId(tenantId).orElseGet(() -> {
+            configuracion_clinica config = new configuracion_clinica(tenantId);
             // Valores por defecto
             config.setColorPrimario("#007bff");
             config.setColorSecundario("#6c757d");

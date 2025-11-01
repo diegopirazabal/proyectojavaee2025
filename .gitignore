@@ -1,18 +1,14 @@
-# Compiled class file
+# IDEs
+.idea
+
+# Archivos compilados de Java
 *.class
 
-# Log file
-*.log
-
-# BlueJ files
+# Herramientas de desarrollo Java
 *.ctxt
-
-# Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
-WARP.md
-.idea
-# Package Files #
+# Archivos empaquetados
 *.jar
 *.war
 *.nar
@@ -21,17 +17,10 @@ WARP.md
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Logs y crash reports
+*.log
 hs_err_pid*
 replay_pid*
-AGENTS.md
-
-docs/
-
-# Environment variables y credenciales
-.env
-*.env
-.env.*
 
 # Maven
 target/
@@ -44,3 +33,26 @@ dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
+
+# Environment variables y credenciales
+.env
+*.env
+.env.*
+**/*-ds.xml
+
+# Scripts y configuración
+*.bat
+*.sh
+*.cli
+
+# Archivos de datos y configuración
+*.json
+*.sql
+*.pro
+*.example
+
+# Documentación
+*.md
+WARP.md
+AGENTS.md
+docs/

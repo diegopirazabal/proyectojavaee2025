@@ -7,6 +7,7 @@ import jakarta.ejb.Stateless;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Stateless
 public class AuthenticationService {
@@ -18,29 +19,15 @@ public class AuthenticationService {
      * Autentica un administrador de clínica
      * @param username Username del administrador
      * @param password Contraseña en texto plano
-     * @param clinicaRut RUT de la clínica (para multi-tenancy)
+     * @param tenantId ID del tenant (clínica) para multi-tenancy
      * @return El administrador autenticado o null si falla la autenticación
      */
-    public administrador_clinica authenticate(String username, String password, String clinicaRut) {
-        System.out.println("[AUTH DEBUG] Intentando autenticar:");
-        System.out.println("  Username: " + username);
-        System.out.println("  Clinica RUT: " + clinicaRut);
-        System.out.println("  Password length: " + (password != null ? password.length() : "null"));
-
-        Optional<administrador_clinica> adminOpt = adminDAO.findByUsernameAndClinica(username, clinicaRut);
-
-        System.out.println("[AUTH DEBUG] Usuario encontrado: " + adminOpt.isPresent());
+    public administrador_clinica authenticate(String username, String password, UUID tenantId) {
+        Optional<administrador_clinica> adminOpt = adminDAO.findByUsernameAndTenant(username, tenantId);
 
         if (adminOpt.isPresent()) {
             administrador_clinica admin = adminOpt.get();
-            System.out.println("[AUTH DEBUG] Usuario DB: " + admin.getUsername());
-            System.out.println("[AUTH DEBUG] Clinica DB: " + admin.getClinica());
-            System.out.println("[AUTH DEBUG] Password hash DB: " + admin.getPassword().substring(0, 20) + "...");
-
-            boolean passwordMatch = verifyPassword(password, admin.getPassword());
-            System.out.println("[AUTH DEBUG] Password match: " + passwordMatch);
-
-            if (passwordMatch) {
+            if (verifyPassword(password, admin.getPassword())) {
                 return admin;
             }
         }
@@ -51,9 +38,9 @@ public class AuthenticationService {
      * Crea un nuevo administrador de clínica
      */
     public administrador_clinica createAdmin(String username, String password, String nombre,
-                                           String apellidos, String clinicaRut) {
+                                           String apellidos, UUID tenantId) {
         // Verificar que no exista ya un administrador con ese username en esa clínica
-        if (adminDAO.existsByUsernameAndClinica(username, clinicaRut)) {
+        if (adminDAO.existsByUsernameAndTenant(username, tenantId)) {
             throw new IllegalArgumentException("Ya existe un administrador con ese username en esta clínica");
         }
 
@@ -65,7 +52,7 @@ public class AuthenticationService {
         }
 
         String hashedPassword = hashPassword(password);
-        administrador_clinica admin = new administrador_clinica(username, hashedPassword, nombre, apellidos, clinicaRut);
+        administrador_clinica admin = new administrador_clinica(username, hashedPassword, nombre, apellidos, tenantId);
 
         return adminDAO.save(admin);
     }

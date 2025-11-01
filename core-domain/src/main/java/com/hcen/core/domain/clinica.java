@@ -11,11 +11,8 @@ public class clinica {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "ID", columnDefinition = "UUID")
-    private UUID id;
-
-    @Column(length = 20)
-    private String rut;
+    @Column(name = "TENANT_ID", columnDefinition = "UUID")
+    private UUID tenantId;
 
     @Column(nullable = false, length = 150)
     private String nombre;
@@ -32,9 +29,6 @@ public class clinica {
     @Column(length = 30)
     private String estado;
 
-    @Column(name = "TENANT_ID")
-    private UUID tenantId;
-
     // Usuarios (afiliados/atendidos)
     @ManyToMany(mappedBy = "clinicas")
     private Set<usuario_salud> usuarios = new HashSet<>();
@@ -50,9 +44,8 @@ public class clinica {
     @ManyToMany(mappedBy = "clinicasGestionadas")
     private Set<administrador_hcen> administradores = new HashSet<>();
 
-    public UUID getId() { return id; }
-    public String getRut() { return rut; }
-    public void setRut(String rut) { this.rut = rut; }
+    public UUID getTenantId() { return tenantId; }
+    public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
     public String getDireccion() { return direccion; }
@@ -63,8 +56,6 @@ public class clinica {
     public void setFecRegistro(LocalDateTime fecRegistro) { this.fecRegistro = fecRegistro; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
-    public UUID getTenantId() { return tenantId; }
-    public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
     public Set<usuario_salud> getUsuarios() { return usuarios; }
     public void setUsuarios(Set<usuario_salud> usuarios) { this.usuarios = usuarios; }
     public Set<profesional_salud> getProfesionales() { return profesionales; }
@@ -72,6 +63,6 @@ public class clinica {
     public Set<administrador_hcen> getAdministradores() { return administradores; }
     public void setAdministradores(Set<administrador_hcen> administradores) { this.administradores = administradores; }
 
-    @Override public boolean equals(Object o){ return (this==o) || (o instanceof clinica c && Objects.equals(id,c.id)); }
-    @Override public int hashCode(){ return Objects.hash(id); }
+    @Override public boolean equals(Object o){ return (this==o) || (o instanceof clinica c && Objects.equals(tenantId,c.tenantId)); }
+    @Override public int hashCode(){ return Objects.hash(tenantId); }
 }

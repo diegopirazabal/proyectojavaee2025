@@ -4,35 +4,77 @@
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:p="http://primefaces.org/ui">
 <h:head>
-    <title>HCEN - Usuario de la Salud</title>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <h:outputStylesheet>
-        .login-box { max-width: 420px; margin: 8vh auto; }
-        .subtitle { color: #666; font-size: .9rem; display: block; margin-top: .25rem; }
-    </h:outputStylesheet>
+    <title>Portal Salud - Ingreso</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <h:outputStylesheet library="css" name="login.css"/>
 </h:head>
-<h:body>
-    <h:form id="formLogin">
-        <p:messages showDetail="true" closable="true" />
+<h:body styleClass="login-body">
+<f:metadata>
+    <f:event type="preRenderView" listener="#{usuarioSaludLoginBean.redirectIfLoggedIn}"/>
+</f:metadata>
+<div class="login-container">
+    <header class="login-header">
+        <h1>Portal Salud</h1>
+        <p>Consulta tu información registrada en HCEN</p>
+    </header>
 
-        <p:panel header="Ingreso - Usuario de la Salud" styleClass="login-box">
-            <p:panelGrid columns="2" columnClasses="ui-grid-col-4,ui-grid-col-8" styleClass="ui-fluid" layout="grid">
-                <p:outputLabel for="cedula" value="Cédula" />
-                <h:panelGroup>
-                    <p:inputText id="cedula" value="#{login_bean.cedula}" required="true"
-                                 requiredMessage="Ingrese su cédula"
-                                 placeholder="Sin puntos ni guión" />
-                    <span class="subtitle">Temporal: sin autenticación (solo CI)</span>
-                </h:panelGroup>
-            </p:panelGrid>
+    <section class="login-content">
+        <p class="login-hint">
+            Accede con las credenciales temporales <strong>user</strong> / <strong>user</strong>.
+        </p>
 
-            <p:separator />
-            <p:commandButton value="Ver mi historia clínica" icon="pi pi-file"
-                             action="#{login_bean.ingresarPorCedula}" update=":formLogin" />
-        </p:panel>
-    </h:form>
+        <h:form id="loginForm" styleClass="login-form">
+            <p:messages id="messages" showDetail="true" closable="true"/>
+
+            <div class="input-group">
+                <p:outputLabel for="username" value="Usuario"/>
+                <p:inputText id="username"
+                             value="#{usuarioSaludLoginBean.username}"
+                             required="true"
+                             requiredMessage="Debe ingresar un usuario"
+                             placeholder="Ingresa tu usuario"
+                             styleClass="login-input"/>
+            </div>
+
+            <div class="input-group">
+                <p:outputLabel for="password" value="Contraseña"/>
+                <p:password id="password"
+                            value="#{usuarioSaludLoginBean.password}"
+                            required="true"
+                            requiredMessage="Debe ingresar una contraseña"
+                            feedback="false"
+                            placeholder="Ingresa tu contraseña"
+                            styleClass="login-input"/>
+            </div>
+
+            <p:commandButton value="Ingresar"
+                             action="#{usuarioSaludLoginBean.login}"
+                             update="messages"
+                             styleClass="login-button"
+                             icon="pi pi-sign-in"/>
+        </h:form>
+    </section>
+
+    <div class="login-divider">
+        <span>o</span>
+    </div>
+
+    <div class="oidc-section">
+        <h3>Autenticación con gub.uy</h3>
+        <p class="oidc-description">
+            Serás redirigido a gub.uy para iniciar sesión con tu identidad digital.
+        </p>
+        <a href="#{usuarioSaludLoginBean.oidcLoginUrl}" class="oidc-button">
+            <span class="oidc-icon">🔐</span>
+            <span>Iniciar sesión con gub.uy</span>
+        </a>
+    </div>
+
+    <div class="login-footer">
+        <p>Sistema de Salud - Universidad de la República</p>
+        <p>© 2025 HCEN - Todos los derechos reservados</p>
+    </div>
+</div>
 </h:body>
 </html>
-
-

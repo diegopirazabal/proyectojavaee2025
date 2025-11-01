@@ -11,6 +11,9 @@ import java.util.Optional;
 @Stateless
 public class ProfesionalService {
 
+    private static final int PAGE_SIZE = 10;
+    private static final int MAX_PAGE_SIZE = 200;
+
     @EJB
     private ProfesionalSaludDAO profesionalDAO;
 
@@ -93,5 +96,56 @@ public class ProfesionalService {
      */
     public boolean existsProfesional(Integer ci) {
         return profesionalDAO.existsByCi(ci);
+    }
+
+    /**
+     * Lista profesionales paginados
+     */
+    public List<profesional_salud> getProfesionalesPaginated(int page) {
+        return getProfesionalesPaginated(page, PAGE_SIZE);
+    }
+
+    public List<profesional_salud> getProfesionalesPaginated(int page, Integer size) {
+        int resolvedSize = normalizePageSize(size);
+        return profesionalDAO.findAllPaginated(page, resolvedSize);
+    }
+
+    /**
+     * Busca profesionales por nombre o apellido con paginación
+     */
+    public List<profesional_salud> searchProfesionalesPaginated(String searchTerm, int page) {
+        return searchProfesionalesPaginated(searchTerm, page, PAGE_SIZE);
+    }
+
+    public List<profesional_salud> searchProfesionalesPaginated(String searchTerm, int page, Integer size) {
+        int resolvedSize = normalizePageSize(size);
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return profesionalDAO.findAllPaginated(page, resolvedSize);
+        }
+        return profesionalDAO.findByNombreOrApellidoPaginated(searchTerm.trim(), page, resolvedSize);
+    }
+
+    /**
+     * Cuenta total de profesionales
+     */
+    public long countProfesionales() {
+        return profesionalDAO.countAll();
+    }
+
+    /**
+     * Cuenta profesionales que coinciden con el término de búsqueda
+     */
+    public long countProfesionalesBySearch(String searchTerm) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return countProfesionales();
+        }
+        return profesionalDAO.countByNombreOrApellido(searchTerm.trim());
+    }
+
+    private int normalizePageSize(Integer size) {
+        if (size == null || size <= 0) {
+            return PAGE_SIZE;
+        }
+        return Math.min(size, MAX_PAGE_SIZE);
     }
 }

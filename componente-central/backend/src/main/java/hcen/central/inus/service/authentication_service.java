@@ -15,20 +15,10 @@ import java.util.logging.Logger;
 public class authentication_service {
 
     private static final Logger LOGGER = Logger.getLogger(authentication_service.class.getName());
-    private static final String DEV_LOGIN_ENV = "HCEN_ENABLE_DEV_LOGIN";
-    private static final String DEV_LOGIN_PROP = "hcen.enableDevLogin";
-    private static final String DEV_USERNAME = "admin";
-    private static final String DEV_PASSWORD = "admin";
-
     @EJB
     private admin_hcen_dao adminDAO;
 
     public admin_hcen authenticate(String username, String password) {
-        if (isDevLoginEnabled() && DEV_USERNAME.equals(username) && DEV_PASSWORD.equals(password)) {
-            LOGGER.warning("Dev login enabled: granting access to hardcoded admin user.");
-            return buildDevAdmin();
-        }
-
         try {
             Optional<admin_hcen> adminOpt = adminDAO.findByUsername(username);
 
@@ -85,22 +75,6 @@ public class authentication_service {
             admin.setPasswordHash(hashPassword(newPassword));
             adminDAO.save(admin);
         }
-    }
-
-    private admin_hcen buildDevAdmin() {
-        admin_hcen admin = new admin_hcen(DEV_USERNAME, hashPassword(DEV_PASSWORD),
-                "Dev", "Admin", "dev-admin@hcen.local");
-        admin.setId(-1L);
-        admin.setLastLogin(LocalDateTime.now());
-        return admin;
-    }
-
-    private boolean isDevLoginEnabled() {
-        String envValue = System.getenv(DEV_LOGIN_ENV);
-        if (envValue != null) {
-            return Boolean.parseBoolean(envValue);
-        }
-        return Boolean.parseBoolean(System.getProperty(DEV_LOGIN_PROP, "true"));
     }
 
     private String hashPassword(String password) {

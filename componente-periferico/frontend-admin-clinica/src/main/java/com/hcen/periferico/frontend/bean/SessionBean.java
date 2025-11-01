@@ -27,6 +27,23 @@ public class SessionBean implements Serializable {
         return administradorLogueado != null;
     }
 
+    /**
+     * Verifica si el usuario está autenticado. Si no lo está, redirige al login.
+     * Este método es usado en f:event type="preRenderView" para proteger páginas.
+     */
+    public void checkAuth() {
+        if (!isLoggedIn()) {
+            try {
+                FacesContext.getCurrentInstance()
+                    .getExternalContext()
+                    .redirect("index.xhtml");
+            } catch (Exception e) {
+                // Log error si es necesario
+                e.printStackTrace();
+            }
+        }
+    }
+
     public void login(administrador_clinica_dto admin) {
         this.administradorLogueado = admin;
     }
@@ -36,8 +53,10 @@ public class SessionBean implements Serializable {
         return "/index.xhtml?faces-redirect=true";
     }
 
-    public String getClinicaRut() {
-        return administradorLogueado != null ? administradorLogueado.getClinica() : null;
+    public String getTenantId() {
+        return administradorLogueado != null && administradorLogueado.getTenantId() != null
+            ? administradorLogueado.getTenantId().toString()
+            : null;
     }
 
     public String getNombreAdministrador() {

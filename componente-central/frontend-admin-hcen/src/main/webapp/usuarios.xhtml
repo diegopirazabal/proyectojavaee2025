@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+<h:head>
+    <title>HCEN - Gestión de Usuarios</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/dashboard.css"/>
+    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/usuarios.css"/>
+</h:head>
+
+<h:body>
+<f:view>
+    <f:metadata>
+        <f:event type="preRenderView" listener="#{login_bean.checkAuthentication}"/>
+    </f:metadata>
+</f:view>
+
+<div class="dashboard-container">
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <h1>HCEN</h1>
+                <span>Portal Administrativo</span>
+            </div>
+            <div class="user-section">
+                <span class="welcome-text">#{login_bean.loggedAdmin != null ? login_bean.loggedAdmin.fullName : ''}</span>
+                <h:form style="display:inline;">
+                    <p:commandButton value="Volver al Dashboard"
+                                     action="dashboard?faces-redirect=true"
+                                     icon="pi pi-arrow-left"
+                                     styleClass="logout-button"/>
+                </h:form>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-main">
+        <div class="dashboard-content">
+            <h:form id="usuariosForm">
+                <p:messages id="messages" showDetail="true" closable="true"/>
+
+                <p:outputPanel id="filtros" styleClass="filtros-container">
+                    <div class="filtro-bloque">
+                        <h3>Filtrar por documento</h3>
+                        <div class="filtro-row">
+                            <p:selectOneMenu value="#{usuarios_bean.filtroTipoDoc}" styleClass="filtro-select">
+                                <f:selectItems value="#{usuarios_bean.tiposDocumento}"/>
+                            </p:selectOneMenu>
+                            <p:inputText value="#{usuarios_bean.filtroNumeroDoc}" placeholder="Número de documento"/>
+                            <p:commandButton value="Buscar" icon="pi pi-search"
+                                             actionListener="#{usuarios_bean.buscarPorDocumento}"
+                                             update="usuariosForm:tablaUsuarios usuariosForm:messages"
+                                             styleClass="action-button"/>
+                        </div>
+                    </div>
+
+                    <div class="filtro-bloque">
+                        <h3>Filtrar por nombre</h3>
+                        <div class="filtro-row">
+                            <p:inputText value="#{usuarios_bean.filtroNombre}" placeholder="Nombre"/>
+                            <p:inputText value="#{usuarios_bean.filtroApellido}" placeholder="Apellido"/>
+                            <p:commandButton value="Buscar" icon="pi pi-search"
+                                             actionListener="#{usuarios_bean.buscarPorNombre}"
+                                             update="usuariosForm:tablaUsuarios usuariosForm:messages"
+                                             styleClass="action-button"/>
+                        </div>
+                    </div>
+
+                    <div class="filtro-acciones">
+                        <p:commandButton value="Limpiar filtros"
+                                         icon="pi pi-times"
+                                         actionListener="#{usuarios_bean.limpiarFiltros}"
+                                         update="usuariosForm:tablaUsuarios usuariosForm:messages usuariosForm:filtros"
+                                         styleClass="action-button"/>
+                        <p:commandButton value="Recargar"
+                                         icon="pi pi-refresh"
+                                         actionListener="#{usuarios_bean.cargarUsuariosIniciales}"
+                                         update="usuariosForm:tablaUsuarios usuariosForm:messages"
+                                         process="@this"
+                                         styleClass="action-button"/>
+                    </div>
+                </p:outputPanel>
+
+                <p:dataTable id="tablaUsuarios"
+                             value="#{usuarios_bean.usuarios}"
+                             var="usuario"
+                             paginator="true"
+                             rows="15"
+                             rowStyleClass="#{usuarios_bean.obtenerClaseFila(usuario)}"
+                             emptyMessage="No hay usuarios para mostrar"
+                             responsiveLayout="scroll">
+
+                    <p:column headerText="Tipo" styleClass="col-tipo">
+                        <h:outputText value="#{usuarios_bean.obtenerEtiquetaTipo(usuario)}"/>
+                    </p:column>
+
+                    <p:column headerText="Documento">
+                        <h:outputText value="#{usuario.tipoDocumento != null ? usuario.tipoDocumento : '-'} #{usuario.numeroDocumento != null ? usuario.numeroDocumento : ''}"/>
+                    </p:column>
+
+                    <p:column headerText="Nombre">
+                        <h:outputText value="#{usuario.nombreCompleto}"/>
+                    </p:column>
+
+                    <p:column headerText="Email">
+                        <h:outputText value="#{usuario.email}"/>
+                    </p:column>
+
+                    <p:column headerText="Especialidad / Usuario">
+                        <h:outputText value="#{usuario.esProfesionalSalud() ? usuario.especialidad : (usuario.esAdministradorClinica() ? usuario.username : '')}"/>
+                    </p:column>
+
+                    <p:column headerText="Tenant">
+                        <h:outputText value="#{usuario.tenantId}"/>
+                    </p:column>
+
+                    <p:column headerText="Activo" rendered="#{usuario.esUsuarioSalud()}">
+                        <p:tag severity="#{usuario.activo ? 'success' : 'danger'}" value="#{usuario.activo ? 'Sí' : 'No'}"/>
+                    </p:column>
+
+                    <p:column headerText="Origen">
+                        <h:outputText value="#{usuario.origen}"/>
+                    </p:column>
+
+                    <p:column headerText="Acciones" styleClass="col-acciones">
+                        <p:commandButton value="Editar"
+                                         icon="pi pi-pencil"
+                                         actionListener="#{usuarios_bean.prepararEdicion(usuario)}"
+                                         process="@this"
+                                         update="usuariosForm:messages"
+                                         styleClass="action-button"/>
+                    </p:column>
+                </p:dataTable>
+
+                <p:dialog id="dialogoEdicion" widgetVar="dialogoEdicion" header="Editar Usuario" modal="true"
+                          resizable="false" closable="true" width="550">
+                    <p:outputPanel rendered="#{not empty usuarios_bean.usuarioEdicion}">
+                        <h:panelGrid columns="2" columnClasses="label,value" styleClass="form-grid">
+                            <h:outputLabel value="Tipo"/>
+                            <h:outputText value="#{usuarios_bean.obtenerEtiquetaTipo(usuarios_bean.usuarioEdicion)}"/>
+
+                            <h:outputLabel value="Documento"/>
+                            <h:outputText value="#{usuarios_bean.usuarioEdicion.tipoDocumento} #{usuarios_bean.usuarioEdicion.numeroDocumento}"/>
+
+                        <h:outputLabel value="Nombre"/>
+                        <p:inputText value="#{usuarios_bean.usuarioEdicion.primerNombre}" required="true"/>
+
+                        <h:outputLabel value="Segundo Nombre"/>
+                        <p:inputText value="#{usuarios_bean.usuarioEdicion.segundoNombre}"/>
+
+                        <h:outputLabel value="Primer Apellido"/>
+                        <p:inputText value="#{usuarios_bean.usuarioEdicion.primerApellido}" required="true"/>
+
+                        <h:outputLabel value="Segundo Apellido"/>
+                        <p:inputText value="#{usuarios_bean.usuarioEdicion.segundoApellido}"/>
+
+                        <h:outputLabel value="Email" rendered="#{usuarios_bean.isAdministradorSeleccionado() or usuarios_bean.isUsuarioSaludSeleccionado()}"/>
+                        <p:inputText value="#{usuarios_bean.usuarioEdicion.email}"
+                                     rendered="#{usuarios_bean.isAdministradorSeleccionado() or usuarios_bean.isUsuarioSaludSeleccionado()}"/>
+
+                        <h:outputLabel value="Activo" rendered="#{usuarios_bean.isUsuarioSaludSeleccionado()}"/>
+                        <p:selectBooleanButton value="#{usuarios_bean.usuarioEdicion.activo}"
+                                               onLabel="Sí" offLabel="No"
+                                               rendered="#{usuarios_bean.isUsuarioSaludSeleccionado()}"/>
+
+                        <h:outputLabel value="Fecha Nacimiento" rendered="#{usuarios_bean.isUsuarioSaludSeleccionado()}"/>
+                        <p:inputMask value="#{usuarios_bean.usuarioEdicion.fechaNacimiento}" mask="9999-99-99"
+                                     placeholder="YYYY-MM-DD"
+                                     rendered="#{usuarios_bean.isUsuarioSaludSeleccionado()}"/>
+
+                        <h:outputLabel value="Especialidad" rendered="#{usuarios_bean.isProfesionalSeleccionado()}"/>
+                        <p:inputText value="#{usuarios_bean.usuarioEdicion.especialidad}"
+                                     rendered="#{usuarios_bean.isProfesionalSeleccionado()}"/>
+
+                        <h:outputLabel value="Usuario" rendered="#{usuarios_bean.isAdministradorSeleccionado()}"/>
+                        <p:inputText value="#{usuarios_bean.usuarioEdicion.username}"
+                                     rendered="#{usuarios_bean.isAdministradorSeleccionado()}"/>
+
+                        <h:outputLabel value="Tenant" rendered="#{usuarios_bean.isAdministradorSeleccionado()}"/>
+                        <p:inputText value="#{usuarios_bean.usuarioEdicion.tenantId}"
+                                     rendered="#{usuarios_bean.isAdministradorSeleccionado()}"/>
+                        </h:panelGrid>
+                    </p:outputPanel>
+                    <f:facet name="footer">
+                        <div class="dialog-footer">
+                            <p:commandButton value="Guardar"
+                                             icon="pi pi-check"
+                                             actionListener="#{usuarios_bean.guardarCambios}"
+                                             update="usuariosForm:tablaUsuarios usuariosForm:messages"
+                                             process="usuariosForm:dialogoEdicion"
+                                             styleClass="action-button"/>
+                            <p:commandButton type="button" value="Cancelar" icon="pi pi-times"
+                                             onclick="PF('dialogoEdicion').hide()"
+                                             styleClass="action-button"/>
+                        </div>
+                    </f:facet>
+                </p:dialog>
+            </h:form>
+        </div>
+    </main>
+
+    <footer class="dashboard-footer">
+        <p>© 2025 HCEN - Historia Clínica Electrónica Nacional - Universidad de la República</p>
+    </footer>
+</div>
+
+</h:body>
+</html>

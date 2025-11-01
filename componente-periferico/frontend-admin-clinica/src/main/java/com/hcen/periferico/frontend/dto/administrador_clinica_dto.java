@@ -11,18 +11,18 @@ public class administrador_clinica_dto implements Serializable {
     private String username;
     private String nombre;
     private String apellidos;
-    private String clinica;
+    private UUID tenantId;
 
     // Constructores
     public administrador_clinica_dto() {
     }
 
-    public administrador_clinica_dto(UUID id, String username, String nombre, String apellidos, String clinica) {
+    public administrador_clinica_dto(UUID id, String username, String nombre, String apellidos, UUID tenantId) {
         this.id = id;
         this.username = username;
         this.nombre = nombre;
         this.apellidos = apellidos;
-        this.clinica = clinica;
+        this.tenantId = tenantId;
     }
 
     // Getters y Setters
@@ -58,12 +58,12 @@ public class administrador_clinica_dto implements Serializable {
         this.apellidos = apellidos;
     }
 
-    public String getClinica() {
-        return clinica;
+    public UUID getTenantId() {
+        return tenantId;
     }
 
-    public void setClinica(String clinica) {
-        this.clinica = clinica;
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getNombreCompleto() {

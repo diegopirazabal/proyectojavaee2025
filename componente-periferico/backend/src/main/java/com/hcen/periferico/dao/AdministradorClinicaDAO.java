@@ -32,26 +32,37 @@ public class AdministradorClinicaDAO {
         return Optional.ofNullable(admin);
     }
 
-    public Optional<administrador_clinica> findByUsernameAndClinica(String username, String clinicaRut) {
+    public Optional<administrador_clinica> findByUsernameAndTenant(String username, UUID tenantId) {
         try {
             TypedQuery<administrador_clinica> query = em.createQuery(
-                "SELECT a FROM administrador_clinica a WHERE a.username = :username AND a.clinica = :clinica",
+                "SELECT a FROM administrador_clinica a WHERE a.username = :username AND a.tenantId = :tenantId",
                 administrador_clinica.class
             );
             query.setParameter("username", username);
-            query.setParameter("clinica", clinicaRut);
+            query.setParameter("tenantId", tenantId);
             return Optional.of(query.getSingleResult());
         } catch (NoResultException e) {
             return Optional.empty();
         }
     }
 
-    public List<administrador_clinica> findByClinica(String clinicaRut) {
+    public List<administrador_clinica> findByTenant(UUID tenantId) {
         TypedQuery<administrador_clinica> query = em.createQuery(
-            "SELECT a FROM administrador_clinica a WHERE a.clinica = :clinica ORDER BY a.nombre, a.apellidos",
+            "SELECT a FROM administrador_clinica a WHERE a.tenantId = :tenantId ORDER BY a.nombre, a.apellidos",
             administrador_clinica.class
         );
-        query.setParameter("clinica", clinicaRut);
+        query.setParameter("tenantId", tenantId);
+        return query.getResultList();
+    }
+
+    public List<administrador_clinica> findByTenantPaginated(UUID tenantId, int page, int size) {
+        TypedQuery<administrador_clinica> query = em.createQuery(
+            "SELECT a FROM administrador_clinica a WHERE a.tenantId = :tenantId ORDER BY a.nombre, a.apellidos",
+            administrador_clinica.class
+        );
+        query.setParameter("tenantId", tenantId);
+        query.setFirstResult(page * size);
+        query.setMaxResults(size);
         return query.getResultList();
     }
 
@@ -64,13 +75,55 @@ public class AdministradorClinicaDAO {
         return query.getResultList();
     }
 
-    public boolean existsByUsernameAndClinica(String username, String clinicaRut) {
+    public List<administrador_clinica> findAllPaginated(int page, int size) {
+        TypedQuery<administrador_clinica> query = em.createQuery(
+            "SELECT a FROM administrador_clinica a ORDER BY a.tenantId, a.nombre, a.apellidos",
+            administrador_clinica.class
+        );
+        query.setFirstResult(page * size);
+        query.setMaxResults(size);
+        return query.getResultList();
+    }
+
+    public List<administrador_clinica> search(String term, UUID tenantId, int page, int size) {
+        StringBuilder jpql = new StringBuilder(
+            "SELECT a FROM administrador_clinica a WHERE "
+            + "(LOWER(a.nombre) LIKE LOWER(:term) OR LOWER(a.apellidos) LIKE LOWER(:term) "
+            + "OR LOWER(a.username) LIKE LOWER(:term))"
+        );
+        if (tenantId != null) {
+            jpql.append(" AND a.tenantId = :tenantId");
+        }
+        jpql.append(" ORDER BY a.nombre, a.apellidos");
+
+        TypedQuery<administrador_clinica> query = em.createQuery(jpql.toString(), administrador_clinica.class);
+        query.setParameter("term", "%" + term + "%");
+        if (tenantId != null) {
+            query.setParameter("tenantId", tenantId);
+        }
+        query.setFirstResult(page * size);
+        query.setMaxResults(size);
+        return query.getResultList();
+    }
+
+    public boolean existsByUsernameAndTenant(String username, UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(a) FROM administrador_clinica a WHERE a.username = :username AND a.clinica = :clinica",
+            "SELECT COUNT(a) FROM administrador_clinica a WHERE a.username = :username AND a.tenantId = :tenantId",
             Long.class
         );
         query.setParameter("username", username);
-        query.setParameter("clinica", clinicaRut);
+        query.setParameter("tenantId", tenantId);
+        return query.getSingleResult() > 0;
+    }
+
+    public boolean existsByUsernameAndTenantExcluding(String username, UUID tenantId, UUID excludeId) {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(a) FROM administrador_clinica a WHERE a.username = :username AND a.tenantId = :tenantId AND a.id <> :excludeId",
+            Long.class
+        );
+        query.setParameter("username", username);
+        query.setParameter("tenantId", tenantId);
+        query.setParameter("excludeId", excludeId);
         return query.getSingleResult() > 0;
     }
 
@@ -87,9 +140,43 @@ public class AdministradorClinicaDAO {
 
     public List<administrador_clinica> findAll() {
         TypedQuery<administrador_clinica> query = em.createQuery(
-            "SELECT a FROM administrador_clinica a ORDER BY a.clinica, a.nombre, a.apellidos",
+            "SELECT a FROM administrador_clinica a ORDER BY a.tenantId, a.nombre, a.apellidos",
             administrador_clinica.class
         );
         return query.getResultList();
+    }
+
+    public long countAll() {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(a) FROM administrador_clinica a",
+            Long.class
+        );
+        return query.getSingleResult();
+    }
+
+    public long countByTenant(UUID tenantId) {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(a) FROM administrador_clinica a WHERE a.tenantId = :tenantId",
+            Long.class
+        );
+        query.setParameter("tenantId", tenantId);
+        return query.getSingleResult();
+    }
+
+    public long countBySearch(String term, UUID tenantId) {
+        StringBuilder jpql = new StringBuilder(
+            "SELECT COUNT(a) FROM administrador_clinica a WHERE "
+            + "(LOWER(a.nombre) LIKE LOWER(:term) OR LOWER(a.apellidos) LIKE LOWER(:term) "
+            + "OR LOWER(a.username) LIKE LOWER(:term))"
+        );
+        if (tenantId != null) {
+            jpql.append(" AND a.tenantId = :tenantId");
+        }
+        TypedQuery<Long> query = em.createQuery(jpql.toString(), Long.class);
+        query.setParameter("term", "%" + term + "%");
+        if (tenantId != null) {
+            query.setParameter("tenantId", tenantId);
+        }
+        return query.getSingleResult();
     }
 }

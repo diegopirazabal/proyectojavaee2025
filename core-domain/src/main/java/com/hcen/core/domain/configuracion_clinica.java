@@ -13,8 +13,8 @@ public class configuracion_clinica {
     @Column(name = "ID", columnDefinition = "UUID")
     private UUID id;
 
-    @Column(name = "CLINICA_RUT", length = 20, nullable = false, unique = true)
-    private String clinicaRut;
+    @Column(name = "TENANT_ID", columnDefinition = "UUID", nullable = false, unique = true)
+    private UUID tenantId;
 
     // Personalización de Look & Feel
     @Column(name = "COLOR_PRIMARIO", length = 7)
@@ -40,8 +40,8 @@ public class configuracion_clinica {
     public configuracion_clinica() {
     }
 
-    public configuracion_clinica(String clinicaRut) {
-        this.clinicaRut = clinicaRut;
+    public configuracion_clinica(UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     // Getters y Setters
@@ -49,12 +49,12 @@ public class configuracion_clinica {
         return id;
     }
 
-    public String getClinicaRut() {
-        return clinicaRut;
+    public UUID getTenantId() {
+        return tenantId;
     }
 
-    public void setClinicaRut(String clinicaRut) {
-        this.clinicaRut = clinicaRut;
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getColorPrimario() {

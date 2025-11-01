@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+<h:head>
+    <title>Portal Usuario Salud</title>
+    <h:outputStylesheet library="css" name="dashboard.css"/>
+</h:head>
+<h:body styleClass="dashboard-body">
+    <f:metadata>
+        <f:event type="preRenderView" listener="#{usuarioSaludLoginBean.checkAuthentication}"/>
+    </f:metadata>
+    <div class="dashboard-container">
+        <div class="dashboard-topbar">
+            <span>Portal Salud</span>
+            <h:form id="logoutForm">
+                <p:commandButton value="Cerrar sesión"
+                                 styleClass="logout-button"
+                                 icon="pi pi-sign-out"
+                                 action="#{usuarioSaludLoginBean.logout}"
+                                 ajax="false"/>
+            </h:form>
+        </div>
+        <header class="dashboard-header">
+            <h1>Mi perfil de salud</h1>
+            <p>Consulta la información registrada en el DNIC</p>
+        </header>
+
+        <h:form id="lookupForm" styleClass="lookup-form">
+            <h:panelGroup rendered="#{not empty usuarioSaludDashboardBean.warningMessage}" styleClass="warning-banner">
+                <div class="ui-messages ui-widget">
+                    <div class="ui-messages-warn ui-corner-all">
+                        <span class="ui-messages-warn-summary">Advertencia</span>
+                        <span class="ui-messages-warn-detail">#{usuarioSaludDashboardBean.warningMessage}</span>
+                    </div>
+                </div>
+            </h:panelGroup>
+            <p:messages id="messages" closable="true" showSummary="true" showDetail="false"/>
+
+            <div class="lookup-grid">
+                <div class="input-group">
+                    <label for="tipoDoc">Tipo de documento</label>
+                    <p:inputText id="tipoDoc"
+                                 value="#{usuarioSaludDashboardBean.docType}"
+                                 maxlength="4"
+                                 placeholder="PA, DO, OTRO"
+                                 required="true"/>
+                </div>
+                <div class="input-group">
+                    <label for="numeroDoc">Número de documento</label>
+                    <p:inputText id="numeroDoc"
+                                 value="#{usuarioSaludDashboardBean.docNumber}"
+                                 maxlength="8"
+                                 placeholder="00000001"
+                                 required="true"/>
+                </div>
+                <div class="input-group actions">
+                    <p:commandButton value="Consultar"
+                                     styleClass="lookup-button"
+                                     actionListener="#{usuarioSaludDashboardBean.buscar}"
+                                     update=":lookupForm:messages :lookupForm:detalleCiudadano"
+                                     process="@form"/>
+                </div>
+            </div>
+
+            <p:panel id="detalleCiudadano" styleClass="citizen-panel" rendered="#{not empty usuarioSaludDashboardBean.ciudadano}">
+                <h2>Datos personales</h2>
+                <p:panelGrid columns="2" columnClasses="label-column,value-column" layout="grid">
+                    <h:outputText value="Tipo de documento"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.tipoDocumento}" readonly="true"/>
+
+                    <h:outputText value="Número de documento"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.numeroDocumento}" readonly="true"/>
+
+                    <h:outputText value="Primer nombre"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.primerNombre}"/>
+
+                    <h:outputText value="Segundo nombre"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.segundoNombre}"/>
+
+                    <h:outputText value="Primer apellido"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.primerApellido}"/>
+
+                    <h:outputText value="Segundo apellido"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.segundoApellido}"/>
+
+                    <h:outputText value="Nombre en cédula"/>
+                    <p:inputTextarea value="#{usuarioSaludDashboardBean.ciudadano.nombreEnCedula}" autoResize="true" rows="2"/>
+
+                    <h:outputText value="Sexo"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.sexo}"/>
+
+                    <h:outputText value="Fecha de nacimiento"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.fechaNacimientoFormateada}" readonly="true"/>
+
+                    <h:outputText value="Nacionalidad"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.descripcionNacionalidad}" readonly="true"/>
+                </p:panelGrid>
+
+                <h2>Datos de contacto</h2>
+                <p:panelGrid columns="2" columnClasses="label-column,value-column" layout="grid">
+                    <h:outputText value="Correo electrónico"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.email}" placeholder="Sin registrar"/>
+
+                    <h:outputText value="Teléfono"/>
+                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.telefono}" placeholder="Sin registrar"/>
+
+                    <h:outputText value="Dirección"/>
+                    <p:inputTextarea value="#{usuarioSaludDashboardBean.ciudadano.direccion}"
+                                     autoResize="true"
+                                     rows="2"
+                                     placeholder="Sin registrar"/>
+                </p:panelGrid>
+            </p:panel>
+        </h:form>
+    </div>
+</h:body>
+</html>

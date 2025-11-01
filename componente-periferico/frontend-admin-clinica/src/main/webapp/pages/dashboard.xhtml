@@ -10,14 +10,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 </h:head>
 
-<h:body>
-    <f:metadata>
-        <f:event type="preRenderView" listener="#{sessionBean.isLoggedIn() ? '' : '/index.xhtml?faces-redirect=true'}"/>
-    </f:metadata>
+<f:metadata>
+    <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
+</f:metadata>
 
+<h:body>
     <h:form>
         <p:menubar>
             <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>
+            <p:menuitem value="Usuarios" icon="pi pi-user" outcome="/pages/usuarios.xhtml"/>
             <p:menuitem value="Profesionales" icon="pi pi-users" outcome="/pages/profesionales.xhtml"/>
             <p:menuitem value="Configuración" icon="pi pi-cog" outcome="/pages/configuracion.xhtml"/>
 
@@ -41,8 +42,8 @@
                     <h:outputText value="Usuario:"/>
                     <h:outputText value="#{sessionBean.username}" style="font-weight: bold;"/>
 
-                    <h:outputText value="Clínica:"/>
-                    <h:outputText value="#{sessionBean.clinicaRut}" style="font-weight: bold;"/>
+                    <h:outputText value="Tenant ID:"/>
+                    <h:outputText value="#{sessionBean.tenantId}" style="font-weight: bold;"/>
                 </h:panelGrid>
 
                 <p:separator/>
@@ -50,6 +51,13 @@
                 <div style="margin-top: 2rem;">
                     <h3>Accesos Rápidos</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <p:link outcome="/pages/usuarios.xhtml">
+                            <p:panel header="Gestión de Usuarios" style="text-align: center;">
+                                <i class="pi pi-user" style="font-size: 3rem; color: #6c757d;"/>
+                                <p>Registrar y administrar usuarios de salud</p>
+                            </p:panel>
+                        </p:link>
+
                         <p:link outcome="/pages/profesionales.xhtml">
                             <p:panel header="Gestión de Profesionales" style="text-align: center;">
                                 <i class="pi pi-users" style="font-size: 3rem; color: #007bff;"/>
