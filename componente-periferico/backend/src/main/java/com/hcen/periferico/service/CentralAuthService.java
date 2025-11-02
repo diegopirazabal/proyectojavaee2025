@@ -17,6 +17,11 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.security.cert.X509Certificate;
+import java.security.SecureRandom;
 
 /**
  * Servicio de autenticación con componente-central
@@ -36,9 +41,42 @@ public class CentralAuthService {
     private final HttpClient httpClient;
     
     public CentralAuthService() {
-        this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(REQUEST_TIMEOUT)
-            .build();
+        this.httpClient = createHttpClient();
+    }
+    
+    /**
+     * Crea un HttpClient que acepta certificados SSL no confiables
+     * NOTA: Esto es solo para desarrollo. En producción debe usarse un truststore apropiado.
+     */
+    private HttpClient createHttpClient() {
+        try {
+            // TrustManager que acepta todos los certificados
+            TrustManager[] trustAllCerts = new TrustManager[] {
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+                }
+            };
+            
+            // Configurar SSLContext con el TrustManager que acepta todo
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+            
+            // Crear HttpClient con el SSLContext configurado
+            return HttpClient.newBuilder()
+                .connectTimeout(REQUEST_TIMEOUT)
+                .sslContext(sslContext)
+                .build();
+                
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "No se pudo configurar SSL permisivo, usando cliente por defecto", e);
+            return HttpClient.newBuilder()
+                .connectTimeout(REQUEST_TIMEOUT)
+                .build();
+        }
     }
     
     @PostConstruct
