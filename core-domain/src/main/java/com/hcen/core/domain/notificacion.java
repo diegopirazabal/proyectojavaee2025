@@ -28,7 +28,10 @@ public class notificacion {
 
     // Usuario FK not null
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "USUARIO_CI", nullable = false)
+    @JoinColumns({
+        @JoinColumn(name = "usuario_ci", referencedColumnName = "cedula", nullable = false),
+        @JoinColumn(name = "usuario_tenant_id", referencedColumnName = "tenant_id", nullable = false)
+    })
     private usuario_salud usuario;
 
     public UUID getId() { return id; }

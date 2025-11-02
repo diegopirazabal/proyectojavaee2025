@@ -79,9 +79,12 @@ public class usuario_salud {
 
     // Clínicas
     @ManyToMany
-    @JoinTable(name = "USUARIO_CLINICA",
-            joinColumns = @JoinColumn(name = "USUARIO_CI"),
-            inverseJoinColumns = @JoinColumn(name = "CLINICA_ID"))
+    @JoinTable(name = "usuario_clinica",
+            joinColumns = {
+                @JoinColumn(name = "usuario_ci", referencedColumnName = "cedula"),
+                @JoinColumn(name = "usuario_tenant_id", referencedColumnName = "tenant_id")
+            },
+            inverseJoinColumns = @JoinColumn(name = "clinica_id"))
     private Set<clinica> clinicas = new HashSet<>();
 
     // Políticas de acceso
