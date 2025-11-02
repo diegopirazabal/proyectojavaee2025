@@ -2,11 +2,12 @@
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /build
 
-# Primero copiar parent pom y core-domain
+# Primero copiar e instalar parent pom
 COPY pom.xml ./pom.xml
-COPY core-domain ./core-domain
+RUN mvn install -N
 
-# Compilar core-domain primero para que esté disponible
+# Copiar y compilar core-domain
+COPY core-domain ./core-domain
 WORKDIR /build/core-domain
 RUN mvn clean install -DskipTests
 
