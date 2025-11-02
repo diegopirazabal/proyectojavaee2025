@@ -6,11 +6,16 @@ WORKDIR /build
 COPY pom.xml ./pom.xml
 COPY core-domain ./core-domain
 
+# Compilar core-domain primero para que esté disponible
+WORKDIR /build/core-domain
+RUN mvn clean install -DskipTests
+
 # Copiar ambos pom.xml (backend y frontend)
+WORKDIR /build
 COPY componente-periferico/backend/pom.xml ./componente-periferico/backend/pom.xml
 COPY componente-periferico/frontend-admin-clinica/pom.xml ./componente-periferico/frontend-admin-clinica/pom.xml
 
-# Build backend primero
+# Build backend
 WORKDIR /build/componente-periferico/backend
 COPY componente-periferico/backend/src ./src
 RUN mvn clean package -DskipTests
