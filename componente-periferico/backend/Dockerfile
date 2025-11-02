@@ -3,21 +3,21 @@ FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /build
 
 # Primero copiar parent pom y core-domain
-COPY ../pom.xml ./pom.xml
-COPY ../core-domain ./core-domain
+COPY pom.xml ./pom.xml
+COPY core-domain ./core-domain
 
 # Copiar ambos pom.xml (backend y frontend)
-COPY backend/pom.xml ./componente-periferico/backend/pom.xml
-COPY frontend-admin-clinica/pom.xml ./componente-periferico/frontend-admin-clinica/pom.xml
+COPY componente-periferico/backend/pom.xml ./componente-periferico/backend/pom.xml
+COPY componente-periferico/frontend-admin-clinica/pom.xml ./componente-periferico/frontend-admin-clinica/pom.xml
 
 # Build backend primero
 WORKDIR /build/componente-periferico/backend
-COPY backend/src ./src
+COPY componente-periferico/backend/src ./src
 RUN mvn clean package -DskipTests
 
 # Build frontend
 WORKDIR /build/componente-periferico/frontend-admin-clinica
-COPY frontend-admin-clinica/src ./src
+COPY componente-periferico/frontend-admin-clinica/src ./src
 RUN mvn clean package -DskipTests
 
 # Runtime stage
@@ -28,10 +28,10 @@ USER root
 RUN curl -L https://jdbc.postgresql.org/download/postgresql-42.6.0.jar -o /opt/jboss/wildfly/standalone/deployments/postgresql-42.6.0.jar
 
 # Copy datasource configuration script
-COPY --chown=jboss:jboss backend/datasource-config.cli /opt/jboss/
+COPY --chown=jboss:jboss componente-periferico/backend/datasource-config.cli /opt/jboss/
 
 # Copy startup script
-COPY --chown=jboss:jboss backend/startup.sh /opt/jboss/
+COPY --chown=jboss:jboss componente-periferico/backend/startup.sh /opt/jboss/
 RUN chmod +x /opt/jboss/startup.sh
 
 # Copy backend WAR
