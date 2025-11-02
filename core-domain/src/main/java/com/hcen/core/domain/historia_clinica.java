@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
+// Fixed FK composite key issue
+
 @Entity
 @Table(name = "HISTORIA_CLINICA")
 public class historia_clinica {
