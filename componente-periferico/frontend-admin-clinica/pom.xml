@@ -71,7 +71,7 @@
     </dependencies>
 
     <build>
-        <finalName>frontend-admin-clinica</finalName>
+        <finalName>prestador-salud</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
