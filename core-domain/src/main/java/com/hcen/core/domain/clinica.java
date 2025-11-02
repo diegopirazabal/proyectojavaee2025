@@ -40,9 +40,7 @@ public class clinica {
             inverseJoinColumns = @JoinColumn(name = "PROFESIONAL_CI"))
     private Set<profesional_salud> profesionales = new HashSet<>();
 
-    // Administradores
-    @ManyToMany(mappedBy = "clinicasGestionadas")
-    private Set<administrador_hcen> administradores = new HashSet<>();
+    // Relación con administradores eliminada: usar tabla ADMINISTRADOR_CLINICA vía repositorio
 
     public UUID getTenantId() { return tenantId; }
     public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
@@ -60,8 +58,6 @@ public class clinica {
     public void setUsuarios(Set<usuario_salud> usuarios) { this.usuarios = usuarios; }
     public Set<profesional_salud> getProfesionales() { return profesionales; }
     public void setProfesionales(Set<profesional_salud> profesionales) { this.profesionales = profesionales; }
-    public Set<administrador_hcen> getAdministradores() { return administradores; }
-    public void setAdministradores(Set<administrador_hcen> administradores) { this.administradores = administradores; }
 
     @Override public boolean equals(Object o){ return (this==o) || (o instanceof clinica c && Objects.equals(tenantId,c.tenantId)); }
     @Override public int hashCode(){ return Objects.hash(tenantId); }
