@@ -8,7 +8,6 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
 import java.io.InputStream;
-import java.io.StringReader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -87,7 +86,8 @@ public class ClientCredentialsConfig {
     private void loadFromJsonFile() {
         try (InputStream is = getClass().getResourceAsStream(CLASSPATH_CONFIG)) {
             if (is == null) {
-                throw new RuntimeException("No se encontró " + CLASSPATH_CONFIG + " en classpath");
+                loadDevelopmentDefaults("No se encontró " + CLASSPATH_CONFIG + " en classpath");
+                return;
             }
             
             try (JsonReader reader = Json.createReader(is)) {
@@ -109,8 +109,22 @@ public class ClientCredentialsConfig {
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al cargar credenciales desde JSON", e);
-            throw new RuntimeException("No se pudieron cargar las credenciales del cliente", e);
+            loadDevelopmentDefaults("Error al cargar credenciales desde JSON: " + e.getMessage());
         }
+    }
+    
+    private void loadDevelopmentDefaults(String reason) {
+        if (activeEnvironment == null) {
+            activeEnvironment = "development";
+        }
+        
+        LOGGER.log(Level.WARNING, "Fallo al resolver credenciales dinámicas ({0}). Usando valores por defecto de desarrollo.", reason);
+        this.clientId = "usuario-salud-local";
+        this.clientSecret = "usuario-salud-local-secret";
+        this.centralServerUrl = "http://localhost:8080/hcen-central";
+        LOGGER.info("Cliente ID (dev): " + clientId);
+        LOGGER.info("URL servidor central (dev): " + centralServerUrl);
+        LOGGER.info("=" .repeat(60));
     }
     
     public String getClientId() {
