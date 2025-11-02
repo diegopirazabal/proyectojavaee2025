@@ -6,50 +6,52 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Entity
-@Table(name = "USUARIO_SALUD")
+@Table(name = "usuario_salud")
+@IdClass(usuario_salud.UsuarioSaludPK.class)
 public class usuario_salud {
 
     @Id
-    @Column(name = "cedula", length = 20)
+    @Column(name = "cedula", nullable = false)
     private String cedula;
 
-    @Column(name = "tenant_id", length = 36)
+    @Id
+    @Column(name = "tenant_id", nullable = false, columnDefinition = "uuid")
     private String tenantId;
 
-    @Column(name = "tipo_documento", length = 10)
+    @Column(name = "tipo_documento", columnDefinition = "varchar DEFAULT 'DO'")
     private String tipoDocumento;
 
-    @Column(name = "primer_nombre", length = 100)
+    @Column(name = "primer_nombre", nullable = false)
     private String primerNombre;
 
-    @Column(name = "segundo_nombre", length = 100)
+    @Column(name = "segundo_nombre")
     private String segundoNombre;
 
-    @Column(name = "primer_apellido", length = 100)
+    @Column(name = "primer_apellido", nullable = false)
     private String primerApellido;
 
-    @Column(name = "segundo_apellido", length = 100)
+    @Column(name = "segundo_apellido")
     private String segundoApellido;
 
-    @Column(length = 150)
+    @Column(name = "email", nullable = false)
     private String email;
 
     @Column(name = "fecha_nac")
     private LocalDate fechaNac;
 
-    @Column(length = 200)
+    @Column(name = "direccion")
     private String direccion;
 
-    @Column(name = "active")
-    private Boolean active;
+    @Column(name = "active", nullable = false, columnDefinition = "boolean DEFAULT true")
+    private Boolean active = true;
 
-    @Column(name = "sincronizado_central")
-    private Boolean sincronizadoCentral;
+    @Column(name = "sincronizado_central", nullable = false, columnDefinition = "boolean DEFAULT false")
+    private Boolean sincronizadoCentral = false;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, columnDefinition = "timestamp DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, columnDefinition = "timestamp DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
     // Campos legacy para compatibilidad (deprecated)
@@ -138,7 +140,48 @@ public class usuario_salud {
     public List<politica_acceso> getPoliticasAcceso() { return politicasAcceso; }
     public void setPoliticasAcceso(List<politica_acceso> politicasAcceso) { this.politicasAcceso = politicasAcceso; }
 
-    // equals/hashCode por PK
-    @Override public boolean equals(Object o){ return (this==o) || (o instanceof usuario_salud u && Objects.equals(cedula,u.cedula)); }
-    @Override public int hashCode(){ return Objects.hash(cedula); }
+    // equals/hashCode por PK compuesta
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof usuario_salud)) return false;
+        usuario_salud that = (usuario_salud) o;
+        return Objects.equals(cedula, that.cedula) && Objects.equals(tenantId, that.tenantId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(cedula, tenantId);
+    }
+
+    // Clase para Primary Key compuesta
+    public static class UsuarioSaludPK implements java.io.Serializable {
+        private String cedula;
+        private String tenantId;
+
+        public UsuarioSaludPK() {}
+
+        public UsuarioSaludPK(String cedula, String tenantId) {
+            this.cedula = cedula;
+            this.tenantId = tenantId;
+        }
+
+        public String getCedula() { return cedula; }
+        public void setCedula(String cedula) { this.cedula = cedula; }
+        public String getTenantId() { return tenantId; }
+        public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof UsuarioSaludPK)) return false;
+            UsuarioSaludPK that = (UsuarioSaludPK) o;
+            return Objects.equals(cedula, that.cedula) && Objects.equals(tenantId, that.tenantId);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(cedula, tenantId);
+        }
+    }
 }
