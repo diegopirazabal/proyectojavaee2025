@@ -16,10 +16,10 @@ WORKDIR /build
 COPY componente-periferico/backend/pom.xml ./componente-periferico/backend/pom.xml
 COPY componente-periferico/frontend-admin-clinica/pom.xml ./componente-periferico/frontend-admin-clinica/pom.xml
 
-# Build backend
+# Build backend e instalarlo para que frontend pueda usarlo
 WORKDIR /build/componente-periferico/backend
 COPY componente-periferico/backend/src ./src
-RUN mvn clean package -DskipTests
+RUN mvn clean install -DskipTests
 
 # Build frontend
 WORKDIR /build/componente-periferico/frontend-admin-clinica
