@@ -25,6 +25,9 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
 import java.security.cert.X509Certificate;
 import java.security.SecureRandom;
 
@@ -79,10 +82,14 @@ public class CentralAPIClient {
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, trustAllCerts, new SecureRandom());
             
-            // Crear HttpClient con el SSLContext configurado
+            // Crear HttpClient con el SSLContext configurado y hostname verifier que acepta todo
+            SSLParameters sslParams = new SSLParameters();
+            sslParams.setEndpointIdentificationAlgorithm(null); // Deshabilita validación de hostname
+            
             return HttpClient.newBuilder()
                 .connectTimeout(TIMEOUT)
                 .sslContext(sslContext)
+                .sslParameters(sslParams)
                 .build();
                 
         } catch (Exception e) {

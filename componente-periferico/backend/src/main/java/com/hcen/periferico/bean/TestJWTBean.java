@@ -19,6 +19,7 @@ import java.util.UUID;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.SSLParameters;
 import java.security.cert.X509Certificate;
 import java.security.SecureRandom;
 import java.util.logging.Level;
@@ -66,10 +67,14 @@ public class TestJWTBean implements Serializable {
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, trustAllCerts, new SecureRandom());
             
-            // Crear HttpClient con el SSLContext configurado
+            // Crear HttpClient con el SSLContext configurado y hostname verifier que acepta todo
+            SSLParameters sslParams = new SSLParameters();
+            sslParams.setEndpointIdentificationAlgorithm(null); // Deshabilita validación de hostname
+            
             return HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(30))
                 .sslContext(sslContext)
+                .sslParameters(sslParams)
                 .build();
                 
         } catch (Exception e) {
