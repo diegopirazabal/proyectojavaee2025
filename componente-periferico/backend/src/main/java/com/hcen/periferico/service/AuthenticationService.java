@@ -39,13 +39,18 @@ public class AuthenticationService {
      */
     public administrador_clinica createAdmin(String username, String password, String nombre,
                                            String apellidos, UUID tenantId) {
+        return createAdmin(username, password, nombre, apellidos, tenantId, true);
+    }
+
+    public administrador_clinica createAdmin(String username, String password, String nombre,
+                                             String apellidos, UUID tenantId, boolean enforcePasswordPolicy) {
         // Verificar que no exista ya un administrador con ese username en esa clínica
         if (adminDAO.existsByUsernameAndTenant(username, tenantId)) {
             throw new IllegalArgumentException("Ya existe un administrador con ese username en esta clínica");
         }
 
         // Validar contraseña
-        if (!isValidPassword(password)) {
+        if (enforcePasswordPolicy && !isValidPassword(password)) {
             throw new IllegalArgumentException(
                 "La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números"
             );
