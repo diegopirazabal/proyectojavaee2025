@@ -72,13 +72,20 @@ public class ProfesionalBean implements Serializable {
 
     public void saveProfesional() {
         try {
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                return;
+            }
+
             apiService.saveProfesional(
                 newProfesional.getCi(),
                 newProfesional.getNombre(),
                 newProfesional.getApellidos(),
                 newProfesional.getEspecialidad(),
                 newProfesional.getEmail(),
-                newProfesional.getPassword()
+                newProfesional.getPassword(),
+                tenantId
             );
 
             addMessage(FacesMessage.SEVERITY_INFO, "Profesional guardado exitosamente");
@@ -99,13 +106,20 @@ public class ProfesionalBean implements Serializable {
                 return;
             }
 
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                return;
+            }
+
             apiService.saveProfesional(
                 selectedProfesional.getCi(),
                 selectedProfesional.getNombre(),
                 selectedProfesional.getApellidos(),
                 selectedProfesional.getEspecialidad(),
                 selectedProfesional.getEmail(),
-                null  // No cambiar password en actualización
+                null,  // No cambiar password en actualización
+                tenantId
             );
 
             addMessage(FacesMessage.SEVERITY_INFO, "Profesional actualizado exitosamente");
