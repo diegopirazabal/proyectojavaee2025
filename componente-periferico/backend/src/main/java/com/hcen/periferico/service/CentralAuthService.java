@@ -21,8 +21,12 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
 import java.security.cert.X509Certificate;
 import java.security.SecureRandom;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Servicio de autenticación con componente-central
@@ -55,26 +59,38 @@ public class CentralAuthService {
             TrustManager[] trustAllCerts = new TrustManager[] {
                 new X509TrustManager() {
                     public X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
+                        return null;
                     }
                     public void checkClientTrusted(X509Certificate[] certs, String authType) {}
                     public void checkServerTrusted(X509Certificate[] certs, String authType) {}
                 }
             };
             
+            // HostnameVerifier que acepta todos los hostnames
+            HostnameVerifier allHostsValid = new HostnameVerifier() {
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            };
+            
             // Configurar SSLContext con el TrustManager que acepta todo
-            SSLContext sslContext = SSLContext.getInstance("TLS");
+            SSLContext sslContext = SSLContext.getInstance("SSL");
             sslContext.init(null, trustAllCerts, new SecureRandom());
             
-            LOGGER.info("HttpClient configurado con SSL bypass (sin validación de certificados)");
+            // Configurar SSL parameters para deshabilitar endpoint identification
+            SSLParameters sslParams = new SSLParameters();
+            sslParams.setEndpointIdentificationAlgorithm("");
+            
+            LOGGER.warning("HttpClient configurado con SSL bypass - SIN VALIDACIÓN DE CERTIFICADOS (solo para desarrollo)");
             
             return HttpClient.newBuilder()
                 .connectTimeout(REQUEST_TIMEOUT)
                 .sslContext(sslContext)
+                .sslParameters(sslParams)
                 .build();
                 
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "No se pudo configurar SSL permisivo, usando cliente por defecto", e);
+            LOGGER.log(Level.SEVERE, "No se pudo configurar SSL permisivo, usando cliente por defecto", e);
             return HttpClient.newBuilder()
                 .connectTimeout(REQUEST_TIMEOUT)
                 .build();
