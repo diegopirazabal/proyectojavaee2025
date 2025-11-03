@@ -10,23 +10,25 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
 import java.io.StringReader;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.util.Timeout;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSession;
 import java.security.cert.X509Certificate;
-import java.security.SecureRandom;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * Servicio de autenticación con componente-central
@@ -37,23 +39,22 @@ import java.security.NoSuchAlgorithmException;
 public class CentralAuthService {
     
     private static final Logger LOGGER = Logger.getLogger(CentralAuthService.class.getName());
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+    private static final int REQUEST_TIMEOUT_SECONDS = 30;
     
     @EJB
     private ClientCredentialsConfig credentialsConfig;
     
     private String currentToken;
-    private final HttpClient httpClient;
+    private final CloseableHttpClient httpClient;
     
     public CentralAuthService() {
         this.httpClient = createHttpClient();
     }
-    
     /**
-     * Crea un HttpClient que acepta certificados SSL no confiables
+     * Crea un HttpClient que acepta certificados SSL no confiables usando Apache HttpClient 5
      * NOTA: Esto es solo para desarrollo. En producción debe usarse un truststore apropiado.
      */
-    private HttpClient createHttpClient() {
+    private CloseableHttpClient createHttpClient() {
         try {
             // TrustManager que acepta todos los certificados
             TrustManager[] trustAllCerts = new TrustManager[] {
@@ -66,34 +67,30 @@ public class CentralAuthService {
                 }
             };
             
-            // HostnameVerifier que acepta todos los hostnames
-            HostnameVerifier allHostsValid = new HostnameVerifier() {
-                public boolean verify(String hostname, SSLSession session) {
-                    return true;
-                }
-            };
-            
             // Configurar SSLContext con el TrustManager que acepta todo
-            SSLContext sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, trustAllCerts, new SecureRandom());
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
             
-            // Configurar SSL parameters para deshabilitar endpoint identification
-            SSLParameters sslParams = new SSLParameters();
-            sslParams.setEndpointIdentificationAlgorithm(null);
+            // Crear SSLConnectionSocketFactory con NoopHostnameVerifier
+            SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(
+                sslContext,
+                NoopHostnameVerifier.INSTANCE
+            );
             
-            LOGGER.warning("HttpClient configurado con SSL bypass - SIN VALIDACIÓN DE CERTIFICADOS (solo para desarrollo)");
+            // Crear connection manager con SSL custom
+            HttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                .setSSLSocketFactory(sslSocketFactory)
+                .build();
             
-            return HttpClient.newBuilder()
-                .connectTimeout(REQUEST_TIMEOUT)
-                .sslContext(sslContext)
-                .sslParameters(sslParams)
+            LOGGER.warning("HttpClient (Apache) configurado con SSL bypass - SIN VALIDACIÓN DE CERTIFICADOS (solo para desarrollo)");
+            
+            return HttpClients.custom()
+                .setConnectionManager(connectionManager)
                 .build();
                 
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "No se pudo configurar SSL permisivo, usando cliente por defecto", e);
-            return HttpClient.newBuilder()
-                .connectTimeout(REQUEST_TIMEOUT)
-                .build();
+            LOGGER.log(Level.SEVERE, "No se pudo configurar SSL permisivo", e);
+            return HttpClients.createDefault();
         }
     }
     
@@ -117,28 +114,28 @@ public class CentralAuthService {
                 .build()
                 .toString();
             
-            // Hacer request al endpoint de autenticación
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(credentialsConfig.getAuthTokenUrl()))
-                .timeout(REQUEST_TIMEOUT)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
+            // Crear POST request
+            HttpPost httpPost = new HttpPost(credentialsConfig.getAuthTokenUrl());
+            httpPost.setEntity(new StringEntity(requestBody, ContentType.APPLICATION_JSON));
             
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            
-            if (response.statusCode() == 200) {
-                // Parsear respuesta y extraer token
-                try (JsonReader jsonReader = Json.createReader(new StringReader(response.body()))) {
-                    JsonObject jsonResponse = jsonReader.readObject();
-                    this.currentToken = jsonResponse.getString("accessToken");
-                    
-                    LOGGER.info("Autenticación exitosa, token obtenido");
-                    return true;
+            // Ejecutar request
+            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+                int statusCode = response.getCode();
+                String responseBody = EntityUtils.toString(response.getEntity());
+                
+                if (statusCode == 200) {
+                    // Parsear respuesta y extraer token
+                    try (JsonReader jsonReader = Json.createReader(new StringReader(responseBody))) {
+                        JsonObject jsonResponse = jsonReader.readObject();
+                        this.currentToken = jsonResponse.getString("accessToken");
+                        
+                        LOGGER.info("Autenticación exitosa, token obtenido");
+                        return true;
+                    }
+                } else {
+                    LOGGER.severe("Error en autenticación. Status: " + statusCode + ", Body: " + responseBody);
+                    return false;
                 }
-            } else {
-                LOGGER.severe("Error en autenticación. Status: " + response.statusCode() + ", Body: " + response.body());
-                return false;
             }
             
         } catch (Exception e) {
