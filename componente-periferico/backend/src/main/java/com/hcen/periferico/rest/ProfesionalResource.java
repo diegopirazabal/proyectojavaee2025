@@ -95,7 +95,8 @@ public class ProfesionalResource {
                 dto.getNombre(),
                 dto.getApellidos(),
                 dto.getEspecialidad(),
-                dto.getEmail()
+                dto.getEmail(),
+                dto.getPassword()
             );
             profesional_salud_dto resultDto = toDTO(profesional);
             return Response.ok(resultDto).build();
@@ -124,7 +125,8 @@ public class ProfesionalResource {
                 dto.getNombre(),
                 dto.getApellidos(),
                 dto.getEspecialidad(),
-                dto.getEmail()
+                dto.getEmail(),
+                null  // Password null para actualizaciones (no se cambia)
             );
             return Response.ok(toDTO(profesional)).build();
         } catch (IllegalArgumentException e) {

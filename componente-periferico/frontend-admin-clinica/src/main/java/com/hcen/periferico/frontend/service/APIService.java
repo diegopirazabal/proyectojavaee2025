@@ -237,7 +237,7 @@ public class APIService implements Serializable {
     }
 
     public profesional_salud_dto saveProfesional(Integer ci, String nombre, String apellidos,
-                                               String especialidad, String email) {
+                                               String especialidad, String email, String password) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(BACKEND_URL() + "/profesionales");
 
@@ -247,6 +247,7 @@ public class APIService implements Serializable {
                 .add("apellidos", apellidos)
                 .add("especialidad", especialidad != null ? especialidad : "")
                 .add("email", email != null ? email : "")
+                .add("password", password != null ? password : "")
                 .build();
 
             StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);

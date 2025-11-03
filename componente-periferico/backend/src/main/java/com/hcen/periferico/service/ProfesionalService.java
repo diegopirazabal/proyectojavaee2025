@@ -4,6 +4,7 @@ import com.hcen.periferico.entity.profesional_salud;
 import com.hcen.periferico.dao.ProfesionalSaludDAO;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,7 +23,7 @@ public class ProfesionalService {
      * Crea o actualiza un profesional de salud
      */
     public profesional_salud saveProfesional(Integer ci, String nombre, String apellidos,
-                                           String especialidad, String email) {
+                                           String especialidad, String email, String password) {
         // Validaciones
         if (ci == null || ci <= 0) {
             throw new IllegalArgumentException("La cédula es requerida y debe ser válida");
@@ -44,6 +45,12 @@ public class ProfesionalService {
             // Crear nuevo
             profesional = new profesional_salud();
             profesional.setCi(ci);
+
+            // Solo hashear password si es un nuevo profesional
+            if (password == null || password.trim().isEmpty()) {
+                throw new IllegalArgumentException("La contraseña es requerida para nuevos profesionales");
+            }
+            profesional.setPassword(hashPassword(password));
         }
 
         profesional.setNombre(nombre.trim());
@@ -196,5 +203,12 @@ public class ProfesionalService {
             return countProfesionalesByTenantId(tenantId);
         }
         return profesionalDAO.countByNombreOrApellidoAndTenantId(searchTerm.trim(), tenantId);
+    }
+
+    /**
+     * Hashea una contraseña usando BCrypt
+     */
+    private String hashPassword(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt(12));
     }
 }
