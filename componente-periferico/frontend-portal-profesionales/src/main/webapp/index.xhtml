@@ -1,10 +1,11 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
       xmlns:f="jakarta.faces.core">
 
 <h:head>
+    <meta charset="UTF-8"/>
     <title>Login - Portal Profesionales</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 </h:head>
@@ -17,12 +18,12 @@
 
                 <div class="p-fluid">
                     <div class="p-field" style="margin-bottom: 1rem;">
-                        <p:outputLabel for="clinica" value="Clínica"/>
+                        <p:outputLabel for="clinica" value="ClÃ­nica"/>
                         <p:selectOneMenu id="clinica"
                                         value="#{loginBean.selectedTenantId}"
                                         required="true"
-                                        requiredMessage="Debe seleccionar una clínica">
-                            <f:selectItem itemLabel="-- Seleccione una clínica --" itemValue="" noSelectionOption="true"/>
+                                        requiredMessage="Debe seleccionar una clÃ­nica">
+                            <f:selectItem itemLabel="-- Seleccione una clÃ­nica --" itemValue="" noSelectionOption="true"/>
                             <f:selectItems value="#{loginBean.clinicas}"
                                            var="clinica"
                                            itemLabel="#{clinica.nombre}"
@@ -31,7 +32,7 @@
                     </div>
 
                     <div class="p-field" style="margin-bottom: 1rem;">
-                        <p:outputLabel for="email" value="Correo electrónico"/>
+                        <p:outputLabel for="email" value="Correo electrÃ³nico"/>
                         <p:inputText id="email"
                                      value="#{loginBean.email}"
                                      required="true"
@@ -39,15 +40,15 @@
                     </div>
 
                     <div class="p-field" style="margin-bottom: 1rem;">
-                        <p:outputLabel for="password" value="Contraseña"/>
+                        <p:outputLabel for="password" value="ContraseÃ±a"/>
                         <p:password id="password"
                                    value="#{loginBean.password}"
                                    required="true"
                                    feedback="false"
-                                   requiredMessage="La contraseña es requerida"/>
+                                   requiredMessage="La contraseÃ±a es requerida"/>
                     </div>
 
-                    <p:commandButton value="Iniciar Sesión"
+                    <p:commandButton value="Iniciar SesiÃ³n"
                                     action="#{loginBean.login}"
                                     update="messages"
                                     icon="pi pi-sign-in"
@@ -58,7 +59,7 @@
 
             <f:facet name="footer">
                 <div style="text-align: center; font-size: 0.9em; color: #666;">
-                    Sistema de Gestión de Clínicas - HCEN
+                    Sistema de GestiÃ³n de ClÃ­nicas - HCEN
                 </div>
             </f:facet>
         </p:panel>
