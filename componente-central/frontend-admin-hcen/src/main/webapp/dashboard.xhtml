@@ -93,7 +93,7 @@
                                                styleClass="action-button"
                                                icon="pi pi-bell"
                                                action="#{notification_bean.sendTestNotification}"
-                                               update="messages"
+                                               update="dashboardForm:messages"
                                                process="@this"/>
                                 <br/><br/>
                                 <p:commandButton value="Gestionar Usuarios"
@@ -139,7 +139,7 @@
                                     <p:commandButton value="Refrescar"
                                                      icon="pi pi-refresh"
                                                      action="#{dashboard_bean.cargarUsuariosSalud}"
-                                                     update="usuariosTable messages"
+                                                     update="dashboardForm:usuariosTable dashboardForm:messages"
                                                      process="@this"
                                                      styleClass="action-button"/>
                                 </div>
@@ -170,7 +170,7 @@
                                         <p:commandButton value="Notificar"
                                                          icon="pi pi-bell"
                                                          action="#{dashboard_bean.enviarNotificacion(usuario)}"
-                                                         update="messages"
+                                                         update="dashboardForm:messages"
                                                          process="@this"
                                                          styleClass="action-button"/>
                                     </p:column>
@@ -186,7 +186,7 @@
                                     <p:commandButton value="Refrescar"
                                                      icon="pi pi-refresh"
                                                      action="#{dashboard_bean.cargarPrestadores}"
-                                                     update="prestadoresTable messages"
+                                                     update="dashboardForm:prestadoresTable dashboardForm:messages"
                                                      process="@this"
                                                      styleClass="action-button"/>
                                     <p:commandButton type="button"
@@ -231,7 +231,7 @@
                                     <p:commandButton value="Refrescar"
                                                      icon="pi pi-refresh"
                                                      action="#{dashboard_bean.cargarClinicas}"
-                                                     update="clinicasTable messages"
+                                                     update="dashboardForm:clinicasTable dashboardForm:messages"
                                                      process="@this"
                                                      styleClass="action-button"/>
                                     <p:commandButton type="button"

@@ -4,20 +4,20 @@
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:p="http://primefaces.org/ui">
 
-<h:head>
-    <title>HCEN - Gestión de Usuarios</title>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/dashboard.css"/>
-    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/usuarios.css"/>
-</h:head>
-
-<h:body>
 <f:view>
     <f:metadata>
         <f:event type="preRenderView" listener="#{login_bean.checkAuthentication}"/>
     </f:metadata>
-</f:view>
+
+    <h:head>
+        <title>HCEN - Gestión de Usuarios</title>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/dashboard.css"/>
+        <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/usuarios.css"/>
+    </h:head>
+
+    <h:body>
 
 <div class="dashboard-container">
     <header class="dashboard-header">
@@ -67,6 +67,21 @@
                                              actionListener="#{usuarios_bean.buscarPorNombre}"
                                              update="usuariosForm:tablaUsuarios usuariosForm:messages"
                                              styleClass="action-button"/>
+                        </div>
+                    </div>
+
+                    <div class="filtro-bloque">
+                        <h3>Filtrar por tipo de usuario</h3>
+                        <div class="filtro-row">
+                            <p:selectOneMenu value="#{usuarios_bean.filtroTipoUsuario}" styleClass="filtro-select">
+                                <f:selectItems value="#{usuarios_bean.tiposUsuario}"
+                                               var="tipo"
+                                               itemValue="#{tipo}"
+                                               itemLabel="#{usuarios_bean.obtenerEtiquetaTipoUsuario(tipo)}"/>
+                                <p:ajax listener="#{usuarios_bean.aplicarFiltroTipoUsuario}"
+                                        update="usuariosForm:tablaUsuarios usuariosForm:messages"
+                                        process="@this"/>
+                            </p:selectOneMenu>
                         </div>
                     </div>
 
@@ -209,4 +224,5 @@
 </div>
 
 </h:body>
+</f:view>
 </html>

@@ -1,6 +1,7 @@
 package hcen.frontend.admin.bean;
 
 import hcen.frontend.admin.dto.usuario_sistema_dto;
+import hcen.frontend.admin.service.ApiUnauthorizedException;
 import hcen.frontend.admin.service.api_service;
 import jakarta.annotation.PostConstruct;
 import jakarta.faces.application.FacesMessage;
@@ -25,13 +26,16 @@ public class usuarios_bean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private static final List<String> TIPOS_DOCUMENTO = Arrays.asList("DO", "PA", "OTRO");
+    private static final List<String> TIPOS_USUARIO = Arrays.asList("TODOS", "USUARIO_SALUD", "PROFESIONAL_SALUD", "ADMINISTRADOR_CLINICA");
 
     @Inject
     private api_service apiService;
 
+    private List<usuario_sistema_dto> catalogoCompleto = new ArrayList<>();
     private List<usuario_sistema_dto> usuarios = new ArrayList<>();
 
     private String filtroTipoDoc = "DO";
+    private String filtroTipoUsuario = "TODOS";
     private String filtroNumeroDoc;
     private String filtroNombre;
     private String filtroApellido;
@@ -46,9 +50,12 @@ public class usuarios_bean implements Serializable {
 
     public void cargarUsuariosIniciales() {
         try {
-            usuarios = apiService.obtenerUsuariosSistema(null, null, null, null);
+            List<usuario_sistema_dto> resultado = apiService.obtenerUsuariosSistema(null, null, null, null);
+            actualizarCatalogo(resultado);
+        } catch (ApiUnauthorizedException e) {
+            manejarNoAutorizado(e);
         } catch (Exception e) {
-            usuarios = new ArrayList<>();
+            limpiarCatalogo();
             LOGGER.log(Level.SEVERE, "No se pudo cargar el catálogo inicial", e);
             addError("Error", "No se pudo cargar el catálogo de usuarios");
         }
@@ -60,10 +67,13 @@ public class usuarios_bean implements Serializable {
             return;
         }
         try {
-            usuarios = apiService.obtenerUsuariosSistema(filtroTipoDoc, filtroNumeroDoc.trim(), null, null);
+            List<usuario_sistema_dto> resultado = apiService.obtenerUsuariosSistema(filtroTipoDoc, filtroNumeroDoc.trim(), null, null);
+            actualizarCatalogo(resultado);
             if (usuarios.isEmpty()) {
                 addInfo("Sin resultados", "No se encontraron usuarios para el documento indicado");
             }
+        } catch (ApiUnauthorizedException e) {
+            manejarNoAutorizado(e);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error buscando por documento", e);
             addError("Error", "No se pudo recuperar la información del documento indicado");
@@ -76,12 +86,15 @@ public class usuarios_bean implements Serializable {
             return;
         }
         try {
-            usuarios = apiService.obtenerUsuariosSistema(null, null,
+            List<usuario_sistema_dto> resultado = apiService.obtenerUsuariosSistema(null, null,
                     filtroNombre != null ? filtroNombre.trim() : null,
                     filtroApellido != null ? filtroApellido.trim() : null);
+            actualizarCatalogo(resultado);
             if (usuarios.isEmpty()) {
                 addInfo("Sin resultados", "No se encontraron usuarios con los filtros ingresados");
             }
+        } catch (ApiUnauthorizedException e) {
+            manejarNoAutorizado(e);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error buscando por nombre", e);
             addError("Error", "No se pudo recuperar la información con los filtros indicados");
@@ -93,7 +106,12 @@ public class usuarios_bean implements Serializable {
         filtroNombre = null;
         filtroApellido = null;
         filtroTipoDoc = "DO";
+        filtroTipoUsuario = "TODOS";
         cargarUsuariosIniciales();
+    }
+
+    public void aplicarFiltroTipoUsuario() {
+        usuarios = aplicarFiltroTipo(catalogoCompleto);
     }
 
     public void prepararEdicion(usuario_sistema_dto usuario) {
@@ -143,12 +161,24 @@ public class usuarios_bean implements Serializable {
         return TIPOS_DOCUMENTO;
     }
 
+    public List<String> getTiposUsuario() {
+        return TIPOS_USUARIO;
+    }
+
     public String getFiltroTipoDoc() {
         return filtroTipoDoc;
     }
 
     public void setFiltroTipoDoc(String filtroTipoDoc) {
         this.filtroTipoDoc = filtroTipoDoc;
+    }
+
+    public String getFiltroTipoUsuario() {
+        return filtroTipoUsuario;
+    }
+
+    public void setFiltroTipoUsuario(String filtroTipoUsuario) {
+        this.filtroTipoUsuario = filtroTipoUsuario;
     }
 
     public String getFiltroNumeroDoc() {
@@ -189,6 +219,18 @@ public class usuarios_bean implements Serializable {
 
     public boolean isAdministradorSeleccionado() {
         return usuarioEdicion != null && usuarioEdicion.esAdministradorClinica();
+    }
+
+    public String obtenerEtiquetaTipoUsuario(String codigo) {
+        if (codigo == null || codigo.isBlank() || "TODOS".equalsIgnoreCase(codigo)) {
+            return "Todos";
+        }
+        return switch (codigo.toUpperCase()) {
+            case "USUARIO_SALUD" -> "Usuario de salud";
+            case "PROFESIONAL_SALUD" -> "Profesional de salud";
+            case "ADMINISTRADOR_CLINICA" -> "Administrador de clínica";
+            default -> codigo;
+        };
     }
 
     public String obtenerClaseFila(usuario_sistema_dto usuario) {
@@ -258,6 +300,44 @@ public class usuarios_bean implements Serializable {
         return usuario.getTipoUsuario();
     }
 
+    private void actualizarCatalogo(List<usuario_sistema_dto> resultado) {
+        if (resultado == null) {
+            limpiarCatalogo();
+            return;
+        }
+        catalogoCompleto = new ArrayList<>(resultado);
+        usuarios = aplicarFiltroTipo(catalogoCompleto);
+    }
+
+    private List<usuario_sistema_dto> aplicarFiltroTipo(List<usuario_sistema_dto> origen) {
+        List<usuario_sistema_dto> fuente = origen != null ? origen : new ArrayList<>();
+        if (filtroTipoUsuario == null || "TODOS".equalsIgnoreCase(filtroTipoUsuario)) {
+            return new ArrayList<>(fuente);
+        }
+        List<usuario_sistema_dto> filtrados = new ArrayList<>();
+        for (usuario_sistema_dto usuario : fuente) {
+            if (usuario == null) {
+                continue;
+            }
+            String tipo = usuario.getTipoUsuario();
+            if (tipo != null && filtroTipoUsuario.equalsIgnoreCase(tipo)) {
+                filtrados.add(usuario);
+            }
+        }
+        return filtrados;
+    }
+
+    private void limpiarCatalogo() {
+        catalogoCompleto = new ArrayList<>();
+        usuarios = new ArrayList<>();
+    }
+
+    private void manejarNoAutorizado(ApiUnauthorizedException e) {
+        limpiarCatalogo();
+        LOGGER.log(Level.WARNING, "Acceso no autorizado al catálogo de usuarios", e);
+        addWarn("Sesión expirada", "Tu sesión expiró o no cuenta con permisos para consultar el catálogo.");
+    }
+
     private void recomponerNombreCompleto(usuario_sistema_dto usuario) {
         StringBuilder builder = new StringBuilder();
         if (usuario.getPrimerNombre() != null && !usuario.getPrimerNombre().isBlank()) {
@@ -287,6 +367,11 @@ public class usuarios_bean implements Serializable {
     private void addInfo(String summary, String detail) {
         FacesContext.getCurrentInstance().addMessage(null,
                 new FacesMessage(FacesMessage.SEVERITY_INFO, summary, detail));
+    }
+
+    private void addWarn(String summary, String detail) {
+        FacesContext.getCurrentInstance().addMessage(null,
+                new FacesMessage(FacesMessage.SEVERITY_WARN, summary, detail));
     }
 
     private void addError(String summary, String detail) {
