@@ -82,14 +82,11 @@ public class CentralAPIClient {
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, trustAllCerts, new SecureRandom());
             
-            // Crear HttpClient con el SSLContext configurado y hostname verifier que acepta todo
-            SSLParameters sslParams = new SSLParameters();
-            sslParams.setEndpointIdentificationAlgorithm(null); // Deshabilita validación de hostname
+            LOGGER.info("CentralAPIClient configurado con SSL bypass (sin validación de certificados)");
             
             return HttpClient.newBuilder()
                 .connectTimeout(TIMEOUT)
                 .sslContext(sslContext)
-                .sslParameters(sslParams)
                 .build();
                 
         } catch (Exception e) {
