@@ -40,7 +40,12 @@ public class ProfesionalBean implements Serializable {
 
     public void loadProfesionales() {
         try {
-            profesionales = apiService.getAllProfesionales();
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                return;
+            }
+            profesionales = apiService.getAllProfesionales(tenantId);
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar profesionales: " + e.getMessage());
             e.printStackTrace();
@@ -49,10 +54,15 @@ public class ProfesionalBean implements Serializable {
 
     public void search() {
         try {
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                return;
+            }
             if (searchTerm == null || searchTerm.trim().isEmpty()) {
                 loadProfesionales();
             } else {
-                profesionales = apiService.searchProfesionales(searchTerm);
+                profesionales = apiService.searchProfesionales(searchTerm, tenantId);
             }
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error en la búsqueda: " + e.getMessage());

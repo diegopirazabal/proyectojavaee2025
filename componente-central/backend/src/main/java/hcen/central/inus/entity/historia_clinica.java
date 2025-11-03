@@ -1,10 +1,8 @@
-package com.hcen.core.domain;
+package hcen.central.inus.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.*;
-
-// Fixed FK composite key issue
 
 @Entity
 @Table(name = "HISTORIA_CLINICA")
@@ -21,27 +19,25 @@ public class historia_clinica {
     @Column(name = "FEC_ACTUALIZACION")
     private LocalDateTime fecActualizacion;
 
-    // Usuario
-    @OneToOne(optional = false, fetch = FetchType.LAZY)
+    // Usuario - Referencia a UsuarioSalud local con composite key
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumns({
-        @JoinColumn(name = "usuario_ci", referencedColumnName = "cedula", nullable = false),
-        @JoinColumn(name = "usuario_tenant_id", referencedColumnName = "tenant_id", nullable = false)
+        @JoinColumn(name = "USUARIO_ID", referencedColumnName = "id", nullable = false),
+        @JoinColumn(name = "USUARIO_CEDULA", referencedColumnName = "cedula", nullable = false)
     })
-    private usuario_salud usuario;
+    private UsuarioSalud usuario;
 
-    // Documentos clínicos
-    @OneToMany(mappedBy = "historiaClinica", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<documento_clinico> documentos = new ArrayList<>();
+    // NOTA: Documentos clínicos NO se persisten en central
+    // Los documentos están en backend periférico y se obtienen vía API REST
+    // Ver HistoriaClinicaService para consultar documentos remotamente
 
     public UUID getId() { return id; }
     public LocalDateTime getFecCreacion() { return fecCreacion; }
     public void setFecCreacion(LocalDateTime fecCreacion) { this.fecCreacion = fecCreacion; }
     public LocalDateTime getFecActualizacion() { return fecActualizacion; }
     public void setFecActualizacion(LocalDateTime fecActualizacion) { this.fecActualizacion = fecActualizacion; }
-    public usuario_salud getUsuario() { return usuario; }
-    public void setUsuario(usuario_salud usuario) { this.usuario = usuario; }
-    public List<documento_clinico> getDocumentos() { return documentos; }
-    public void setDocumentos(List<documento_clinico> documentos) { this.documentos = documentos; }
+    public UsuarioSalud getUsuario() { return usuario; }
+    public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
 
     @Override public boolean equals(Object o){ return (this==o) || (o instanceof historia_clinica h && Objects.equals(id,h.id)); }
     @Override public int hashCode(){ return Objects.hash(id); }

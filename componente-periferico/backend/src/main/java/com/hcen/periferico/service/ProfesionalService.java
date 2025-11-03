@@ -1,12 +1,13 @@
 package com.hcen.periferico.service;
 
-import com.hcen.core.domain.profesional_salud;
+import com.hcen.periferico.entity.profesional_salud;
 import com.hcen.periferico.dao.ProfesionalSaludDAO;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Stateless
 public class ProfesionalService {
@@ -147,5 +148,53 @@ public class ProfesionalService {
             return PAGE_SIZE;
         }
         return Math.min(size, MAX_PAGE_SIZE);
+    }
+
+    /**
+     * Lista profesionales paginados filtrados por clínica (tenantId)
+     */
+    public List<profesional_salud> getProfesionalesByTenantIdPaginated(UUID tenantId, int page) {
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenant_id es requerido");
+        }
+        return profesionalDAO.findByTenantIdPaginated(tenantId, page, PAGE_SIZE);
+    }
+
+    /**
+     * Busca profesionales por nombre o apellido con paginación filtrados por clínica
+     */
+    public List<profesional_salud> searchProfesionalesByTenantIdPaginated(
+            String searchTerm, UUID tenantId, int page) {
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenant_id es requerido");
+        }
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return getProfesionalesByTenantIdPaginated(tenantId, page);
+        }
+        return profesionalDAO.findByNombreOrApellidoAndTenantIdPaginated(
+            searchTerm.trim(), tenantId, page, PAGE_SIZE);
+    }
+
+    /**
+     * Cuenta total de profesionales de una clínica
+     */
+    public long countProfesionalesByTenantId(UUID tenantId) {
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenant_id es requerido");
+        }
+        return profesionalDAO.countByTenantId(tenantId);
+    }
+
+    /**
+     * Cuenta profesionales que coinciden con el término de búsqueda en una clínica
+     */
+    public long countProfesionalesBySearchAndTenantId(String searchTerm, UUID tenantId) {
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenant_id es requerido");
+        }
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return countProfesionalesByTenantId(tenantId);
+        }
+        return profesionalDAO.countByNombreOrApellidoAndTenantId(searchTerm.trim(), tenantId);
     }
 }

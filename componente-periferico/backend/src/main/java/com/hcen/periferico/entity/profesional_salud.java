@@ -1,4 +1,4 @@
-package com.hcen.core.domain;
+package com.hcen.periferico.entity;
 
 import jakarta.persistence.*;
 import java.util.*;
@@ -23,9 +23,8 @@ public class profesional_salud {
     @Column(length = 150)
     private String email;
 
-    // Clínicas en las que trabaja
-    @ManyToMany(mappedBy = "profesionales")
-    private Set<clinica> clinicas = new HashSet<>();
+    @Column(name = "tenant_id")
+    private UUID tenantId;
 
     // Documentos firmados
     @OneToMany(mappedBy = "profesionalFirmante")
@@ -41,8 +40,8 @@ public class profesional_salud {
     public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-    public Set<clinica> getClinicas() { return clinicas; }
-    public void setClinicas(Set<clinica> clinicas) { this.clinicas = clinicas; }
+    public UUID getTenantId() { return tenantId; }
+    public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
     public List<documento_clinico> getDocumentosFirmados() { return documentosFirmados; }
     public void setDocumentosFirmados(List<documento_clinico> documentosFirmados) { this.documentosFirmados = documentosFirmados; }
 

@@ -133,7 +133,11 @@ public class CentralAPIClient {
     }
 
     /**
-     * Registra un usuario en una clínica en el componente central
+     * Registra un usuario en el componente central.
+     *
+     * NOTA: A partir de la migración, el central NO almacena tenant_id.
+     * Si tenantId es null, se registra como usuario único global.
+     * Si tenantId no es null, se mantiene compatibilidad con versión anterior (temporal).
      */
     public usuario_salud_dto registrarUsuarioEnClinica(String cedula, TipoDocumento tipoDocumento,
                                                        String primerNombre, String segundoNombre,
@@ -145,6 +149,7 @@ public class CentralAPIClient {
             LOGGER.info("=== Registrando usuario en central ===");
             LOGGER.info("URL completa: " + url);
             LOGGER.info("CENTRAL_BASE_URL: " + CENTRAL_BASE_URL);
+            LOGGER.info("tenantId: " + (tenantId != null ? tenantId : "null (usuario global)"));
 
             // Construir JSON del request
             var jsonBuilder = Json.createObjectBuilder()
@@ -153,8 +158,13 @@ public class CentralAPIClient {
                 .add("primerNombre", primerNombre)
                 .add("primerApellido", primerApellido)
                 .add("email", email)
-                .add("fechaNacimiento", fechaNacimiento.toString())
-                .add("tenantId", tenantId);
+                .add("fechaNacimiento", fechaNacimiento.toString());
+
+            // SOLO agregar tenantId si no es null (compatibilidad temporal)
+            // Cuando el central migre, este campo será ignorado
+            if (tenantId != null) {
+                jsonBuilder.add("tenantId", tenantId);
+            }
 
             // Agregar campos opcionales
             if (segundoNombre != null && !segundoNombre.isEmpty()) {
@@ -176,8 +186,9 @@ public class CentralAPIClient {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode() == 200) {
-                LOGGER.info("Usuario registrado exitosamente en central");
+            // Aceptar tanto 200 (ya existe) como 201 (creado) como éxito
+            if (response.statusCode() == 200 || response.statusCode() == 201) {
+                LOGGER.info("Usuario registrado exitosamente en central (status: " + response.statusCode() + ")");
                 return parseUsuarioFromJson(response.body());
             } else {
                 String errorMsg = "Error al registrar usuario. Status: " + response.statusCode() +

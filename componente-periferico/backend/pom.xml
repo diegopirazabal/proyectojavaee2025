@@ -75,13 +75,6 @@
             <version>4.0.0</version>
         </dependency>
 
-        <!-- Dominio compartido -->
-        <dependency>
-            <groupId>com.hcen</groupId>
-            <artifactId>core-domain</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
     </dependencies>
 
     <build>
