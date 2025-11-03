@@ -90,7 +90,7 @@
 
                     <p:column headerText="Fecha Nacimiento" sortBy="#{usuario.fechaNacimiento}">
                         <h:outputText value="#{usuario.fechaNacimiento}">
-                            <f:convertDateTime pattern="dd/MM/yyyy" type="localDate"/>
+                            <f:convertDateTime pattern="dd/MM/yyyy"/>
                         </h:outputText>
                     </p:column>
 
@@ -99,10 +99,8 @@
                                         title="Eliminar"
                                         styleClass="p-button-danger"
                                         process="@this"
-                                        action="#{usuarioBean.deleteUsuarioSelected}"
-                                        update=":usuariosForm:usuariosTable,:usuariosForm:messages">
-                            <p:confirm header="Confirmar" message="¿Está seguro de eliminar este usuario?"
-                                      icon="pi pi-exclamation-triangle"/>
+                                        update="@none"
+                                        oncomplete="PF('confirmDeleteDlg').show();">
                             <f:setPropertyActionListener value="#{usuario}"
                                                         target="#{usuarioBean.usuarioToDelete}"/>
                         </p:commandButton>
@@ -203,9 +201,26 @@
                 </f:facet>
             </p:dialog>
 
-            <p:confirmDialog global="true" showEffect="fade" hideEffect="fade">
-                <p:commandButton value="Sí" styleClass="ui-confirmdialog-yes" icon="pi pi-check"/>
-                <p:commandButton value="No" styleClass="ui-confirmdialog-no" icon="pi pi-times"/>
+            <!-- Diálogo de Confirmación de Eliminación -->
+            <p:confirmDialog id="confirmDeleteDialog"
+                           widgetVar="confirmDeleteDlg"
+                           header="Confirmar Eliminación"
+                           message="¿Está seguro de que desea eliminar este usuario de la clínica?"
+                           icon="pi pi-exclamation-triangle"
+                           showEffect="fade"
+                           hideEffect="fade">
+                <p:commandButton value="Sí"
+                                icon="pi pi-check"
+                                styleClass="ui-confirmdialog-yes"
+                                action="#{usuarioBean.deleteUsuarioSelected}"
+                                process="@this"
+                                update=":usuariosForm:usuariosTable,:usuariosForm:messages"
+                                oncomplete="PF('confirmDeleteDlg').hide();"/>
+                <p:commandButton value="No"
+                                icon="pi pi-times"
+                                type="button"
+                                styleClass="ui-confirmdialog-no"
+                                onclick="PF('confirmDeleteDlg').hide();"/>
             </p:confirmDialog>
 
         </h:form>

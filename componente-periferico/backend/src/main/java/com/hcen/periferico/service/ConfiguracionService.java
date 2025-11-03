@@ -1,6 +1,6 @@
 package com.hcen.periferico.service;
 
-import com.hcen.core.domain.configuracion_clinica;
+import com.hcen.periferico.entity.configuracion_clinica;
 import com.hcen.periferico.dao.ConfiguracionClinicaDAO;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;

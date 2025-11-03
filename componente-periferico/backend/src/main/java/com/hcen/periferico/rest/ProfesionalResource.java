@@ -1,6 +1,6 @@
 package com.hcen.periferico.rest;
 
-import com.hcen.core.domain.profesional_salud;
+import com.hcen.periferico.entity.profesional_salud;
 import com.hcen.periferico.dto.profesional_salud_dto;
 import com.hcen.periferico.service.ProfesionalService;
 import jakarta.ejb.EJB;
@@ -9,6 +9,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Path("/profesionales")
@@ -21,25 +22,43 @@ public class ProfesionalResource {
 
     @GET
     public Response getAllProfesionales(
+            @QueryParam("ci") Integer ci,
+            @QueryParam("tipoDoc") String tipoDocumento,
             @QueryParam("search") String searchTerm,
-            @QueryParam("page") @DefaultValue("0") int page) {
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") Integer size,
+            @QueryParam("tenantId") String tenantIdStr) {
         try {
+            // Validar y limitar pageSize: default 10, máximo 200
+            int pageSize = size != null && size > 0 ? Math.min(size, 200) : 10;
+
+            // tenantId es REQUERIDO - el AdminClinica siempre debe estar logueado
+            if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("El parámetro tenantId es requerido"))
+                    .build();
+            }
+
+            UUID tenantId = UUID.fromString(tenantIdStr);
             List<profesional_salud> profesionales;
             long totalCount;
 
             if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-                profesionales = profesionalService.searchProfesionalesPaginated(searchTerm, page);
-                totalCount = profesionalService.countProfesionalesBySearch(searchTerm);
+                profesionales = profesionalService.searchProfesionalesByTenantIdPaginated(
+                    searchTerm, tenantId, page);
+                totalCount = profesionalService.countProfesionalesBySearchAndTenantId(
+                    searchTerm, tenantId);
             } else {
-                profesionales = profesionalService.getProfesionalesPaginated(page);
-                totalCount = profesionalService.countProfesionales();
+                profesionales = profesionalService.getProfesionalesByTenantIdPaginated(
+                    tenantId, page);
+                totalCount = profesionalService.countProfesionalesByTenantId(tenantId);
             }
 
             List<profesional_salud_dto> dtos = profesionales.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
 
-            PaginatedResponse response = new PaginatedResponse(dtos, totalCount, page, 10);
+            PaginatedResponse response = new PaginatedResponse(dtos, totalCount, page, pageSize);
             return Response.ok(response).build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -69,14 +88,25 @@ public class ProfesionalResource {
     }
 
     @POST
-    public Response saveProfesional(profesional_salud_dto dto) {
+    public Response saveProfesional(profesional_salud_dto dto, @QueryParam("tenantId") String tenantIdStr) {
         try {
+            // tenantId es REQUERIDO
+            if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("El parámetro tenantId es requerido"))
+                    .build();
+            }
+
+            UUID tenantId = UUID.fromString(tenantIdStr);
+
             profesional_salud profesional = profesionalService.saveProfesional(
                 dto.getCi(),
                 dto.getNombre(),
                 dto.getApellidos(),
                 dto.getEspecialidad(),
-                dto.getEmail()
+                dto.getEmail(),
+                dto.getPassword(),
+                tenantId
             );
             profesional_salud_dto resultDto = toDTO(profesional);
             return Response.ok(resultDto).build();
@@ -87,6 +117,47 @@ public class ProfesionalResource {
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(new ErrorResponse("Error al guardar profesional: " + e.getMessage()))
+                .build();
+        }
+    }
+
+    @PUT
+    @Path("/{ci}")
+    public Response updateProfesional(@PathParam("ci") Integer ci, profesional_salud_dto dto,
+                                     @QueryParam("tenantId") String tenantIdStr) {
+        try {
+            if (dto.getCi() != null && !dto.getCi().equals(ci)) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("El número de documento no se puede modificar"))
+                    .build();
+            }
+
+            // tenantId es REQUERIDO
+            if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("El parámetro tenantId es requerido"))
+                    .build();
+            }
+
+            UUID tenantId = UUID.fromString(tenantIdStr);
+
+            profesional_salud profesional = profesionalService.saveProfesional(
+                ci,
+                dto.getNombre(),
+                dto.getApellidos(),
+                dto.getEspecialidad(),
+                dto.getEmail(),
+                null,  // Password null para actualizaciones (no se cambia)
+                tenantId
+            );
+            return Response.ok(toDTO(profesional)).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(new ErrorResponse("Error al actualizar profesional: " + e.getMessage()))
                 .build();
         }
     }
@@ -165,7 +236,7 @@ public class ProfesionalResource {
             this.totalCount = totalCount;
             this.currentPage = currentPage;
             this.pageSize = pageSize;
-            this.totalPages = (long) Math.ceil((double) totalCount / pageSize);
+            this.totalPages = pageSize > 0 ? (long) Math.ceil((double) totalCount / pageSize) : 0;
         }
 
         public List<profesional_salud_dto> getData() { return data; }

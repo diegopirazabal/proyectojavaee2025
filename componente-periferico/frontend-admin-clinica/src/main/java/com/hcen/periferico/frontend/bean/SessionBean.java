@@ -34,9 +34,10 @@ public class SessionBean implements Serializable {
     public void checkAuth() {
         if (!isLoggedIn()) {
             try {
-                FacesContext.getCurrentInstance()
-                    .getExternalContext()
-                    .redirect("index.xhtml");
+                FacesContext context = FacesContext.getCurrentInstance();
+                String contextPath = context.getExternalContext().getRequestContextPath();
+                context.getExternalContext()
+                    .redirect(contextPath + "/index.xhtml");
             } catch (Exception e) {
                 // Log error si es necesario
                 e.printStackTrace();

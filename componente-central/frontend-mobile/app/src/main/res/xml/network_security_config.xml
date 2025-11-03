@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Configuración para desarrollo: permitir certificados autofirmados -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">hcen-uy.web.elasticloud.uy</domain>
+        <trust-anchors>
+            <!-- Confiar en certificados del sistema -->
+            <certificates src="system" />
+            <!-- Confiar en certificados de usuario instalados -->
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

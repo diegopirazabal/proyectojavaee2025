@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+
+<h:head>
+    <title>Test JWT - Autenticación con Componente Central</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .button-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .token-display {
+            background: #2c3e50;
+            color: #2ecc71;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+        .response-box {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .ui-button {
+            width: 100%;
+        }
+    </style>
+</h:head>
+
+<h:body>
+    <div class="container">
+        <h1>🔐 Test de Autenticación JWT</h1>
+        
+        <div class="info-box">
+            <strong>Información:</strong><br/>
+            Cliente ID: <code>componente-periferico</code><br/>
+            Servidor Central: <code>#{testJWTBean.centralUrl}</code>
+        </div>
+
+        <h:form id="jwtForm">
+            <div class="button-group">
+                <p:commandButton 
+                    value="1️⃣ Obtener Token JWT" 
+                    action="#{testJWTBean.obtenerToken}"
+                    update="jwtForm"
+                    icon="pi pi-key"
+                    styleClass="ui-button-success"/>
+                
+                <p:commandButton 
+                    value="2️⃣ Consumir Servicio" 
+                    action="#{testJWTBean.consumirServicio}"
+                    update="jwtForm"
+                    icon="pi pi-cloud"
+                    styleClass="ui-button-info"
+                    disabled="#{empty testJWTBean.token}"/>
+            </div>
+
+            <h:panelGroup rendered="#{not empty testJWTBean.mensaje}">
+                <p:messages id="messages" showDetail="true" closable="true"/>
+            </h:panelGroup>
+
+            <h:panelGroup rendered="#{not empty testJWTBean.token}">
+                <h3>✅ Token JWT Obtenido:</h3>
+                <div class="token-display">
+                    #{testJWTBean.token}
+                </div>
+                <p style="margin-top: 10px; color: #27ae60;">
+                    <strong>Expira en:</strong> #{testJWTBean.expiresIn} segundos
+                </p>
+            </h:panelGroup>
+
+            <h:panelGroup rendered="#{not empty testJWTBean.respuestaServicio}">
+                <h3>📡 Respuesta del Servicio:</h3>
+                <div class="response-box">
+                    <pre>#{testJWTBean.respuestaServicio}</pre>
+                </div>
+            </h:panelGroup>
+
+            <div class="info-box" style="margin-top: 30px;">
+                <h4>ℹ️ Instrucciones:</h4>
+                <ol>
+                    <li>Click en "Obtener Token JWT" para autenticarse con el componente-central</li>
+                    <li>El token se almacenará automáticamente en memoria</li>
+                    <li>Click en "Consumir Servicio" para hacer una petición autenticada</li>
+                    <li>Todas las peticiones subsecuentes usarán este token automáticamente</li>
+                </ol>
+            </div>
+        </h:form>
+    </div>
+</h:body>
+</html>

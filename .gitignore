@@ -45,6 +45,11 @@ buildNumber.properties
 *.sh
 *.cli
 
+# Scripts Python de utilidades
+*.py
+clean_data_to_insert.json
+backup_hcen_*.json
+
 # Archivos de datos y configuración
 *.json
 *.sql

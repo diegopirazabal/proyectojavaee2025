@@ -1,6 +1,6 @@
 package com.hcen.periferico.dao;
 
-import com.hcen.core.domain.clinica;
+import com.hcen.periferico.entity.clinica;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -28,6 +28,16 @@ public class ClinicaDAO {
     public Optional<clinica> findByTenantId(UUID tenantId) {
         clinica c = em.find(clinica.class, tenantId);
         return Optional.ofNullable(c);
+    }
+
+    public Optional<clinica> findByNombreIgnoreCase(String nombre) {
+        TypedQuery<clinica> query = em.createQuery(
+            "SELECT c FROM clinica c WHERE LOWER(c.nombre) = :nombre",
+            clinica.class
+        );
+        query.setParameter("nombre", nombre != null ? nombre.toLowerCase(java.util.Locale.ROOT) : null);
+        List<clinica> results = query.getResultList();
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     public List<clinica> findAll() {

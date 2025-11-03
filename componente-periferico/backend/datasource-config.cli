@@ -1,0 +1,19 @@
+embed-server --server-config=standalone.xml
+
+# Add PostgreSQL datasource usando variables de entorno
+data-source add \
+    --name=HcenPerifericoDS \
+    --jndi-name=java:jboss/datasources/HcenPerifericoDS \
+    --driver-name=postgresql-42.6.0.jar \
+    --connection-url=${env.DATABASE_URL} \
+    --user-name=${env.PGUSER} \
+    --password=${env.PGPASSWORD} \
+    --use-ccm=true \
+    --max-pool-size=25 \
+    --blocking-timeout-wait-millis=5000 \
+    --enabled=true \
+    --driver-class=org.postgresql.Driver \
+    --jta=true \
+    --use-java-context=true
+
+stop-embedded-server

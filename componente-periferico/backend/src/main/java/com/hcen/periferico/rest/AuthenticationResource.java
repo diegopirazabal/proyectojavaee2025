@@ -1,6 +1,6 @@
 package com.hcen.periferico.rest;
 
-import com.hcen.core.domain.administrador_clinica;
+import com.hcen.periferico.entity.administrador_clinica;
 import com.hcen.periferico.dto.administrador_clinica_dto;
 import com.hcen.periferico.service.AuthenticationService;
 import jakarta.ejb.EJB;
@@ -16,7 +16,7 @@ import java.util.UUID;
 public class AuthenticationResource {
 
     @EJB
-    private AuthenticationService authService;
+    private  AuthenticationService authService;
 
     @POST
     @Path("/login")

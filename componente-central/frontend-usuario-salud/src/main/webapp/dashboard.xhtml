@@ -28,6 +28,14 @@
         </header>
 
         <h:form id="lookupForm" styleClass="lookup-form">
+            <h:panelGroup rendered="#{not empty usuarioSaludDashboardBean.warningMessage}" styleClass="warning-banner">
+                <div class="ui-messages ui-widget">
+                    <div class="ui-messages-warn ui-corner-all">
+                        <span class="ui-messages-warn-summary">Advertencia</span>
+                        <span class="ui-messages-warn-detail">#{usuarioSaludDashboardBean.warningMessage}</span>
+                    </div>
+                </div>
+            </h:panelGroup>
             <p:messages id="messages" closable="true" showSummary="true" showDetail="false"/>
 
             <div class="lookup-grid">

@@ -12,7 +12,6 @@
     <name>HCEN - Parent</name>
 
     <modules>
-        <module>core-domain</module>
         <module>componente-central/backend</module>
         <module>componente-periferico/backend</module>
         <module>componente-periferico/frontend-admin-clinica</module>

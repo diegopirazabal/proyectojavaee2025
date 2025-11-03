@@ -21,7 +21,7 @@ public class UsuarioSaludLoginBean implements Serializable {
 
     private static final String TEMP_USERNAME = "user";
     private static final String TEMP_PASSWORD = "user";
-    private static final String DEFAULT_DOC_TYPE = "DO";
+    private static final String DEFAULT_DOC_TYPE = "OTRO";
     private static final String DEFAULT_DOC_NUMBER = "85335898";
 
     private String username;
@@ -62,6 +62,7 @@ public class UsuarioSaludLoginBean implements Serializable {
         // Verificar si hay cookie JWT (sesión OIDC) antes de redirigir
         if (!loggedIn && !hasOidcSession()) {
             ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
+            external.getFlash().setRedirect(true); // evitar NPE de JSF al redirigir desde preRenderView
             external.redirect(external.getRequestContextPath() + "/login.xhtml");
             FacesContext.getCurrentInstance().responseComplete();
         } else if (!loggedIn && hasOidcSession()) {
@@ -73,6 +74,7 @@ public class UsuarioSaludLoginBean implements Serializable {
     public void redirectIfLoggedIn() throws IOException {
         if (loggedIn) {
             ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
+            external.getFlash().setRedirect(true); // garantizar que el flash conoce la redirección
             external.redirect(external.getRequestContextPath() + construirRutaDashboard());
             FacesContext.getCurrentInstance().responseComplete();
         }

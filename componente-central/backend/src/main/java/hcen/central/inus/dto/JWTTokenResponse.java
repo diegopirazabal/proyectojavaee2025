@@ -14,6 +14,7 @@ public class JWTTokenResponse {
     private long expiresIn; // segundos
     private String userSub;
     private List<String> roles;
+    private String warningMessage;
     
     public JWTTokenResponse() {}
     
@@ -52,4 +53,7 @@ public class JWTTokenResponse {
     
     public List<String> getRoles() { return roles; }
     public void setRoles(List<String> roles) { this.roles = roles; }
+
+    public String getWarningMessage() { return warningMessage; }
+    public void setWarningMessage(String warningMessage) { this.warningMessage = warningMessage; }
 }

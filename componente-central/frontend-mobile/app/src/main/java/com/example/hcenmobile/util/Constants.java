@@ -6,9 +6,8 @@ package com.example.hcenmobile.util;
 public class Constants {
 
     // API Configuration
-    // NOTA: Para emulador Android usar 10.0.2.2 (localhost de la máquina host)
-    // Para dispositivo físico usar la IP local de tu máquina (ej: 192.168.1.X)
-    public static final String BASE_URL = "http://10.0.2.2:8080/hcen-central/api/";
+    // Backend en producción
+    public static final String BASE_URL = "https://hcen-uy.web.elasticloud.uy/api/";
     public static final int CONNECT_TIMEOUT = 30; // seconds
     public static final int READ_TIMEOUT = 30; // seconds
     public static final int WRITE_TIMEOUT = 30; // seconds
@@ -18,7 +17,10 @@ public class Constants {
     public static final String PREF_FCM_TOKEN = "fcm_token";
     public static final String PREF_USER_ID = "user_id";
     public static final String PREF_USER_CI = "user_ci";
+    public static final String PREF_USER_NAME = "user_name";
     public static final String PREF_IS_LOGGED_IN = "is_logged_in";
+    public static final String PREF_JWT_TOKEN = "jwt_token";
+    public static final String PREF_IS_OIDC_AUTH = "is_oidc_auth";
 
     // Login
     public static final int MIN_CI_LENGTH = 6;

@@ -36,7 +36,18 @@ import javax.net.ssl.SSLContext;
 public class APIService implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private static final String BACKEND_URL = "http://localhost:8080/multitenant-api";
+    private static final String BACKEND_URL_PROD = "https://node5823-hcen-uy.web.elasticloud.uy/multitenant-api";
+    private static final String BACKEND_URL_DEV = "http://localhost:8080/multitenant-api";
+
+    private String getBackendUrl() {
+        // Usar variable de entorno, o detectar por hostname, o System property
+        String env = System.getProperty("app.environment", "development");
+        return "production".equalsIgnoreCase(env) ? BACKEND_URL_PROD : BACKEND_URL_DEV;
+    }
+
+    private String BACKEND_URL() {
+        return getBackendUrl();
+    }
 
     private CloseableHttpClient createHttpClient() {
         try {
@@ -64,8 +75,8 @@ public class APIService implements Serializable {
     // ========== AUTENTICACIÓN ==========
 
     public administrador_clinica_dto authenticate(String username, String password, String tenantId) {
-        try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPost request = new HttpPost(BACKEND_URL + "/auth/login");
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost request = new HttpPost(BACKEND_URL() + "/auth/login");
 
             JsonObject loginData = Json.createObjectBuilder()
                 .add("username", username)
@@ -90,7 +101,7 @@ public class APIService implements Serializable {
 
     public List<clinica_dto> getClinicas() {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet(BACKEND_URL + "/clinicas");
+            HttpGet request = new HttpGet(BACKEND_URL() + "/clinicas");
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -108,7 +119,7 @@ public class APIService implements Serializable {
 
     public configuracion_clinica_dto getConfiguracion(String clinicaRut) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpGet request = new HttpGet(BACKEND_URL + "/configuracion/" + clinicaRut);
+            HttpGet request = new HttpGet(BACKEND_URL() + "/configuracion/" + clinicaRut);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -126,7 +137,7 @@ public class APIService implements Serializable {
                                                      String colorSecundario, String logoUrl,
                                                      String nombreSistema, String tema) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPut request = new HttpPut(BACKEND_URL + "/configuracion/" + clinicaRut + "/lookfeel");
+            HttpPut request = new HttpPut(BACKEND_URL() + "/configuracion/" + clinicaRut + "/lookfeel");
 
             JsonObject data = Json.createObjectBuilder()
                 .add("colorPrimario", colorPrimario != null ? colorPrimario : "")
@@ -153,7 +164,7 @@ public class APIService implements Serializable {
 
     public configuracion_clinica_dto toggleNodoPeriferico(String clinicaRut, boolean habilitado) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPut request = new HttpPut(BACKEND_URL + "/configuracion/" + clinicaRut + "/nodo");
+            HttpPut request = new HttpPut(BACKEND_URL() + "/configuracion/" + clinicaRut + "/nodo");
 
             JsonObject data = Json.createObjectBuilder()
                 .add("habilitado", habilitado)
@@ -176,7 +187,7 @@ public class APIService implements Serializable {
 
     public configuracion_clinica_dto resetConfiguracion(String clinicaRut) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPost request = new HttpPost(BACKEND_URL + "/configuracion/" + clinicaRut + "/reset");
+            HttpPost request = new HttpPost(BACKEND_URL() + "/configuracion/" + clinicaRut + "/reset");
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -192,9 +203,9 @@ public class APIService implements Serializable {
 
     // ========== PROFESIONALES ==========
 
-    public List<profesional_salud_dto> getAllProfesionales() {
+    public List<profesional_salud_dto> getAllProfesionales(String tenantId) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpGet request = new HttpGet(BACKEND_URL + "/profesionales");
+            HttpGet request = new HttpGet(BACKEND_URL() + "/profesionales?tenantId=" + tenantId);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -208,10 +219,10 @@ public class APIService implements Serializable {
         return new ArrayList<>();
     }
 
-    public List<profesional_salud_dto> searchProfesionales(String searchTerm) {
+    public List<profesional_salud_dto> searchProfesionales(String searchTerm, String tenantId) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             String encodedTerm = java.net.URLEncoder.encode(searchTerm, java.nio.charset.StandardCharsets.UTF_8);
-            HttpGet request = new HttpGet(BACKEND_URL + "/profesionales?search=" + encodedTerm);
+            HttpGet request = new HttpGet(BACKEND_URL() + "/profesionales?tenantId=" + tenantId + "&search=" + encodedTerm);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -226,9 +237,9 @@ public class APIService implements Serializable {
     }
 
     public profesional_salud_dto saveProfesional(Integer ci, String nombre, String apellidos,
-                                               String especialidad, String email) {
+                                               String especialidad, String email, String password, String tenantId) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPost request = new HttpPost(BACKEND_URL + "/profesionales");
+            HttpPost request = new HttpPost(BACKEND_URL() + "/profesionales?tenantId=" + tenantId);
 
             JsonObject data = Json.createObjectBuilder()
                 .add("ci", ci)
@@ -236,6 +247,7 @@ public class APIService implements Serializable {
                 .add("apellidos", apellidos)
                 .add("especialidad", especialidad != null ? especialidad : "")
                 .add("email", email != null ? email : "")
+                .add("password", password != null ? password : "")
                 .build();
 
             StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
@@ -255,7 +267,7 @@ public class APIService implements Serializable {
 
     public boolean deleteProfesional(Integer ci) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpDelete request = new HttpDelete(BACKEND_URL + "/profesionales/" + ci);
+            HttpDelete request = new HttpDelete(BACKEND_URL() + "/profesionales/" + ci);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() == 200;
@@ -375,7 +387,7 @@ public class APIService implements Serializable {
 
     public List<usuario_salud_dto> getAllUsuarios(String tenantId) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet(BACKEND_URL + "/usuarios?tenantId=" + tenantId);
+            HttpGet request = new HttpGet(BACKEND_URL() + "/usuarios?tenantId=" + tenantId);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -392,7 +404,7 @@ public class APIService implements Serializable {
     public List<usuario_salud_dto> searchUsuarios(String searchTerm, String tenantId) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             String encodedTerm = java.net.URLEncoder.encode(searchTerm, java.nio.charset.StandardCharsets.UTF_8);
-            HttpGet request = new HttpGet(BACKEND_URL + "/usuarios?tenantId=" + tenantId + "&search=" + encodedTerm);
+            HttpGet request = new HttpGet(BACKEND_URL() + "/usuarios?tenantId=" + tenantId + "&search=" + encodedTerm);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -410,9 +422,9 @@ public class APIService implements Serializable {
                                              String primerNombre, String segundoNombre,
                                              String primerApellido, String segundoApellido,
                                              String email, java.time.LocalDate fechaNacimiento,
-                                             String tenantId) {
+                                             String tenantId) throws RuntimeException {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost request = new HttpPost(BACKEND_URL + "/usuarios/registrar");
+            HttpPost request = new HttpPost(BACKEND_URL() + "/usuarios/registrar");
 
             var builder = Json.createObjectBuilder()
                 .add("cedula", cedula)
@@ -436,20 +448,25 @@ public class APIService implements Serializable {
             request.setEntity(entity);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
+                String responseBody = new String(response.getEntity().getContent().readAllBytes());
+
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
                     return parseUsuarioFromJson(responseBody);
+                } else {
+                    // Extraer mensaje de error del backend
+                    String errorMessage = extractErrorMessage(responseBody);
+                    throw new RuntimeException(errorMessage);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+            throw new RuntimeException("Error de comunicación con el servidor");
         }
-        return null;
     }
 
     public boolean deleteUsuario(String cedula, String tenantId) {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpDelete request = new HttpDelete(BACKEND_URL + "/usuarios/" + cedula + "/clinica/" + tenantId);
+            HttpDelete request = new HttpDelete(BACKEND_URL() + "/usuarios/" + cedula + "/clinica/" + tenantId);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() == 200;
@@ -488,8 +505,7 @@ public class APIService implements Serializable {
     private List<usuario_salud_dto> parseUsuariosFromJson(String jsonString) {
         List<usuario_salud_dto> list = new ArrayList<>();
         try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
-            JsonObject paginatedResponse = reader.readObject();
-            JsonArray jsonArray = paginatedResponse.getJsonArray("data");
+            JsonArray jsonArray = reader.readArray();
 
             for (int i = 0; i < jsonArray.size(); i++) {
                 JsonObject jsonObject = jsonArray.getJsonObject(i);
@@ -518,12 +534,59 @@ public class APIService implements Serializable {
 
     public boolean isBackendAvailable() {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpGet request = new HttpGet(BACKEND_URL + "/auth/login");
+            HttpGet request = new HttpGet(BACKEND_URL() + "/auth/login");
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() != 500;
             }
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * Extrae el mensaje de error del JSON de respuesta del backend
+     * Formato esperado: {"error": "mensaje de error"}
+     */
+    private String extractErrorMessage(String jsonString) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject jsonObject = reader.readObject();
+            String errorMessage = null;
+
+            if (jsonObject.containsKey("error")) {
+                errorMessage = jsonObject.getString("error");
+            } else if (jsonObject.containsKey("message")) {
+                errorMessage = jsonObject.getString("message");
+            } else {
+                errorMessage = "Error desconocido del servidor";
+            }
+
+            // Limpiar prefijos de excepciones si existen
+            return cleanExceptionPrefix(errorMessage);
+        } catch (Exception e) {
+            // Si no se puede parsear el JSON, retornar el string completo (truncado)
+            String message = jsonString != null ? jsonString : "Error desconocido del servidor";
+            if (message.length() > 200) {
+                message = message.substring(0, 200) + "...";
+            }
+            return cleanExceptionPrefix(message);
+        }
+    }
+
+    /**
+     * Elimina prefijos de excepciones Java del mensaje
+     * Ejemplo: "java.lang.IllegalArgumentException: mensaje" -> "mensaje"
+     */
+    private String cleanExceptionPrefix(String message) {
+        if (message == null || message.isEmpty()) {
+            return message;
+        }
+
+        // Si el mensaje contiene ": ", tomar solo lo que viene después del último ":"
+        int lastColonIndex = message.lastIndexOf(": ");
+        if (lastColonIndex != -1 && lastColonIndex < message.length() - 2) {
+            return message.substring(lastColonIndex + 2).trim();
+        }
+
+        return message;
     }
 }

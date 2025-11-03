@@ -15,6 +15,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Placeholder para AppAuth redirect scheme
+        manifestPlaceholders["appAuthRedirectScheme"] = "hcenmobile"
     }
 
     buildTypes {
@@ -73,6 +76,9 @@ dependencies {
 
     // WorkManager for background tasks
     implementation("androidx.work:work-runtime:2.9.0")
+
+    // AppAuth for OIDC authentication
+    implementation("net.openid:appauth:0.11.1")
 
     // SwipeRefreshLayout
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")

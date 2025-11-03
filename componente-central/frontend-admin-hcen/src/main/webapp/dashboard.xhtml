@@ -96,9 +96,17 @@
                                                update="messages"
                                                process="@this"/>
                                 <br/><br/>
-                                <p:commandButton value="Gestionar Clínicas"
+                                <p:commandButton value="Gestionar Usuarios"
                                                styleClass="action-button"
-                                               icon="pi pi-building"/>
+                                               icon="pi pi-users"
+                                               action="usuarios?faces-redirect=true"
+                                               process="@this"/>
+                                <br/><br/>
+                                <p:commandButton type="button"
+                                               value="Gestionar Clínicas"
+                                               styleClass="action-button"
+                                               icon="pi pi-building"
+                                               onclick="PF('altaClinicaDialog').show()"/>
                                 <br/><br/>
                                 <p:commandButton value="Ver Reportes"
                                                styleClass="action-button"
@@ -215,6 +223,54 @@
                             </div>
                         </div>
 
+                        <!-- Clínicas -->
+                        <div class="dashboard-card full-width">
+                            <div class="card-header">
+                                <h3><i class="pi pi-hospital"></i> Clínicas Registradas</h3>
+                                <div class="card-actions">
+                                    <p:commandButton value="Refrescar"
+                                                     icon="pi pi-refresh"
+                                                     action="#{dashboard_bean.cargarClinicas}"
+                                                     update="clinicasTable messages"
+                                                     process="@this"
+                                                     styleClass="action-button"/>
+                                    <p:commandButton type="button"
+                                                     value="Agregar Clínica"
+                                                     icon="pi pi-plus"
+                                                     onclick="PF('altaClinicaDialog').show()"
+                                                     styleClass="action-button"/>
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                <p:dataTable id="clinicasTable"
+                                             value="#{dashboard_bean.clinicas}"
+                                             var="clinica"
+                                             paginator="true"
+                                             rows="5"
+                                             emptyMessage="No hay clínicas registradas."
+                                             responsiveLayout="scroll">
+                                    <p:column headerText="Nombre">
+                                        <h:outputText value="#{clinica.nombre}"/>
+                                    </p:column>
+                                    <p:column headerText="Email">
+                                        <h:outputText value="#{clinica.email}"/>
+                                    </p:column>
+                                    <p:column headerText="Dirección">
+                                        <h:outputText value="#{clinica.direccion}"/>
+                                    </p:column>
+                                    <p:column headerText="Estado">
+                                        <h:outputText value="#{clinica.estado}"/>
+                                    </p:column>
+                                    <p:column headerText="Tenant ID">
+                                        <h:outputText value="#{clinica.tenantId}"/>
+                                    </p:column>
+                                    <p:column headerText="Registrada">
+                                        <h:outputText value="#{clinica.fecRegistroFormatted}"/>
+                                    </p:column>
+                                </p:dataTable>
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- Dialogo Alta Prestador -->
@@ -224,35 +280,81 @@
                               modal="true"
                               closable="true"
                               resizable="false">
-                        <h:panelGrid columns="2" columnClasses="label,value" styleClass="form-grid">
-                            <h:outputLabel for="rut" value="RUT"/>
-                            <p:inputText id="rut"
-                                         value="#{dashboard_bean.nuevoPrestador.rut}"
-                                         required="true"
-                                         requiredMessage="El RUT es obligatorio."/>
+                        <h:form id="altaPrestadorForm">
+                            <h:panelGrid columns="2" columnClasses="label,value" styleClass="form-grid">
+                                <h:outputLabel for="rut" value="RUT"/>
+                                <p:inputText id="rut"
+                                             value="#{dashboard_bean.nuevoPrestador.rut}"
+                                             required="true"
+                                             requiredMessage="El RUT es obligatorio."/>
 
-                            <h:outputLabel for="nombrePrestador" value="Nombre"/>
-                            <p:inputText id="nombrePrestador"
-                                         value="#{dashboard_bean.nuevoPrestador.nombre}"
-                                         required="true"
-                                         requiredMessage="El nombre es obligatorio."/>
+                                <h:outputLabel for="nombrePrestador" value="Nombre"/>
+                                <p:inputText id="nombrePrestador"
+                                             value="#{dashboard_bean.nuevoPrestador.nombre}"
+                                             required="true"
+                                             requiredMessage="El nombre es obligatorio."/>
 
-                            <h:outputLabel for="emailPrestador" value="Email"/>
-                            <p:inputText id="emailPrestador"
-                                         value="#{dashboard_bean.nuevoPrestador.email}"/>
-                        </h:panelGrid>
-                        <f:facet name="footer">
-                            <p:commandButton value="Crear"
-                                             icon="pi pi-check"
-                                             action="#{dashboard_bean.crearPrestador}"
-                                             update="messages prestadoresTable altaPrestadorDialog"
-                                             process="@form"
-                                            oncomplete="if (!args.validationFailed &amp;&amp; args.prestadorCreado) { PF('altaPrestadorDialog').hide(); }"/>
-                            <p:commandButton type="button"
-                                             value="Cancelar"
-                                             icon="pi pi-times"
-                                             onclick="PF('altaPrestadorDialog').hide()"/>
-                        </f:facet>
+                                <h:outputLabel for="emailPrestador" value="Email"/>
+                                <p:inputText id="emailPrestador"
+                                             value="#{dashboard_bean.nuevoPrestador.email}"/>
+                            </h:panelGrid>
+                            <div class="dialog-footer" style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
+                                <p:commandButton value="Crear"
+                                                 icon="pi pi-check"
+                                                 styleClass="action-button"
+                                                 action="#{dashboard_bean.crearPrestador}"
+                                                 update="dashboardForm:messages dashboardForm:prestadoresTable dashboardForm:altaPrestadorDialog"
+                                                 process="@form"
+                                                 oncomplete="if (!args.validationFailed &amp;&amp; args.prestadorCreado) { PF('altaPrestadorDialog').hide(); }"/>
+                                <p:commandButton type="button"
+                                                 value="Cancelar"
+                                                 icon="pi pi-times"
+                                                 styleClass="action-button"
+                                                 onclick="PF('altaPrestadorDialog').hide()"/>
+                            </div>
+                        </h:form>
+                    </p:dialog>
+
+                    <!-- Dialogo Alta Clínica -->
+                    <p:dialog id="altaClinicaDialog"
+                              widgetVar="altaClinicaDialog"
+                              header="Alta de Clínica"
+                              modal="true"
+                              closable="true"
+                              resizable="false">
+                        <h:form id="altaClinicaForm">
+                            <h:panelGrid columns="2" columnClasses="label,value" styleClass="form-grid">
+                                <h:outputLabel for="nombreClinica" value="Nombre"/>
+                                <p:inputText id="nombreClinica"
+                                             value="#{dashboard_bean.nuevaClinica.nombre}"
+                                             required="true"
+                                             requiredMessage="El nombre es obligatorio."/>
+
+                                <h:outputLabel for="emailClinica" value="Email"/>
+                                <p:inputText id="emailClinica"
+                                             value="#{dashboard_bean.nuevaClinica.email}"/>
+
+                                <h:outputLabel for="direccionClinica" value="Dirección"/>
+                                <p:inputTextarea id="direccionClinica"
+                                                 value="#{dashboard_bean.nuevaClinica.direccion}"
+                                                 autoResize="true"
+                                                 rows="2"/>
+                            </h:panelGrid>
+                            <div class="dialog-footer" style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
+                                <p:commandButton value="Alta de Clínica"
+                                                 icon="pi pi-check"
+                                                 styleClass="action-button"
+                                                 action="#{dashboard_bean.crearClinica}"
+                                                 update="dashboardForm:messages dashboardForm:clinicasTable dashboardForm:altaClinicaDialog"
+                                                 process="@form"
+                                                 oncomplete="if (!args.validationFailed &amp;&amp; args.clinicaCreada) { PF('altaClinicaDialog').hide(); }"/>
+                                <p:commandButton type="button"
+                                                 value="Cancelar"
+                                                 icon="pi pi-times"
+                                                 styleClass="action-button"
+                                                 onclick="PF('altaClinicaDialog').hide()"/>
+                            </div>
+                        </h:form>
                     </p:dialog>
                 </h:form>
 
