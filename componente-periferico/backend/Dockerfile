@@ -37,8 +37,8 @@ RUN chmod +x /opt/jboss/startup.sh
 # Copy backend WAR
 COPY --from=build --chown=jboss:jboss /build/componente-periferico/backend/target/multitenant-api.war /opt/jboss/wildfly/standalone/deployments/
 
-# Copy frontend WAR as ROOT.war to deploy at root context
-COPY --from=build --chown=jboss:jboss /build/componente-periferico/frontend-admin-clinica/target/prestador-salud.war /opt/jboss/wildfly/standalone/deployments/ROOT.war
+# Copy frontend WAR
+COPY --from=build --chown=jboss:jboss /build/componente-periferico/frontend-admin-clinica/target/prestador-salud.war /opt/jboss/wildfly/standalone/deployments/
 
 # Expose port
 EXPOSE 8080
