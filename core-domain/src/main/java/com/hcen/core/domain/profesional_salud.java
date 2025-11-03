@@ -23,6 +23,12 @@ public class profesional_salud {
     @Column(length = 150)
     private String email;
 
+    @Column(name = "USERNAME", length = 80, unique = true)
+    private String username;
+
+    @Column(name = "PASSWORD", length = 200)
+    private String password;
+
     // Clínicas en las que trabaja
     @ManyToMany(mappedBy = "profesionales")
     private Set<clinica> clinicas = new HashSet<>();
@@ -41,6 +47,10 @@ public class profesional_salud {
     public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
     public Set<clinica> getClinicas() { return clinicas; }
     public void setClinicas(Set<clinica> clinicas) { this.clinicas = clinicas; }
     public List<documento_clinico> getDocumentosFirmados() { return documentosFirmados; }

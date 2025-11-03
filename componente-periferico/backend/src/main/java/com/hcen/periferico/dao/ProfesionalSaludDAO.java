@@ -8,6 +8,7 @@ import jakarta.persistence.TypedQuery;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Stateless
 public class ProfesionalSaludDAO {
@@ -115,5 +116,27 @@ public class ProfesionalSaludDAO {
         );
         query.setParameter("term", "%" + searchTerm + "%");
         return query.getSingleResult();
+    }
+
+    public Optional<profesional_salud> findByUsernameAndTenant(String username, UUID tenantId) {
+        TypedQuery<profesional_salud> query = em.createQuery(
+            "SELECT p FROM profesional_salud p JOIN p.clinicas c WHERE p.username = :u AND c.tenantId = :t",
+            profesional_salud.class
+        );
+        query.setParameter("u", username);
+        query.setParameter("t", tenantId);
+        List<profesional_salud> res = query.getResultList();
+        return res.isEmpty() ? Optional.empty() : Optional.of(res.get(0));
+    }
+
+    public Optional<profesional_salud> findByEmailAndTenant(String email, UUID tenantId) {
+        TypedQuery<profesional_salud> query = em.createQuery(
+            "SELECT p FROM profesional_salud p JOIN p.clinicas c WHERE p.email = :e AND c.tenantId = :t",
+            profesional_salud.class
+        );
+        query.setParameter("e", email);
+        query.setParameter("t", tenantId);
+        List<profesional_salud> res = query.getResultList();
+        return res.isEmpty() ? Optional.empty() : Optional.of(res.get(0));
     }
 }

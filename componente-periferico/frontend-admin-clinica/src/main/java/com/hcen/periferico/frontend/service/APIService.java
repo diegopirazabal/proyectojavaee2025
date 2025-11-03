@@ -36,7 +36,7 @@ import javax.net.ssl.SSLContext;
 public class APIService implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private static final String BACKEND_URL = "https://node5823-hcen-uy.web.elasticloud.uy/multitenant-api";
+    private static final String BACKEND_URL = "http://localhost:8080/multitenant-api";
 
     private CloseableHttpClient createHttpClient() {
         try {
@@ -64,8 +64,6 @@ public class APIService implements Serializable {
     // ========== AUTENTICACIÓN ==========
 
     public administrador_clinica_dto authenticate(String username, String password, String tenantId) {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-    public administrador_clinica_dto authenticate(String username, String password, String clinicaRut) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(BACKEND_URL + "/auth/login");
 

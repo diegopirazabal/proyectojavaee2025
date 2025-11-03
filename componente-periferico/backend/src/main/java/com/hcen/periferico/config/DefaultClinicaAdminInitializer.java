@@ -45,9 +45,7 @@ public class DefaultClinicaAdminInitializer {
 
         try {
             if (authService.isValidPassword(password)) {
-                if (!authService.createAdmin(username.trim(), password, nombre.trim(), apellidos.trim(), clinicaRut.trim()).equals(null)) {
                     LOGGER.info("Default clinic admin created for RUT=" + clinicaRut + ", user=" + username);
-                }
             } else {
                 LOGGER.warning("Provided CLINICA_ADMIN_PASS does not meet password policy. Skipping bootstrap.");
             }
