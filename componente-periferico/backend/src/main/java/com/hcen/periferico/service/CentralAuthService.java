@@ -79,7 +79,7 @@ public class CentralAuthService {
             
             // Configurar SSL parameters para deshabilitar endpoint identification
             SSLParameters sslParams = new SSLParameters();
-            sslParams.setEndpointIdentificationAlgorithm("");
+            sslParams.setEndpointIdentificationAlgorithm(null);
             
             LOGGER.warning("HttpClient configurado con SSL bypass - SIN VALIDACIÓN DE CERTIFICADOS (solo para desarrollo)");
             
