@@ -1,4 +1,4 @@
-package com.hcen.core.domain;
+package com.hcen.periferico.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -27,10 +27,12 @@ public class documento_clinico {
     @Column(name = "FEC_CREACION", nullable = false)
     private LocalDateTime fecCreacion = LocalDateTime.now();
 
-    // Historia Clínica
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "HIST_CLINICA_ID", nullable = false)
-    private historia_clinica historiaClinica;
+    // Historia Clínica - Esta entidad NO está en periférico
+    // Si se necesita, se debe crear historia_clinica en periférico también
+    // Por ahora, dejamos el campo comentado para evitar errores de compilación
+    // @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    // @JoinColumn(name = "HIST_CLINICA_ID", nullable = false)
+    // private historia_clinica historiaClinica;
 
     // Profesional (suscribe)
     @ManyToOne(fetch = FetchType.LAZY)
@@ -46,8 +48,8 @@ public class documento_clinico {
     public void setContenido(String contenido) { this.contenido = contenido; }
     public LocalDateTime getFecCreacion() { return fecCreacion; }
     public void setFecCreacion(LocalDateTime fecCreacion) { this.fecCreacion = fecCreacion; }
-    public historia_clinica getHistoriaClinica() { return historiaClinica; }
-    public void setHistoriaClinica(historia_clinica historiaClinica) { this.historiaClinica = historiaClinica; }
+    // public historia_clinica getHistoriaClinica() { return historiaClinica; }
+    // public void setHistoriaClinica(historia_clinica historiaClinica) { this.historiaClinica = historiaClinica; }
     public profesional_salud getProfesionalFirmante() { return profesionalFirmante; }
     public void setProfesionalFirmante(profesional_salud p) { this.profesionalFirmante = p; }
 

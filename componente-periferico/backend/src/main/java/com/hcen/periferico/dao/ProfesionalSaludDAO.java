@@ -1,6 +1,6 @@
 package com.hcen.periferico.dao;
 
-import com.hcen.core.domain.profesional_salud;
+import com.hcen.periferico.entity.profesional_salud;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -8,6 +8,7 @@ import jakarta.persistence.TypedQuery;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Stateless
 public class ProfesionalSaludDAO {
@@ -113,6 +114,69 @@ public class ProfesionalSaludDAO {
             "LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term)",
             Long.class
         );
+        query.setParameter("term", "%" + searchTerm + "%");
+        return query.getSingleResult();
+    }
+
+    /**
+     * Obtiene todos los profesionales de una clínica específica (filtrado por tenant_id)
+     */
+    public List<profesional_salud> findByTenantIdPaginated(UUID tenantId, int page, int size) {
+        TypedQuery<profesional_salud> query = em.createQuery(
+            "SELECT p FROM profesional_salud p " +
+            "WHERE p.tenantId = :tenantId " +
+            "ORDER BY p.apellidos, p.nombre",
+            profesional_salud.class
+        );
+        query.setParameter("tenantId", tenantId);
+        query.setFirstResult(page * size);
+        query.setMaxResults(size);
+        return query.getResultList();
+    }
+
+    /**
+     * Busca profesionales por nombre o apellido filtrados por clínica
+     */
+    public List<profesional_salud> findByNombreOrApellidoAndTenantIdPaginated(
+            String searchTerm, UUID tenantId, int page, int size) {
+        TypedQuery<profesional_salud> query = em.createQuery(
+            "SELECT p FROM profesional_salud p " +
+            "WHERE p.tenantId = :tenantId AND " +
+            "(LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term)) " +
+            "ORDER BY p.apellidos, p.nombre",
+            profesional_salud.class
+        );
+        query.setParameter("tenantId", tenantId);
+        query.setParameter("term", "%" + searchTerm + "%");
+        query.setFirstResult(page * size);
+        query.setMaxResults(size);
+        return query.getResultList();
+    }
+
+    /**
+     * Cuenta profesionales de una clínica específica
+     */
+    public long countByTenantId(UUID tenantId) {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(p) FROM profesional_salud p " +
+            "WHERE p.tenantId = :tenantId",
+            Long.class
+        );
+        query.setParameter("tenantId", tenantId);
+        return query.getSingleResult();
+    }
+
+    /**
+     * Cuenta profesionales que coinciden con el término de búsqueda en una clínica
+     */
+    public long countByNombreOrApellidoAndTenantId(String searchTerm, UUID tenantId) {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(p) FROM profesional_salud p " +
+            "WHERE p.tenantId = :tenantId AND " +
+            "(LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term))",
+            Long.class
+        );
+        query.setParameter("tenantId", tenantId);
         query.setParameter("term", "%" + searchTerm + "%");
         return query.getSingleResult();
     }

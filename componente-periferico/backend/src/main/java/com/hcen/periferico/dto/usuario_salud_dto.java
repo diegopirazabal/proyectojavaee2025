@@ -1,6 +1,8 @@
 package com.hcen.periferico.dto;
 
 import com.hcen.periferico.enums.TipoDocumento;
+import com.hcen.periferico.rest.LocalDateAdapter;
+import jakarta.json.bind.annotation.JsonbTypeAdapter;
 import java.io.Serializable;
 import java.time.LocalDate;
 
@@ -15,6 +17,8 @@ public class usuario_salud_dto implements Serializable {
     private String primerApellido;  // Cambiado de 'apellidos' a campos separados
     private String segundoApellido;  // Nuevo campo
     private String email;
+
+    @JsonbTypeAdapter(LocalDateAdapter.class)
     private LocalDate fechaNacimiento;  // Cambiado de 'fechaNac'
 
     // Constructores

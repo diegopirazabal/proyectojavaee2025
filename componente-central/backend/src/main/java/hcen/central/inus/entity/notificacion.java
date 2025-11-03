@@ -1,4 +1,4 @@
-package com.hcen.core.domain;
+package hcen.central.inus.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -26,10 +26,13 @@ public class notificacion {
     @Column(length = 30)
     private String estado;
 
-    // Usuario FK not null
+    // Usuario FK not null - Referencia a UsuarioSalud local con composite key
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "USUARIO_CI", nullable = false)
-    private usuario_salud usuario;
+    @JoinColumns({
+        @JoinColumn(name = "USUARIO_ID", referencedColumnName = "id", nullable = false),
+        @JoinColumn(name = "USUARIO_CEDULA", referencedColumnName = "cedula", nullable = false)
+    })
+    private UsuarioSalud usuario;
 
     public UUID getId() { return id; }
     public String getTipo() { return tipo; }
@@ -40,8 +43,8 @@ public class notificacion {
     public void setFecCreacion(LocalDateTime fecCreacion) { this.fecCreacion = fecCreacion; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
-    public usuario_salud getUsuario() { return usuario; }
-    public void setUsuario(usuario_salud usuario) { this.usuario = usuario; }
+    public UsuarioSalud getUsuario() { return usuario; }
+    public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
 
     @Override public boolean equals(Object o){ return (this==o) || (o instanceof notificacion n && Objects.equals(id,n.id)); }
     @Override public int hashCode(){ return Objects.hash(id); }

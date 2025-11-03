@@ -1,6 +1,6 @@
 package com.hcen.periferico.dao;
 
-import com.hcen.core.domain.configuracion_clinica;
+import com.hcen.periferico.entity.configuracion_clinica;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;

@@ -1,168 +1,195 @@
 package com.hcen.periferico.dao;
 
-import com.hcen.core.domain.clinica;
-import com.hcen.core.domain.usuario_salud;
+import com.hcen.periferico.entity.UsuarioSalud;
+import com.hcen.periferico.entity.UsuarioSalud.UsuarioSaludId;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Logger;
 
+/**
+ * DAO para gestionar usuarios de salud en el componente periférico.
+ * Usa la entidad UsuarioSalud con soporte multi-tenant (tenant_id).
+ *
+ * IMPORTANTE: Esta es la fuente de verdad local. No delega al central.
+ */
 @Stateless
 public class UsuarioSaludDAO {
+
+    private static final Logger LOGGER = Logger.getLogger(UsuarioSaludDAO.class.getName());
 
     @PersistenceContext(unitName = "hcen-periferico-pu")
     private EntityManager em;
 
-    public usuario_salud save(usuario_salud usuario) {
-        if (usuario.getCi() == null || !em.contains(usuario)) {
-            return em.merge(usuario);
-        } else {
-            return em.merge(usuario);
+    /**
+     * Persiste o actualiza un usuario
+     */
+    public UsuarioSalud save(UsuarioSalud usuario) {
+        if (usuario.getCedula() == null || usuario.getTenantId() == null) {
+            throw new IllegalArgumentException("Cédula y tenant_id son requeridos");
         }
+        return em.merge(usuario);
     }
 
-    public Optional<usuario_salud> findByCi(Integer ci) {
-        usuario_salud usuario = em.find(usuario_salud.class, ci);
+    /**
+     * Busca un usuario por cédula y tenant_id (composite key)
+     */
+    public Optional<UsuarioSalud> findByCedulaAndTenant(String cedula, UUID tenantId) {
+        UsuarioSaludId id = new UsuarioSaludId(cedula, tenantId);
+        UsuarioSalud usuario = em.find(UsuarioSalud.class, id);
         return Optional.ofNullable(usuario);
     }
 
-    public List<usuario_salud> findAll() {
-        TypedQuery<usuario_salud> query = em.createQuery(
-            "SELECT u FROM usuario_salud u ORDER BY u.apellidos, u.nombre",
-            usuario_salud.class
-        );
-        return query.getResultList();
-    }
-
-    public boolean existsByCi(Integer ci) {
+    /**
+     * Verifica si existe un usuario con esa cédula en esa clínica
+     */
+    public boolean existsByCedulaAndTenant(String cedula, UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(u) FROM usuario_salud u WHERE u.ci = :ci",
+            "SELECT COUNT(u) FROM UsuarioSalud u WHERE u.cedula = :cedula AND u.tenantId = :tenantId",
             Long.class
         );
-        query.setParameter("ci", ci);
+        query.setParameter("cedula", cedula);
+        query.setParameter("tenantId", tenantId);
         return query.getSingleResult() > 0;
     }
 
-    public void delete(usuario_salud usuario) {
-        if (!em.contains(usuario)) {
-            usuario = em.merge(usuario);
-        }
-        em.remove(usuario);
-    }
-
-    public void deleteByCi(Integer ci) {
-        findByCi(ci).ifPresent(this::delete);
-    }
-
-    public List<usuario_salud> findByNombreOrApellido(String searchTerm) {
-        TypedQuery<usuario_salud> query = em.createQuery(
-            "SELECT u FROM usuario_salud u WHERE " +
-            "LOWER(u.nombre) LIKE LOWER(:term) OR LOWER(u.apellidos) LIKE LOWER(:term) " +
-            "ORDER BY u.apellidos, u.nombre",
-            usuario_salud.class
-        );
-        query.setParameter("term", "%" + searchTerm + "%");
-        return query.getResultList();
-    }
-
-    public List<usuario_salud> findAllPaginated(int page, int size) {
-        TypedQuery<usuario_salud> query = em.createQuery(
-            "SELECT u FROM usuario_salud u ORDER BY u.apellidos, u.nombre",
-            usuario_salud.class
-        );
-        query.setFirstResult(page * size);
-        query.setMaxResults(size);
-        return query.getResultList();
-    }
-
-    public List<usuario_salud> findByNombreOrApellidoPaginated(String searchTerm, int page, int size) {
-        TypedQuery<usuario_salud> query = em.createQuery(
-            "SELECT u FROM usuario_salud u WHERE " +
-            "LOWER(u.nombre) LIKE LOWER(:term) OR LOWER(u.apellidos) LIKE LOWER(:term) " +
-            "ORDER BY u.apellidos, u.nombre",
-            usuario_salud.class
-        );
-        query.setParameter("term", "%" + searchTerm + "%");
-        query.setFirstResult(page * size);
-        query.setMaxResults(size);
-        return query.getResultList();
-    }
-
-    public long countAll() {
-        TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(u) FROM usuario_salud u",
-            Long.class
-        );
-        return query.getSingleResult();
-    }
-
-    public long countByNombreOrApellido(String searchTerm) {
-        TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(u) FROM usuario_salud u WHERE " +
-            "LOWER(u.nombre) LIKE LOWER(:term) OR LOWER(u.apellidos) LIKE LOWER(:term)",
-            Long.class
-        );
-        query.setParameter("term", "%" + searchTerm + "%");
-        return query.getSingleResult();
+    /**
+     * Obtiene todos los usuarios activos de una clínica (tenant_id)
+     */
+    public List<UsuarioSalud> findByTenantId(UUID tenantId) {
+        return findByTenantId(tenantId, true);
     }
 
     /**
-     * Asocia un usuario a una clínica (relación ManyToMany)
+     * Obtiene usuarios de una clínica con filtro de activos/inactivos
      */
-    public void associateUsuarioToClinica(Integer usuarioCi, UUID clinicaId) {
-        usuario_salud usuario = em.find(usuario_salud.class, usuarioCi);
-        clinica clinicaEntity = em.find(clinica.class, clinicaId);
+    public List<UsuarioSalud> findByTenantId(UUID tenantId, boolean soloActivos) {
+        String jpql = "SELECT u FROM UsuarioSalud u WHERE u.tenantId = :tenantId";
+        if (soloActivos) {
+            jpql += " AND u.active = true";
+        }
+        jpql += " ORDER BY u.primerApellido, u.primerNombre";
 
-        if (usuario != null && clinicaEntity != null) {
-            // Agregar la clínica al Set de clínicas del usuario
-            usuario.getClinicas().add(clinicaEntity);
+        TypedQuery<UsuarioSalud> query = em.createQuery(jpql, UsuarioSalud.class);
+        query.setParameter("tenantId", tenantId);
+        return query.getResultList();
+    }
+
+    /**
+     * Busca usuarios por nombre o apellido dentro de una clínica
+     */
+    public List<UsuarioSalud> searchByNombreOrApellidoAndTenant(String searchTerm, UUID tenantId) {
+        TypedQuery<UsuarioSalud> query = em.createQuery(
+            "SELECT u FROM UsuarioSalud u WHERE u.tenantId = :tenantId AND u.active = true AND " +
+            "(LOWER(u.primerNombre) LIKE LOWER(:term) OR " +
+            "LOWER(u.segundoNombre) LIKE LOWER(:term) OR " +
+            "LOWER(u.primerApellido) LIKE LOWER(:term) OR " +
+            "LOWER(u.segundoApellido) LIKE LOWER(:term)) " +
+            "ORDER BY u.primerApellido, u.primerNombre",
+            UsuarioSalud.class
+        );
+        query.setParameter("tenantId", tenantId);
+        query.setParameter("term", "%" + searchTerm + "%");
+        return query.getResultList();
+    }
+
+    /**
+     * Busca usuarios pendientes de sincronización con el central
+     */
+    public List<UsuarioSalud> findPendientesSincronizacion() {
+        TypedQuery<UsuarioSalud> query = em.createQuery(
+            "SELECT u FROM UsuarioSalud u WHERE u.sincronizadoCentral = false AND u.active = true " +
+            "ORDER BY u.createdAt",
+            UsuarioSalud.class
+        );
+        return query.getResultList();
+    }
+
+    /**
+     * Busca usuarios pendientes de sincronización para un tenant específico
+     */
+    public List<UsuarioSalud> findPendientesSincronizacionByTenant(UUID tenantId) {
+        TypedQuery<UsuarioSalud> query = em.createQuery(
+            "SELECT u FROM UsuarioSalud u " +
+            "WHERE u.tenantId = :tenantId AND u.sincronizadoCentral = false AND u.active = true " +
+            "ORDER BY u.createdAt",
+            UsuarioSalud.class
+        );
+        query.setParameter("tenantId", tenantId);
+        return query.getResultList();
+    }
+
+    /**
+     * Marca un usuario como sincronizado con el central
+     */
+    public void marcarComoSincronizado(String cedula, UUID tenantId) {
+        findByCedulaAndTenant(cedula, tenantId).ifPresent(usuario -> {
+            usuario.setSincronizadoCentral(true);
             em.merge(usuario);
-        }
+        });
     }
 
     /**
-     * Verifica si un usuario ya está asociado a una clínica
+     * Desactivar usuario (soft delete)
      */
-    public boolean isUsuarioAssociatedToClinica(Integer usuarioCi, UUID clinicaId) {
+    public void desactivar(String cedula, UUID tenantId) {
+        findByCedulaAndTenant(cedula, tenantId).ifPresent(usuario -> {
+            usuario.setActive(false);
+            em.merge(usuario);
+        });
+    }
+
+    /**
+     * Eliminar usuario físicamente (hard delete)
+     */
+    public void delete(String cedula, UUID tenantId) {
+        findByCedulaAndTenant(cedula, tenantId).ifPresent(usuario -> {
+            em.remove(usuario);
+        });
+    }
+
+    /**
+     * Cuenta usuarios activos por tenant
+     */
+    public long countByTenantId(UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(u) FROM usuario_salud u JOIN u.clinicas c " +
-            "WHERE u.ci = :usuarioCi AND c.id = :clinicaId",
+            "SELECT COUNT(u) FROM UsuarioSaludPeriferico u WHERE u.tenantId = :tenantId AND u.active = true",
             Long.class
         );
-        query.setParameter("usuarioCi", usuarioCi);
-        query.setParameter("clinicaId", clinicaId);
-        return query.getSingleResult() > 0;
+        query.setParameter("tenantId", tenantId);
+        return query.getSingleResult();
     }
 
     /**
-     * Obtiene usuarios asociados a una clínica específica
+     * Paginación: usuarios por tenant
      */
-    public List<usuario_salud> findUsuariosByClinica(UUID clinicaId, int page, int size) {
-        TypedQuery<usuario_salud> query = em.createQuery(
-            "SELECT u FROM usuario_salud u JOIN u.clinicas c " +
-            "WHERE c.id = :clinicaId ORDER BY u.apellidos, u.nombre",
-            usuario_salud.class
+    public List<UsuarioSalud> findByTenantIdPaginated(UUID tenantId, int page, int size) {
+        TypedQuery<UsuarioSalud> query = em.createQuery(
+            "SELECT u FROM UsuarioSalud u WHERE u.tenantId = :tenantId AND u.active = true " +
+            "ORDER BY u.primerApellido, u.primerNombre",
+            UsuarioSalud.class
         );
-        query.setParameter("clinicaId", clinicaId);
+        query.setParameter("tenantId", tenantId);
         query.setFirstResult(page * size);
         query.setMaxResults(size);
         return query.getResultList();
     }
 
     /**
-     * Cuenta usuarios asociados a una clínica específica
+     * Busca usuarios por cédula (sin filtro de tenant) - útil para verificación global
      */
-    public long countUsuariosByClinica(UUID clinicaId) {
-        TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(u) FROM usuario_salud u JOIN u.clinicas c " +
-            "WHERE c.id = :clinicaId",
-            Long.class
+    public List<UsuarioSalud> findByCedula(String cedula) {
+        TypedQuery<UsuarioSalud> query = em.createQuery(
+            "SELECT u FROM UsuarioSalud u WHERE u.cedula = :cedula",
+            UsuarioSalud.class
         );
-        query.setParameter("clinicaId", clinicaId);
-        return query.getSingleResult();
+        query.setParameter("cedula", cedula);
+        return query.getResultList();
     }
 }

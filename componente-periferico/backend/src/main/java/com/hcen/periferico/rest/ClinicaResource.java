@@ -1,6 +1,6 @@
 package com.hcen.periferico.rest;
 
-import com.hcen.core.domain.clinica;
+import com.hcen.periferico.entity.clinica;
 import com.hcen.periferico.dao.ClinicaDAO;
 import com.hcen.periferico.service.ClinicaService;
 import jakarta.ejb.EJB;
