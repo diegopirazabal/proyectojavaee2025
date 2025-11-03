@@ -5,6 +5,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
+import jakarta.inject.Inject;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
@@ -16,19 +17,9 @@ import java.util.logging.Logger;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import org.apache.hc.client5.http.io.HttpClientConnectionManager;
-import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
-import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.util.Timeout;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.security.cert.X509Certificate;
 
 /**
  * Servicio de autenticación con componente-central
@@ -39,60 +30,14 @@ import java.security.cert.X509Certificate;
 public class CentralAuthService {
     
     private static final Logger LOGGER = Logger.getLogger(CentralAuthService.class.getName());
-    private static final int REQUEST_TIMEOUT_SECONDS = 30;
     
     @EJB
     private ClientCredentialsConfig credentialsConfig;
     
-    private String currentToken;
-    private final CloseableHttpClient httpClient;
+    @Inject
+    private CloseableHttpClient httpClient;
     
-    public CentralAuthService() {
-        this.httpClient = createHttpClient();
-    }
-    /**
-     * Crea un HttpClient que acepta certificados SSL no confiables usando Apache HttpClient 5
-     * NOTA: Esto es solo para desarrollo. En producción debe usarse un truststore apropiado.
-     */
-    private CloseableHttpClient createHttpClient() {
-        try {
-            // TrustManager que acepta todos los certificados
-            TrustManager[] trustAllCerts = new TrustManager[] {
-                new X509TrustManager() {
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return null;
-                    }
-                    public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-                    public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-                }
-            };
-            
-            // Configurar SSLContext con el TrustManager que acepta todo
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-            
-            // Crear SSLConnectionSocketFactory con NoopHostnameVerifier
-            SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(
-                sslContext,
-                NoopHostnameVerifier.INSTANCE
-            );
-            
-            // Crear connection manager con SSL custom
-            HttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-                .setSSLSocketFactory(sslSocketFactory)
-                .build();
-            
-            LOGGER.warning("HttpClient (Apache) configurado con SSL bypass - SIN VALIDACIÓN DE CERTIFICADOS (solo para desarrollo)");
-            
-            return HttpClients.custom()
-                .setConnectionManager(connectionManager)
-                .build();
-                
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "No se pudo configurar SSL permisivo", e);
-            return HttpClients.createDefault();
-        }
-    }
+    private String currentToken;
     
     @PostConstruct
     public void init() {
