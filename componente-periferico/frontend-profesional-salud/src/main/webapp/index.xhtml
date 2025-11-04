@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="jakarta.faces.core">
+
+<h:head>
+    <title>Portal Profesional de Salud - HCEN</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</h:head>
+
+<h:body>
+    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div style="background: white; padding: 3rem; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); max-width: 400px; width: 100%;">
+            <h:form>
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <h1 style="color: #333; margin: 0;">Portal Profesional</h1>
+                    <p style="color: #666; margin-top: 0.5rem;">Historia Clínica Electrónica Nacional</p>
+                </div>
+
+                <p:messages id="messages" showDetail="false" closable="true"/>
+
+                <div style="margin-bottom: 2rem;">
+                    <p style="color: #666; text-align: center;">
+                        Bienvenido al sistema de Historia Clínica Electrónica.
+                        Por favor, inicie sesión para continuar.
+                    </p>
+                </div>
+
+                <div style="text-align: center;">
+                    <p:button value="Ir a Documentos Clínicos"
+                             outcome="/pages/documentos.xhtml"
+                             icon="pi pi-file-edit"
+                             styleClass="p-button-lg p-button-success"
+                             style="width: 100%;"/>
+                </div>
+
+                <div style="text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                    <small style="color: #999;">
+                        Sistema de Salud - Versión 1.0
+                    </small>
+                </div>
+            </h:form>
+        </div>
+    </div>
+</h:body>
+</html>
