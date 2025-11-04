@@ -15,6 +15,7 @@ public class usuario_salud_dto implements Serializable {
     private String segundoApellido;
     private String email;
     private LocalDate fechaNacimiento;
+    private String tenantId;
 
     // Constructores
     public usuario_salud_dto() {
@@ -83,6 +84,14 @@ public class usuario_salud_dto implements Serializable {
 
     public void setFechaNacimiento(LocalDate fechaNacimiento) {
         this.fechaNacimiento = fechaNacimiento;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getNombreCompleto() {

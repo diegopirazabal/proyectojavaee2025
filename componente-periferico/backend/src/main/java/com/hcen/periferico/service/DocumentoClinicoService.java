@@ -1,5 +1,6 @@
 package com.hcen.periferico.service;
 
+import com.hcen.periferico.api.CentralAPIClient;
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
 import com.hcen.periferico.dao.ProfesionalSaludDAO;
 import com.hcen.periferico.dto.documento_clinico_dto;
@@ -36,6 +37,9 @@ public class DocumentoClinicoService {
 
     @PersistenceContext(unitName = "hcen-periferico-pu")
     private EntityManager em;
+
+    @EJB
+    private CentralAPIClient centralAPIClient;
 
     /**
      * Crea un nuevo documento clínico
@@ -76,29 +80,63 @@ public class DocumentoClinicoService {
         // Validar que las codigueras existan
         validarCodigueras(codigoMotivoConsulta, codigoEstadoProblema, codigoGradoCerteza);
 
-        // Crear entidad
+        UUID documentoId = UUID.randomUUID();
+        UUID historiaCentralId;
+        try {
+            historiaCentralId = centralAPIClient.registrarDocumentoHistoriaClinica(
+                tenantId.toString(),
+                usuarioSaludCedula,
+                documentoId
+            );
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("No se pudo registrar el documento en el componente central", e);
+        }
+
+        if (historiaCentralId == null) {
+            throw new IllegalStateException("El componente central no devolvió un ID de historia clínica válido");
+        }
+
+        asegurarHistoriaClinicaLocal(historiaCentralId, usuarioSaludCedula, tenantId);
+
         documento_clinico documento = new documento_clinico();
+        documento.setId(documentoId);
         documento.setTenantId(tenantId);
         documento.setUsuarioSaludCedula(usuarioSaludCedula);
         documento.setPaciente(paciente);
         documento.setProfesionalFirmante(profesional);
         documento.setFecCreacion(LocalDateTime.now());
-
-        // Motivo de consulta
         documento.setCodigoMotivoConsulta(codigoMotivoConsulta);
-
-        // Diagnóstico
         documento.setDescripcionDiagnostico(descripcionDiagnostico.trim());
         documento.setFechaInicioDiagnostico(fechaInicioDiagnostico);
         documento.setCodigoEstadoProblema(codigoEstadoProblema);
         documento.setCodigoGradoCerteza(codigoGradoCerteza);
-
-        // Instrucciones de seguimiento (opcionales)
         documento.setFechaProximaConsulta(fechaProximaConsulta);
         documento.setDescripcionProximaConsulta(descripcionProximaConsulta != null ? descripcionProximaConsulta.trim() : null);
         documento.setReferenciaAlta(referenciaAlta != null ? referenciaAlta.trim() : null);
+        documento.setHistClinicaId(historiaCentralId);
 
         return documentoDAO.save(documento);
+    }
+
+    private void asegurarHistoriaClinicaLocal(UUID historiaId, String cedulaPaciente, UUID tenantId) {
+        if (historiaId == null) {
+            return;
+        }
+        Number result = (Number) em.createNativeQuery(
+            "SELECT COUNT(1) FROM historia_clinica WHERE id = ?")
+            .setParameter(1, historiaId)
+            .getSingleResult();
+
+        if (result.longValue() == 0L) {
+            em.createNativeQuery(
+                "INSERT INTO historia_clinica (id, usuario_cedula, tenant_id, fec_creacion) " +
+                "VALUES (?, ?, ?, ?) ON CONFLICT (id) DO NOTHING")
+                .setParameter(1, historiaId)
+                .setParameter(2, cedulaPaciente)
+                .setParameter(3, tenantId)
+                .setParameter(4, LocalDateTime.now())
+                .executeUpdate();
+        }
     }
 
     /**
@@ -216,7 +254,7 @@ public class DocumentoClinicoService {
 
         // IDs y fechas
         dto.setId(documento.getId().toString());
-        dto.setTenantId(documento.getTenantId().toString());
+        dto.setTenantId(documento.getTenantId() != null ? documento.getTenantId().toString() : null);
         dto.setFecCreacion(documento.getFecCreacion());
 
         // Relaciones

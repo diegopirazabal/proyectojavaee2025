@@ -79,10 +79,17 @@ public class documento_clinico {
     @Column(name = "REFERENCIA_ALTA", length = 500)
     private String referenciaAlta;
 
+    @Column(name = "HIST_CLINICA_ID", nullable = false, columnDefinition = "UUID")
+    private UUID histClinicaId;
+
     // ============ GETTERS Y SETTERS ============
 
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public UUID getTenantId() {
@@ -187,6 +194,14 @@ public class documento_clinico {
 
     public void setReferenciaAlta(String referenciaAlta) {
         this.referenciaAlta = referenciaAlta;
+    }
+
+    public UUID getHistClinicaId() {
+        return histClinicaId;
+    }
+
+    public void setHistClinicaId(UUID histClinicaId) {
+        this.histClinicaId = histClinicaId;
     }
 
     @Override

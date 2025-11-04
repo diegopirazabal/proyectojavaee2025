@@ -13,6 +13,8 @@ import jakarta.inject.Named;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
+import org.primefaces.PrimeFaces;
 
 /**
  * Managed Bean para gestión de documentos clínicos ambulatorios.
@@ -82,7 +84,14 @@ public class DocumentoClinicoBean implements Serializable {
                 addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
                 return;
             }
-            pacientes = apiService.getAllUsuarios(tenantId);
+            List<usuario_salud_dto> resultado = apiService.getAllUsuarios(tenantId);
+            List<usuario_salud_dto> filtrado = resultado.stream()
+                .filter(p -> p.getTenantId() != null && tenantId.equalsIgnoreCase(p.getTenantId()))
+                .collect(Collectors.toList());
+            if (filtrado.isEmpty() && !resultado.isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_WARN, "No se encontraron pacientes asociados al tenant actual.");
+            }
+            pacientes = filtrado;
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar pacientes: " + e.getMessage());
             e.printStackTrace();
@@ -197,12 +206,33 @@ public class DocumentoClinicoBean implements Serializable {
                 addMessage(FacesMessage.SEVERITY_INFO, "Documento clínico creado exitosamente");
                 cargarDocumentosPorPaciente(); // Recargar lista
                 newDocumento = new documento_clinico_dto(); // Reset form
+                PrimeFaces primeFaces = PrimeFaces.current();
+                if (primeFaces != null) {
+                    primeFaces.ajax().update("documentosForm");
+                    primeFaces.executeScript("PF('dlgNuevoDocumento').hide();");
+                }
             } else {
                 addMessage(FacesMessage.SEVERITY_ERROR, "Error al crear el documento");
             }
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al guardar documento: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Se ejecuta antes de renderizar la vista para asegurar que las listas estén cargadas
+     * cuando el profesional inicia sesión desde la pantalla principal.
+     */
+    public void prepararVista() {
+        if (!sessionBean.isLoggedIn()) {
+            return;
+        }
+        if (pacientes == null || pacientes.isEmpty()) {
+            cargarPacientes();
+        }
+        if (motivosConsulta == null || motivosConsulta.isEmpty()) {
+            cargarCatalogos();
         }
     }
 

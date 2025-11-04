@@ -351,6 +351,7 @@ public class APIService implements Serializable {
             dto.setApellidos(jsonObject.getString("apellidos"));
             dto.setEspecialidad(jsonObject.getString("especialidad", null));
             dto.setEmail(jsonObject.getString("email", null));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
 
             return dto;
         } catch (Exception e) {
@@ -374,6 +375,7 @@ public class APIService implements Serializable {
                 dto.setApellidos(jsonObject.getString("apellidos"));
                 dto.setEspecialidad(jsonObject.getString("especialidad", null));
                 dto.setEmail(jsonObject.getString("email", null));
+                dto.setTenantId(jsonObject.getString("tenantId", null));
 
                 list.add(dto);
             }
@@ -489,6 +491,7 @@ public class APIService implements Serializable {
             dto.setPrimerApellido(jsonObject.getString("primerApellido", null));
             dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
             dto.setEmail(jsonObject.getString("email", null));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
 
             String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
             if (fechaNacStr != null) {
@@ -518,6 +521,7 @@ public class APIService implements Serializable {
                 dto.setPrimerApellido(jsonObject.getString("primerApellido", null));
                 dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
                 dto.setEmail(jsonObject.getString("email", null));
+                dto.setTenantId(jsonObject.getString("tenantId", null));
 
                 String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
                 if (fechaNacStr != null) {

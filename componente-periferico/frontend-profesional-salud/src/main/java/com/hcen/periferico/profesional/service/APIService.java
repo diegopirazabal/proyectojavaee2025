@@ -1,6 +1,8 @@
 package com.hcen.periferico.profesional.service;
 
+import com.hcen.periferico.profesional.dto.clinica_dto;
 import com.hcen.periferico.profesional.dto.documento_clinico_dto;
+import com.hcen.periferico.profesional.dto.profesional_salud_dto;
 import com.hcen.periferico.profesional.dto.usuario_salud_dto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
@@ -64,6 +66,53 @@ public class APIService implements Serializable {
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("Unable to initialize insecure SSL context", e);
         }
+    }
+
+    // ========== AUTENTICACIÓN Y CATÁLOGOS ==========
+
+    public profesional_salud_dto loginProfesional(String tenantId, String email, String password) throws IOException {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPost request = new HttpPost(getBackendUrl() + "/auth/profesional/login");
+
+            var json = Json.createObjectBuilder()
+                .add("tenantId", tenantId)
+                .add("email", email)
+                .add("password", password)
+                .build();
+
+            request.setEntity(new StringEntity(json.toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int status = response.getCode();
+                String responseBody = response.getEntity() != null
+                    ? new String(response.getEntity().getContent().readAllBytes())
+                    : "";
+
+                if (status == 200) {
+                    return parseProfesionalFromJson(responseBody);
+                }
+                if (status == 401 || status == 404) {
+                    return null;
+                }
+                throw new IOException("Error al autenticar profesional: HTTP " + status + " - " + responseBody);
+            }
+        }
+    }
+
+    public List<clinica_dto> getClinicas() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(getBackendUrl() + "/clinicas");
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200 && response.getEntity() != null) {
+                    String body = new String(response.getEntity().getContent().readAllBytes());
+                    return parseClinicasFromJson(body);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
     }
 
     // ========== USUARIOS SALUD ==========
@@ -215,6 +264,7 @@ public class APIService implements Serializable {
                 dto.setPrimerApellido(jsonObject.getString("primerApellido", null));
                 dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
                 dto.setEmail(jsonObject.getString("email", null));
+                dto.setTenantId(jsonObject.getString("tenantId", null));
 
                 String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
                 if (fechaNacStr != null) {
@@ -227,6 +277,40 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return list;
+    }
+
+    private profesional_salud_dto parseProfesionalFromJson(String jsonString) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject jsonObject = reader.readObject();
+
+            profesional_salud_dto dto = new profesional_salud_dto();
+            dto.setCi(jsonObject.getInt("ci", 0));
+            dto.setNombre(jsonObject.getString("nombre", null));
+            dto.setApellidos(jsonObject.getString("apellidos", null));
+            dto.setEspecialidad(jsonObject.getString("especialidad", null));
+            dto.setEmail(jsonObject.getString("email", null));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
+            return dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private List<clinica_dto> parseClinicasFromJson(String jsonString) {
+        List<clinica_dto> clinicas = new ArrayList<>();
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonArray array = reader.readArray();
+            for (JsonObject obj : array.getValuesAs(JsonObject.class)) {
+                clinica_dto dto = new clinica_dto();
+                dto.setTenantId(obj.getString("tenantId", null));
+                dto.setNombre(obj.getString("nombre", dto.getTenantId()));
+                clinicas.add(dto);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return clinicas;
     }
 
     private documento_clinico_dto parseDocumentoFromJson(String jsonString) {

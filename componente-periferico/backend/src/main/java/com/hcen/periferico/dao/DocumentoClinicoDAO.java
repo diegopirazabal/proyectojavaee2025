@@ -142,10 +142,14 @@ public class DocumentoClinicoDAO {
      */
     public Optional<String> getNombreMotivoConsulta(String codigo) {
         try {
+            Integer id = parseCodigo(codigo);
+            if (id == null) {
+                return Optional.empty();
+            }
             String result = em.createNativeQuery(
-                "SELECT descripcion FROM motivo_consulta WHERE codigo = ?", String.class
+                "SELECT concepto FROM motivo_consulta WHERE id = ?", String.class
             )
-            .setParameter(1, codigo)
+            .setParameter(1, id)
             .getSingleResult().toString();
             return Optional.of(result);
         } catch (Exception e) {
@@ -158,10 +162,14 @@ public class DocumentoClinicoDAO {
      */
     public Optional<String> getNombreEstadoProblema(String codigo) {
         try {
+            Integer id = parseCodigo(codigo);
+            if (id == null) {
+                return Optional.empty();
+            }
             String result = em.createNativeQuery(
-                "SELECT descripcion FROM estado_problema WHERE codigo = ?", String.class
+                "SELECT concepto FROM estado_problema WHERE id = ?", String.class
             )
-            .setParameter(1, codigo)
+            .setParameter(1, id)
             .getSingleResult().toString();
             return Optional.of(result);
         } catch (Exception e) {
@@ -174,10 +182,14 @@ public class DocumentoClinicoDAO {
      */
     public Optional<String> getNombreGradoCerteza(String codigo) {
         try {
+            Integer id = parseCodigo(codigo);
+            if (id == null) {
+                return Optional.empty();
+            }
             String result = em.createNativeQuery(
-                "SELECT descripcion FROM grado_certeza WHERE codigo = ?", String.class
+                "SELECT concepto FROM grado_certeza WHERE id = ?", String.class
             )
-            .setParameter(1, codigo)
+            .setParameter(1, id)
             .getSingleResult().toString();
             return Optional.of(result);
         } catch (Exception e) {
@@ -193,7 +205,7 @@ public class DocumentoClinicoDAO {
         Map<String, String> motivos = new LinkedHashMap<>();
         try {
             List<Object[]> results = em.createNativeQuery(
-                "SELECT codigo, descripcion FROM motivo_consulta ORDER BY descripcion"
+                "SELECT id, concepto FROM motivo_consulta ORDER BY concepto"
             ).getResultList();
 
             for (Object[] row : results) {
@@ -213,7 +225,7 @@ public class DocumentoClinicoDAO {
         Map<String, String> estados = new LinkedHashMap<>();
         try {
             List<Object[]> results = em.createNativeQuery(
-                "SELECT codigo, descripcion FROM estado_problema ORDER BY descripcion"
+                "SELECT id, concepto FROM estado_problema ORDER BY concepto"
             ).getResultList();
 
             for (Object[] row : results) {
@@ -233,7 +245,7 @@ public class DocumentoClinicoDAO {
         Map<String, String> grados = new LinkedHashMap<>();
         try {
             List<Object[]> results = em.createNativeQuery(
-                "SELECT codigo, descripcion FROM grado_certeza ORDER BY descripcion"
+                "SELECT id, concepto FROM grado_certeza ORDER BY concepto"
             ).getResultList();
 
             for (Object[] row : results) {
@@ -243,5 +255,16 @@ public class DocumentoClinicoDAO {
             // Log error si es necesario
         }
         return grados;
+    }
+
+    private Integer parseCodigo(String codigo) {
+        if (codigo == null) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(codigo);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 }

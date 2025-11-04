@@ -11,6 +11,7 @@
 
 <f:metadata>
     <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
+    <f:event type="preRenderView" listener="#{documentoClinicoBean.prepararVista}"/>
 </f:metadata>
 
 <h:body>
@@ -80,12 +81,12 @@
                 <!-- Toolbar -->
                 <p:toolbar style="margin-bottom: 1rem;" rendered="#{documentoClinicoBean.cedulaPacienteSeleccionado != null}">
                     <p:toolbarGroup>
-                        <p:commandButton value="Nueva Consulta"
-                                        icon="pi pi-plus"
-                                        onclick="PF('dlgNuevoDocumento').show();"
-                                        styleClass="p-button-success"
-                                        update=":documentosForm:newDocumentoPanel"
-                                        action="#{documentoClinicoBean.prepararNuevoDocumento}"/>
+                    <p:commandButton value="Nueva Consulta"
+                                    icon="pi pi-plus"
+                                    styleClass="p-button-success"
+                                    update=":dlgNuevoDocumento"
+                                    action="#{documentoClinicoBean.prepararNuevoDocumento}"
+                                    oncomplete="PF('dlgNuevoDocumento').show();"/>
                     </p:toolbarGroup>
                 </p:toolbar>
 

@@ -23,16 +23,43 @@
                 <div style="margin-bottom: 2rem;">
                     <p style="color: #666; text-align: center;">
                         Bienvenido al sistema de Historia Clínica Electrónica.
-                        Por favor, inicie sesión para continuar.
+                        Seleccione la clínica e ingrese sus credenciales para continuar.
                     </p>
                 </div>
 
+                <p:panelGrid columns="1" style="margin-bottom: 1.5rem;" styleClass="p-fluid">
+                    <p:selectOneMenu id="clinica"
+                                     value="#{sessionBean.selectedTenantId}"
+                                     required="true"
+                                     requiredMessage="Debe seleccionar una clínica">
+                        <f:selectItem itemLabel="-- Seleccione una clínica --" itemValue="" noSelectionOption="true"/>
+                        <f:selectItems value="#{sessionBean.clinicas}"
+                                       var="clinica"
+                                       itemLabel="#{clinica.nombre}"
+                                       itemValue="#{clinica.tenantId}"/>
+                    </p:selectOneMenu>
+
+                    <p:inputText id="email"
+                                 value="#{sessionBean.email}"
+                                 placeholder="Correo electrónico"
+                                 required="true"
+                                 requiredMessage="El correo electrónico es requerido"/>
+
+                    <p:password id="password"
+                                value="#{sessionBean.password}"
+                                placeholder="Contraseña"
+                                feedback="false"
+                                required="true"
+                                requiredMessage="La contraseña es requerida"/>
+                </p:panelGrid>
+
                 <div style="text-align: center;">
-                    <p:button value="Ir a Documentos Clínicos"
-                             outcome="/pages/documentos.xhtml"
-                             icon="pi pi-file-edit"
-                             styleClass="p-button-lg p-button-success"
-                             style="width: 100%;"/>
+                    <p:commandButton value="Ir a Documentos Clínicos"
+                                     action="#{sessionBean.navigateToDocumentos}"
+                                     icon="pi pi-file-edit"
+                                     styleClass="p-button-lg p-button-success"
+                                     style="width: 100%;"
+                                     ajax="false"/>
                 </div>
 
                 <div style="text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">

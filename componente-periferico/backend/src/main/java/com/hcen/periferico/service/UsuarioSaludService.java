@@ -283,6 +283,7 @@ public class UsuarioSaludService {
         dto.setSegundoApellido(usuario.getSegundoApellido());
         dto.setEmail(usuario.getEmail());
         dto.setFechaNacimiento(usuario.getFechaNacimiento());
+        dto.setTenantId(usuario.getTenantId() != null ? usuario.getTenantId().toString() : null);
         // Agregar campos adicionales si el DTO los soporta
         return dto;
     }

@@ -1,7 +1,9 @@
 package com.hcen.periferico.service;
 
 import com.hcen.periferico.entity.administrador_clinica;
+import com.hcen.periferico.entity.profesional_salud;
 import com.hcen.periferico.dao.AdministradorClinicaDAO;
+import com.hcen.periferico.dao.ProfesionalSaludDAO;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import org.mindrot.jbcrypt.BCrypt;
@@ -14,6 +16,8 @@ public class AuthenticationService {
 
     @EJB
     private AdministradorClinicaDAO adminDAO;
+    @EJB
+    private ProfesionalSaludDAO profesionalDAO;
 
     /**
      * Autentica un administrador de clínica
@@ -29,6 +33,22 @@ public class AuthenticationService {
             administrador_clinica admin = adminOpt.get();
             if (verifyPassword(password, admin.getPassword())) {
                 return admin;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Autentica un profesional de salud
+     */
+    public profesional_salud authenticateProfesional(String email, String password, UUID tenantId) {
+        String normalizedEmail = email != null ? email.trim() : null;
+        Optional<profesional_salud> profesionalOpt = profesionalDAO.findByEmailAndTenant(normalizedEmail, tenantId);
+
+        if (profesionalOpt.isPresent()) {
+            profesional_salud profesional = profesionalOpt.get();
+            if (verifyPassword(password, profesional.getPassword())) {
+                return profesional;
             }
         }
         return null;
