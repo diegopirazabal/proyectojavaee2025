@@ -1,4 +1,4 @@
-package com.hcen.core.domain;
+package com.hcen.periferico.entity;
 
 import jakarta.persistence.*;
 import java.util.Objects;

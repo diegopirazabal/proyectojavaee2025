@@ -1,14 +1,13 @@
 package com.hcen.periferico.rest;
 
-import com.hcen.core.domain.clinica;
+import com.hcen.periferico.entity.clinica;
 import com.hcen.periferico.dao.ClinicaDAO;
+import com.hcen.periferico.service.ClinicaService;
 import jakarta.ejb.EJB;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +18,9 @@ public class ClinicaResource {
 
     @EJB
     private ClinicaDAO clinicaDAO;
+
+    @EJB
+    private ClinicaService clinicaService;
 
     /**
      * Lista todas las clínicas disponibles
@@ -63,14 +65,11 @@ public class ClinicaResource {
                         .build();
             }
 
-            clinica nuevaClinica = new clinica();
-            nuevaClinica.setNombre(nombreNormalizado);
-            nuevaClinica.setDireccion(normalize(request.getDireccion()));
-            nuevaClinica.setEmail(normalize(request.getEmail()));
-            nuevaClinica.setEstado("ACTIVA");
-            nuevaClinica.setFecRegistro(LocalDateTime.now(ZoneId.of("America/Montevideo")));
-
-            clinica almacenada = clinicaDAO.save(nuevaClinica);
+            clinica almacenada = clinicaService.crearClinicaConAdministrador(
+                nombreNormalizado,
+                normalize(request.getDireccion()),
+                normalize(request.getEmail())
+            );
             return Response.status(Response.Status.CREATED).entity(toDTO(almacenada)).build();
         } catch (Exception e) {
             e.printStackTrace();

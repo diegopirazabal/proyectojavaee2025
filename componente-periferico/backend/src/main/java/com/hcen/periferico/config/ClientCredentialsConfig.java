@@ -7,17 +7,14 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Configuración de credenciales del cliente para autenticación con componente-central
- * Carga las credenciales desde client_credentials.json
+ * Usa variables de entorno para configuración (Railway-friendly)
+ * Fallback a client_credentials.json para desarrollo local
  */
 @Singleton
 @Startup
@@ -25,8 +22,13 @@ public class ClientCredentialsConfig {
     
     private static final Logger LOGGER = Logger.getLogger(ClientCredentialsConfig.class.getName());
     
-    // Ruta del archivo de configuración - se puede sobreescribir con property del sistema
-    private static final String DEFAULT_CONFIG_PATH = "/opt/wildfly/standalone/credentials/client_credentials.json";
+    // Configuración mediante variables de entorno
+    private static final String ENV_CLIENT_ID = "HCEN_CLIENT_ID";
+    private static final String ENV_CLIENT_SECRET = "HCEN_CLIENT_SECRET";
+    private static final String ENV_CENTRAL_URL = "HCEN_CENTRAL_URL";
+    private static final String ENV_RAILWAY_DOMAIN = "RAILWAY_PUBLIC_DOMAIN";
+    
+    // Fallback para desarrollo local
     private static final String CLASSPATH_CONFIG = "/client_credentials.json";
     
     private String clientId;
@@ -40,63 +42,89 @@ public class ClientCredentialsConfig {
     }
     
     /**
-     * Carga las credenciales desde el archivo JSON
-     * Intenta cargar desde:
-     * 1. System property: -Dclient.credentials.path=/ruta/archivo.json
-     * 2. Archivo externo: /opt/wildfly/standalone/credentials/client_credentials.json
-     * 3. Classpath: /client_credentials.json (para desarrollo)
+     * Carga las credenciales desde variables de entorno o archivo JSON de fallback
+     * Prioridad:
+     * 1. Variables de entorno (HCEN_CLIENT_ID, HCEN_CLIENT_SECRET, HCEN_CENTRAL_URL)
+     * 2. Archivo JSON en classpath (para desarrollo local)
      */
     private void loadCredentials() {
-        String configPath = System.getProperty("client.credentials.path", DEFAULT_CONFIG_PATH);
-        InputStream is = null;
-        String loadedFrom = null;
+        // Detectar ambiente primero
+        String railwayDomain = System.getenv(ENV_RAILWAY_DOMAIN);
+        boolean isProduction = railwayDomain != null && !railwayDomain.isBlank();
+        this.activeEnvironment = isProduction ? "production" : "development";
         
-        try {
-            // Intento 1: Archivo externo (filesystem)
-            Path externalFile = Paths.get(configPath);
-            if (Files.exists(externalFile)) {
-                is = new FileInputStream(externalFile.toFile());
-                loadedFrom = configPath;
-                LOGGER.info("Cargando credenciales desde filesystem: " + configPath);
-            } 
-            // Intento 2: Classpath (desarrollo)
-            else {
-                is = getClass().getResourceAsStream(CLASSPATH_CONFIG);
-                if (is != null) {
-                    loadedFrom = "classpath:" + CLASSPATH_CONFIG;
-                    LOGGER.info("Cargando credenciales desde classpath: " + CLASSPATH_CONFIG);
-                } else {
-                    throw new RuntimeException("No se encontró el archivo de credenciales ni en " + configPath + " ni en classpath");
-                }
+        LOGGER.info("=" .repeat(60));
+        LOGGER.info(isProduction 
+            ? "Ambiente detectado: PRODUCTION (Railway: " + railwayDomain + ")"
+            : "Ambiente detectado: DEVELOPMENT (localhost)");
+        
+        // Intentar cargar desde variables de entorno primero
+        String envClientId = System.getenv(ENV_CLIENT_ID);
+        String envClientSecret = System.getenv(ENV_CLIENT_SECRET);
+        String envCentralUrl = System.getenv(ENV_CENTRAL_URL);
+        
+        if (envClientId != null && envClientSecret != null && envCentralUrl != null) {
+            // Configuración desde variables de entorno (Railway)
+            this.clientId = envClientId;
+            this.clientSecret = envClientSecret;
+            this.centralServerUrl = envCentralUrl;
+            
+            LOGGER.info("Credenciales cargadas desde VARIABLES DE ENTORNO");
+            LOGGER.info("Cliente ID: " + clientId);
+            LOGGER.info("URL servidor central: " + centralServerUrl);
+            LOGGER.info("=" .repeat(60));
+        } else {
+            // Fallback a archivo JSON (desarrollo local)
+            LOGGER.info("Variables de entorno no encontradas, usando archivo JSON de fallback...");
+            loadFromJsonFile();
+        }
+    }
+    
+    /**
+     * Carga credenciales desde client_credentials.json (fallback para desarrollo)
+     */
+    private void loadFromJsonFile() {
+        try (InputStream is = getClass().getResourceAsStream(CLASSPATH_CONFIG)) {
+            if (is == null) {
+                loadDevelopmentDefaults("No se encontró " + CLASSPATH_CONFIG + " en classpath");
+                return;
             }
             
-            // Parsear JSON
             try (JsonReader reader = Json.createReader(is)) {
                 JsonObject config = reader.readObject();
                 
                 this.clientId = config.getString("client_id");
                 this.clientSecret = config.getString("client_secret");
-                this.activeEnvironment = config.getString("active_environment", "development");
                 
-                // Obtener URL según ambiente activo
+                // Obtener URL según ambiente detectado
                 JsonObject environments = config.getJsonObject("environments");
                 JsonObject activeEnv = environments.getJsonObject(activeEnvironment);
                 this.centralServerUrl = activeEnv.getString("central_server_url");
                 
-                LOGGER.info("✅ Credenciales cargadas exitosamente desde: " + loadedFrom);
+                LOGGER.info("Credenciales cargadas desde: classpath:" + CLASSPATH_CONFIG);
                 LOGGER.info("Cliente ID: " + clientId);
                 LOGGER.info("Ambiente activo: " + activeEnvironment);
                 LOGGER.info("URL servidor central: " + centralServerUrl);
+                LOGGER.info("=" .repeat(60));
             }
-            
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error al cargar credenciales desde " + configPath, e);
-            throw new RuntimeException("No se pudieron cargar las credenciales del cliente", e);
-        } finally {
-            if (is != null) {
-                try { is.close(); } catch (Exception ignored) {}
-            }
+            LOGGER.log(Level.SEVERE, "Error al cargar credenciales desde JSON", e);
+            loadDevelopmentDefaults("Error al cargar credenciales desde JSON: " + e.getMessage());
         }
+    }
+    
+    private void loadDevelopmentDefaults(String reason) {
+        if (activeEnvironment == null) {
+            activeEnvironment = "development";
+        }
+        
+        LOGGER.log(Level.WARNING, "Fallo al resolver credenciales dinámicas ({0}). Usando valores por defecto de desarrollo.", reason);
+        this.clientId = "usuario-salud-local";
+        this.clientSecret = "usuario-salud-local-secret";
+        this.centralServerUrl = "http://localhost:8080/hcen-central";
+        LOGGER.info("Cliente ID (dev): " + clientId);
+        LOGGER.info("URL servidor central (dev): " + centralServerUrl);
+        LOGGER.info("=" .repeat(60));
     }
     
     public String getClientId() {

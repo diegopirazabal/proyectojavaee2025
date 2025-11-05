@@ -1,4 +1,4 @@
-package com.hcen.core.domain;
+package com.hcen.periferico.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -29,10 +29,13 @@ public class politica_acceso {
     @Column(length = 30)
     private String estado;
 
-    // Usuario
+    // Usuario - Referencia a UsuarioSalud local con composite key (cedula, tenantId)
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "USUARIO_CI", nullable = false)
-    private usuario_salud usuario;
+    @JoinColumns({
+        @JoinColumn(name = "USUARIO_CEDULA", referencedColumnName = "cedula", nullable = false),
+        @JoinColumn(name = "USUARIO_TENANT", referencedColumnName = "tenant_id", nullable = false)
+    })
+    private UsuarioSalud usuario;
 
     public UUID getId() { return id; }
     public String getTipoAcceso() { return tipoAcceso; }
@@ -45,8 +48,8 @@ public class politica_acceso {
     public void setFecVencimiento(LocalDateTime fecVencimiento) { this.fecVencimiento = fecVencimiento; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
-    public usuario_salud getUsuario() { return usuario; }
-    public void setUsuario(usuario_salud usuario) { this.usuario = usuario; }
+    public UsuarioSalud getUsuario() { return usuario; }
+    public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
 
     @Override public boolean equals(Object o){ return (this==o) || (o instanceof politica_acceso p && Objects.equals(id,p.id)); }
     @Override public int hashCode(){ return Objects.hash(id); }
