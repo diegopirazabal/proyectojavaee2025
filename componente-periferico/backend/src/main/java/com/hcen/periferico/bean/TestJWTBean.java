@@ -7,21 +7,24 @@ import jakarta.ejb.EJB;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
 import java.io.Serializable;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
-import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 
 @Named("testJWTBean")
 @ViewScoped
 public class TestJWTBean implements Serializable {
     
     private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = Logger.getLogger(TestJWTBean.class.getName());
     
     @EJB
     private CentralAuthService authService;
@@ -29,15 +32,14 @@ public class TestJWTBean implements Serializable {
     @EJB
     private ClientCredentialsConfig credentialsConfig;
     
+    @Inject
+    private CloseableHttpClient httpClient;
+    
     private String token;
     private Long expiresIn;
     private String mensaje;
     private String respuestaServicio;
     private String centralUrl;
-    
-    private final HttpClient httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(30))
-        .build();
     
     @PostConstruct
     public void init() {
@@ -90,32 +92,32 @@ public class TestJWTBean implements Serializable {
             // Llamar al endpoint de usuarios-salud
             String url = credentialsConfig.getApiBaseUrl() + "/usuarios-salud";
             
-            // Hacer petición con JWT en el header
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(30))
-                .header("Authorization", "Bearer " + token)
-                .GET()
-                .build();
+            // Crear petición GET con JWT en el header
+            HttpGet httpGet = new HttpGet(url);
+            httpGet.setHeader("Authorization", "Bearer " + token);
             
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            
-            if (response.statusCode() == 200) {
-                this.respuestaServicio = "✅ Status: 200 OK\n\n" + 
-                    "Respuesta del servidor:\n" + 
-                    formatJson(response.body());
-                addMessage(FacesMessage.SEVERITY_INFO, "Éxito", 
-                    "Servicio consumido correctamente con JWT");
-            } else if (response.statusCode() == 401) {
-                this.respuestaServicio = "❌ Status: 401 Unauthorized\n\n" + 
-                    "El token JWT fue rechazado:\n" + response.body();
-                addMessage(FacesMessage.SEVERITY_ERROR, "Error 401", 
-                    "Token expirado o inválido");
-            } else {
-                this.respuestaServicio = "⚠️ Status: " + response.statusCode() + "\n\n" + 
-                    response.body();
-                addMessage(FacesMessage.SEVERITY_WARN, "Respuesta inesperada", 
-                    "Status code: " + response.statusCode());
+            // Ejecutar petición con Apache HttpClient
+            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+                int statusCode = response.getCode();
+                String responseBody = EntityUtils.toString(response.getEntity());
+                
+                if (statusCode == 200) {
+                    this.respuestaServicio = "✅ Status: 200 OK\n\n" + 
+                        "Respuesta del servidor:\n" + 
+                        formatJson(responseBody);
+                    addMessage(FacesMessage.SEVERITY_INFO, "Éxito", 
+                        "Servicio consumido correctamente con JWT");
+                } else if (statusCode == 401) {
+                    this.respuestaServicio = "❌ Status: 401 Unauthorized\n\n" + 
+                        "El token JWT fue rechazado:\n" + responseBody;
+                    addMessage(FacesMessage.SEVERITY_ERROR, "Error 401", 
+                        "Token expirado o inválido");
+                } else {
+                    this.respuestaServicio = "⚠️ Status: " + statusCode + "\n\n" + 
+                        responseBody;
+                    addMessage(FacesMessage.SEVERITY_WARN, "Respuesta inesperada", 
+                        "Status code: " + statusCode);
+                }
             }
             
         } catch (Exception e) {

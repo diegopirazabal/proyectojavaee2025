@@ -110,8 +110,8 @@
             <!-- Panel Integración -->
             <p:panel header="Configuración de Integración">
                 <h:panelGrid columns="2" style="margin-bottom: 1rem;">
-                    <h:outputText value="Clínica RUT:"/>
-                    <h:outputText value="#{sessionBean.clinicaRut}" style="font-weight: bold;"/>
+                    <h:outputText value="ID de Clínica (Tenant ID):"/>
+                    <h:outputText value="#{sessionBean.tenantId}" style="font-weight: bold;"/>
 
                     <h:outputText value="Estado Nodo Periférico:"/>
                     <h:outputText value="#{configuracionBean.nodoPerifericoHabilitado ? 'Habilitado' : 'Deshabilitado'}"

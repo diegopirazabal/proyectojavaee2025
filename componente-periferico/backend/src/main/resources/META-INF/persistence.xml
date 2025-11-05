@@ -9,21 +9,19 @@
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
         <jta-data-source>java:jboss/datasources/HcenPerifericoDS</jta-data-source>
 
-        <!-- Entidades del core-domain -->
-        <class>com.hcen.core.domain.administrador_clinica</class>
-        <class>com.hcen.core.domain.administrador_hcen</class>
-        <class>com.hcen.core.domain.clinica</class>
-        <class>com.hcen.core.domain.configuracion_clinica</class>
-        <class>com.hcen.core.domain.documento_clinico</class>
-        <class>com.hcen.core.domain.historia_clinica</class>
-        <class>com.hcen.core.domain.notificacion</class>
-        <class>com.hcen.core.domain.politica_acceso</class>
-        <class>com.hcen.core.domain.profesional_salud</class>
-        <class>com.hcen.core.domain.usuario_salud</class>
+        <!-- Entidades locales del periférico -->
+        <class>com.hcen.periferico.entity.UsuarioSalud</class>
+        <class>com.hcen.periferico.entity.SincronizacionPendiente</class>
+        <class>com.hcen.periferico.entity.administrador_clinica</class>
+        <class>com.hcen.periferico.entity.profesional_salud</class>
+        <class>com.hcen.periferico.entity.clinica</class>
+        <class>com.hcen.periferico.entity.configuracion_clinica</class>
+        <class>com.hcen.periferico.entity.documento_clinico</class>
+        <class>com.hcen.periferico.entity.politica_acceso</class>
 
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
-            <property name="hibernate.hbm2ddl.auto" value="update"/>
+            <property name="hibernate.hbm2ddl.auto" value="validate"/>
             <property name="hibernate.show_sql" value="true"/>
             <property name="hibernate.format_sql" value="true"/>
             <property name="hibernate.jdbc.batch_size" value="20"/>
