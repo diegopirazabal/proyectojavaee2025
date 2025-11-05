@@ -80,26 +80,9 @@ public class DocumentoClinicoService {
         // Validar que las codigueras existan
         validarCodigueras(codigoMotivoConsulta, codigoEstadoProblema, codigoGradoCerteza);
 
-        UUID documentoId = UUID.randomUUID();
-        UUID historiaCentralId;
-        try {
-            historiaCentralId = centralAPIClient.registrarDocumentoHistoriaClinica(
-                tenantId.toString(),
-                usuarioSaludCedula,
-                documentoId
-            );
-        } catch (RuntimeException e) {
-            throw new IllegalStateException("No se pudo registrar el documento en el componente central", e);
-        }
-
-        if (historiaCentralId == null) {
-            throw new IllegalStateException("El componente central no devolvió un ID de historia clínica válido");
-        }
-
-        asegurarHistoriaClinicaLocal(historiaCentralId, usuarioSaludCedula, tenantId);
-
+        // PRIMERO: Crear y persistir el documento localmente
+        // NO asignamos el ID manualmente - Hibernate lo generará automáticamente con @GeneratedValue
         documento_clinico documento = new documento_clinico();
-        documento.setId(documentoId);
         documento.setTenantId(tenantId);
         documento.setUsuarioSaludCedula(usuarioSaludCedula);
         documento.setPaciente(paciente);
@@ -113,9 +96,15 @@ public class DocumentoClinicoService {
         documento.setFechaProximaConsulta(fechaProximaConsulta);
         documento.setDescripcionProximaConsulta(descripcionProximaConsulta != null ? descripcionProximaConsulta.trim() : null);
         documento.setReferenciaAlta(referenciaAlta != null ? referenciaAlta.trim() : null);
-        documento.setHistClinicaId(historiaCentralId);
+        documento.setHistClinicaId(null); // Se asignará después si la sincronización tiene éxito
 
-        return documentoDAO.save(documento);
+        // Guardar documento localmente (Hibernate generará el UUID automáticamente)
+        documento_clinico documentoGuardado = documentoDAO.save(documento);
+
+        // TODO: Sincronización con el central deshabilitada por ahora
+        // La sincronización se implementará posteriormente cuando esté configurado el componente central
+
+        return documentoGuardado;
     }
 
     private void asegurarHistoriaClinicaLocal(UUID historiaId, String cedulaPaciente, UUID tenantId) {

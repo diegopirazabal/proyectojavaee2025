@@ -214,6 +214,27 @@ public class APIService implements Serializable {
         return new LinkedHashMap<>();
     }
 
+    /**
+     * Busca motivos de consulta por término (para autocompletado)
+     */
+    public Map<String, String> buscarMotivosConsulta(String termino) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            String url = getBackendUrl() + "/documentos/catalogos/motivos/buscar?termino=" +
+                        java.net.URLEncoder.encode(termino, "UTF-8");
+            HttpGet request = new HttpGet(url);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseMapFromJson(responseBody);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new LinkedHashMap<>();
+    }
+
     public Map<String, String> getEstadosProblema() {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpGet request = new HttpGet(getBackendUrl() + "/documentos/catalogos/estados");

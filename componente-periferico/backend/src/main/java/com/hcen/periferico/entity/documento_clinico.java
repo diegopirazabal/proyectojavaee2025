@@ -79,7 +79,8 @@ public class documento_clinico {
     @Column(name = "REFERENCIA_ALTA", length = 500)
     private String referenciaAlta;
 
-    @Column(name = "HIST_CLINICA_ID", nullable = false, columnDefinition = "UUID")
+    // ID de la historia clínica en el componente central (puede ser NULL si no está sincronizado)
+    @Column(name = "HIST_CLINICA_ID", nullable = true, columnDefinition = "UUID")
     private UUID histClinicaId;
 
     // ============ GETTERS Y SETTERS ============

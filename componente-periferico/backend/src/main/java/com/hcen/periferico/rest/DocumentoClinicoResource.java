@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -299,6 +300,28 @@ public class DocumentoClinicoResource {
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(new ErrorResponse("Error al obtener catálogo: " + e.getMessage()))
+                    .build();
+        }
+    }
+
+    /**
+     * Busca motivos de consulta por término (para autocompletado)
+     * GET /api/documentos/catalogos/motivos/buscar?termino=dolor
+     */
+    @GET
+    @Path("/catalogos/motivos/buscar")
+    public Response buscarMotivosConsulta(@QueryParam("termino") String termino) {
+        try {
+            if (termino == null || termino.trim().isEmpty()) {
+                // Si no hay término, devolver lista vacía o los primeros N
+                return Response.ok(new LinkedHashMap<String, String>()).build();
+            }
+
+            Map<String, String> motivos = documentoDAO.buscarMotivosConsulta(termino.trim());
+            return Response.ok(motivos).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Error al buscar motivos: " + e.getMessage()))
                     .build();
         }
     }

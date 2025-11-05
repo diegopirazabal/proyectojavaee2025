@@ -6,6 +6,8 @@ import com.hcen.periferico.enums.TipoDocumento;
 import com.hcen.periferico.service.CentralAuthService;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionAttributeType;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
@@ -213,6 +215,12 @@ public class CentralAPIClient {
         }
     }
 
+    /**
+     * Registra un documento en la historia clínica del componente central.
+     * Usa REQUIRES_NEW para ejecutarse en una transacción separada.
+     * Si falla, no afecta la transacción que guardó el documento localmente.
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public UUID registrarDocumentoHistoriaClinica(String tenantId, String cedula, UUID documentoId) {
         try {
             var body = Json.createObjectBuilder()

@@ -49,12 +49,17 @@ public class DocumentoClinicoBean implements Serializable {
     private String cedulaPacienteSeleccionado;
     private usuario_salud_dto pacienteSeleccionado;
 
+    // Autocompletado
+    private String motivoConsultaAutoComplete; // Para el componente p:autoComplete (solo el nombre)
+    private Map<String, String> motivosCache; // Cache de nombre -> código para autocompletado
+
     @PostConstruct
     public void init() {
         newDocumento = new documento_clinico_dto();
         selectedDocumento = new documento_clinico_dto();
         documentos = new ArrayList<>();
         pacientes = new ArrayList<>();
+        motivosCache = new LinkedHashMap<>();
 
         cargarCatalogos();
         cargarPacientes();
@@ -134,6 +139,7 @@ public class DocumentoClinicoBean implements Serializable {
      */
     public void prepararNuevoDocumento() {
         newDocumento = new documento_clinico_dto();
+        motivoConsultaAutoComplete = null; // Reset del autocompletado
 
         // Pre-llenar datos
         if (cedulaPacienteSeleccionado != null && !cedulaPacienteSeleccionado.isEmpty()) {
@@ -164,10 +170,18 @@ public class DocumentoClinicoBean implements Serializable {
                 addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el CI del profesional");
                 return;
             }
-            if (newDocumento.getCodigoMotivoConsulta() == null || newDocumento.getCodigoMotivoConsulta().trim().isEmpty()) {
+
+            // Extraer código del motivo de consulta del autocompletado
+            if (motivoConsultaAutoComplete == null || motivoConsultaAutoComplete.trim().isEmpty()) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "El motivo de consulta es obligatorio");
                 return;
             }
+            String codigoMotivo = extraerCodigoDeAutoComplete(motivoConsultaAutoComplete);
+            if (codigoMotivo == null) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "Formato de motivo de consulta inválido");
+                return;
+            }
+            newDocumento.setCodigoMotivoConsulta(codigoMotivo);
             if (newDocumento.getDescripcionDiagnostico() == null || newDocumento.getDescripcionDiagnostico().trim().isEmpty()) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "La descripción del diagnóstico es obligatoria");
                 return;
@@ -244,6 +258,38 @@ public class DocumentoClinicoBean implements Serializable {
     }
 
     /**
+     * Método de autocompletado para motivos de consulta
+     * Llamado por p:autoComplete cuando el usuario escribe
+     */
+    public List<String> completeMotivo(String query) {
+        try {
+            if (query == null || query.trim().length() < 2) {
+                return new ArrayList<>(); // Requiere al menos 2 caracteres
+            }
+
+            Map<String, String> resultados = apiService.buscarMotivosConsulta(query.trim());
+            List<String> sugerencias = new ArrayList<>();
+
+            for (Map.Entry<String, String> entry : resultados.entrySet()) {
+                String codigo = entry.getKey();
+                String nombre = entry.getValue();
+
+                // Guardar en cache para poder recuperar el código luego
+                motivosCache.put(nombre, codigo);
+
+                // Devolver solo el nombre (no el código)
+                sugerencias.add(nombre);
+            }
+
+            return sugerencias;
+        } catch (Exception e) {
+            addMessage(FacesMessage.SEVERITY_ERROR, "Error al buscar motivos: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    /**
      * Convierte el Map de codigueras a una lista de SelectItem para dropdowns
      */
     public List<Map.Entry<String, String>> getMotivosConsultaList() {
@@ -259,6 +305,18 @@ public class DocumentoClinicoBean implements Serializable {
     public List<Map.Entry<String, String>> getGradosCertezaList() {
         if (gradosCerteza == null) return new ArrayList<>();
         return new ArrayList<>(gradosCerteza.entrySet());
+    }
+
+    /**
+     * Extrae el código a partir del nombre seleccionado en el autocompletado
+     * Busca en el cache de motivos que se llenó durante la búsqueda
+     */
+    private String extraerCodigoDeAutoComplete(String nombreSeleccionado) {
+        if (nombreSeleccionado == null || nombreSeleccionado.trim().isEmpty()) {
+            return null;
+        }
+        // Buscar el código en el cache usando el nombre
+        return motivosCache.get(nombreSeleccionado);
     }
 
     /**
@@ -341,5 +399,13 @@ public class DocumentoClinicoBean implements Serializable {
 
     public void setPacienteSeleccionado(usuario_salud_dto pacienteSeleccionado) {
         this.pacienteSeleccionado = pacienteSeleccionado;
+    }
+
+    public String getMotivoConsultaAutoComplete() {
+        return motivoConsultaAutoComplete;
+    }
+
+    public void setMotivoConsultaAutoComplete(String motivoConsultaAutoComplete) {
+        this.motivoConsultaAutoComplete = motivoConsultaAutoComplete;
     }
 }
