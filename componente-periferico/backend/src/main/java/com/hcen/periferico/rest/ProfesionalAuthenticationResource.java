@@ -1,6 +1,6 @@
 package com.hcen.periferico.rest;
 
-import com.hcen.core.domain.profesional_salud;
+import com.hcen.periferico.entity.profesional_salud;
 import com.hcen.periferico.service.ProfesionalAuthenticationService;
 import jakarta.ejb.EJB;
 import jakarta.ws.rs.*;
@@ -8,6 +8,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @Path("/auth/profesional")
 @Produces(MediaType.APPLICATION_JSON)
@@ -17,26 +18,35 @@ public class ProfesionalAuthenticationResource {
     @EJB
     private ProfesionalAuthenticationService authService;
 
+    private static final Logger LOGGER = Logger.getLogger(ProfesionalAuthenticationResource.class.getName());
+
     @POST
     @Path("/login")
     public Response login(LoginRequest request) {
         try {
             UUID tenantId = UUID.fromString(request.getTenantId());
+            LOGGER.info(() -> "[ProfesionalAuth] intento login email=" + request.getEmail() + " tenant=" + tenantId);
             profesional_salud prof = authService.authenticate(request.getEmail(), request.getPassword(), tenantId);
             if (prof != null) {
+                LOGGER.info(() -> "[ProfesionalAuth] OK ci=" + prof.getCi());
                 ProfesionalResponse dto = new ProfesionalResponse(prof.getCi(), prof.getNombre(), prof.getApellidos(), tenantId.toString());
                 return Response.ok(dto).build();
             }
             return Response.status(Response.Status.UNAUTHORIZED).entity(new ErrorResponse("Credenciales inválidas")).build();
         } catch (IllegalArgumentException e) {
+            LOGGER.warning("[ProfesionalAuth] Tenant ID inválido: " + request.getTenantId());
             return Response.status(Response.Status.BAD_REQUEST).entity(new ErrorResponse("Tenant ID inválido")).build();
         } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse("Error en el servidor: "+e.getMessage())).build();
+            LOGGER.severe("[ProfesionalAuth] Error: " + e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(new ErrorResponse("Error en el servidor: " + e.getMessage())).build();
         }
     }
 
     public static class LoginRequest {
-        private String email; private String password; private String tenantId;
+        private String email;
+        private String password;
+        private String tenantId;
+
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }
@@ -44,6 +54,7 @@ public class ProfesionalAuthenticationResource {
         public String getTenantId() { return tenantId; }
         public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     }
+
     public static class ProfesionalResponse {
         private Integer ci; private String nombre; private String apellidos; private String tenantId;
         public ProfesionalResponse() {}
@@ -53,6 +64,12 @@ public class ProfesionalAuthenticationResource {
         public String getApellidos(){return apellidos;} public void setApellidos(String v){apellidos=v;}
         public String getTenantId(){return tenantId;} public void setTenantId(String v){tenantId=v;}
     }
-    public static class ErrorResponse { private String error; public ErrorResponse(){} public ErrorResponse(String e){error=e;} public String getError(){return error;} public void setError(String e){error=e;} }
-}
 
+    public static class ErrorResponse {
+        private String error;
+        public ErrorResponse(){}
+        public ErrorResponse(String e){error=e;}
+        public String getError(){return error;}
+        public void setError(String e){error=e;}
+    }
+}

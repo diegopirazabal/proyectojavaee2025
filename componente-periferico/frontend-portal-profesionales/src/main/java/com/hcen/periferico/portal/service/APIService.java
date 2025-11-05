@@ -21,6 +21,7 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 
 import javax.net.ssl.SSLContext;
+import jakarta.faces.context.FacesContext;
 import java.io.IOException;
 import java.io.StringReader;
 import java.security.GeneralSecurityException;
@@ -30,7 +31,18 @@ import java.util.List;
 @ApplicationScoped
 public class APIService {
 
-    private static final String BACKEND_URL = "http://localhost:8080/multitenant-api";
+    private static String BACKEND_URL() {
+        try {
+            var ctx = FacesContext.getCurrentInstance();
+            if (ctx != null) {
+                String url = ctx.getExternalContext().getInitParameter("BACKEND_URL");
+                if (url != null && !url.isBlank()) {
+                    return url;
+                }
+            }
+        } catch (Exception ignored) {}
+        return "http://localhost:8080/multitenant-api";
+    }
 
     private CloseableHttpClient createHttpClient() {
         try {
@@ -57,7 +69,7 @@ public class APIService {
 
     public JsonObject loginProfesional(String tenantId, String username, String password) throws IOException {
         try (CloseableHttpClient client = createHttpClient()) {
-            HttpPost post = new HttpPost(BACKEND_URL + "/auth/profesional/login");
+            HttpPost post = new HttpPost(BACKEND_URL() + "/auth/profesional/login");
             JsonObject payload = Json.createObjectBuilder()
                 .add("tenantId", tenantId)
                 .add("email", username)
@@ -79,7 +91,7 @@ public class APIService {
 
     public List<ClinicaDTO> getClinicas() throws IOException {
         try (CloseableHttpClient client = createHttpClient()) {
-            HttpGet get = new HttpGet(BACKEND_URL + "/clinicas");
+            HttpGet get = new HttpGet(BACKEND_URL() + "/clinicas");
             try (CloseableHttpResponse response = client.execute(get)) {
                 int status = response.getCode();
                 String body = response.getEntity() != null ? new String(response.getEntity().getContent().readAllBytes()) : "[]";
@@ -87,6 +99,37 @@ public class APIService {
                     return parseClinicasFromJson(body);
                 }
                 throw new IOException("Error al obtener clínicas: HTTP " + status + " - " + body);
+            }
+        }
+    }
+
+    public static class ConfiguracionClinicaDTO {
+        public String colorPrimario;
+        public String colorSecundario;
+        public String logoUrl;
+        public String nombreSistema;
+        public String tema;
+    }
+
+    public ConfiguracionClinicaDTO getConfiguracion(String tenantId) throws IOException {
+        try (CloseableHttpClient client = createHttpClient()) {
+            HttpGet get = new HttpGet(BACKEND_URL() + "/configuracion/" + tenantId);
+            try (CloseableHttpResponse response = client.execute(get)) {
+                int status = response.getCode();
+                String body = response.getEntity() != null ? new String(response.getEntity().getContent().readAllBytes()) : "{}";
+                if (status >= 200 && status < 300) {
+                    try (JsonReader reader = Json.createReader(new StringReader(body))) {
+                        JsonObject o = reader.readObject();
+                        ConfiguracionClinicaDTO dto = new ConfiguracionClinicaDTO();
+                        dto.colorPrimario = o.getString("colorPrimario", null);
+                        dto.colorSecundario = o.getString("colorSecundario", null);
+                        dto.logoUrl = o.getString("logoUrl", null);
+                        dto.nombreSistema = o.getString("nombreSistema", null);
+                        dto.tema = o.getString("tema", null);
+                        return dto;
+                    }
+                }
+                throw new IOException("Error configuración clínica: HTTP " + status + " - " + body);
             }
         }
     }
@@ -111,7 +154,7 @@ public class APIService {
 
     public boolean isBackendAvailable() {
         try (CloseableHttpClient client = createHttpClient()) {
-            HttpGet get = new HttpGet(BACKEND_URL + "/clinicas");
+            HttpGet get = new HttpGet(BACKEND_URL() + "/clinicas");
             try (CloseableHttpResponse response = client.execute(get)) {
                 return response.getCode() != 500;
             }

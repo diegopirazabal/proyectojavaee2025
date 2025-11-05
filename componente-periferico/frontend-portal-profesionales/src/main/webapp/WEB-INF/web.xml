@@ -4,6 +4,13 @@
          xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
          version="6.0">
     <display-name>Portal Profesionales</display-name>
+
+    <!-- Backend REST base URL for multi-tenant API (configurable) -->
+    <context-param>
+        <param-name>BACKEND_URL</param-name>
+        <param-value>http://localhost:8080/multitenant-api</param-value>
+    </context-param>
+
     <welcome-file-list>
         <welcome-file>index.xhtml</welcome-file>
     </welcome-file-list>

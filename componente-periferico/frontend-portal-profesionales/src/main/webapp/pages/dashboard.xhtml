@@ -1,11 +1,70 @@
 ﻿<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:h="http://xmlns.jcp.org/jsf/html">
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="jakarta.faces.core"
+      xmlns:ui="jakarta.faces.facelets">
 <h:head>
     <title>Portal Profesionales - Inicio</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        :root{
+            --primary-color: #{empty sessionBean.colorPrimario ? '#28a745' : sessionBean.colorPrimario};
+            --secondary-color: #{empty sessionBean.colorSecundario ? '#20c997' : sessionBean.colorSecundario};
+        }
+        .actions { display:flex; gap:.5rem; flex-wrap: wrap; }
+        .container { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+        .p-menubar{ background: var(--primary-color) !important; border: none; }
+        .p-menubar .p-menuitem-link, .p-menubar .p-menuitem-text, .p-menubar .pi{ color:#fff !important; }
+        .p-panel .p-panel-header{ background: var(--secondary-color) !important; color:#fff; }
+        .p-button, .p-button.p-button-success, .p-button.p-button-secondary, .p-button.p-button-info, .p-button.p-button-danger{
+            background: var(--primary-color) !important; border-color: var(--primary-color) !important;
+        }
+    </style>
+    
+    
 </h:head>
+<f:metadata>
+    <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
+</f:metadata>
+
 <h:body>
-    <h2>Bienvenido, #{sessionBean.nombreCompleto}</h2>
-    <h:link outcome="/index.xhtml" value="Salir"/>
+    <h:form>
+        <p:menubar>
+            <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>
+            <p:menuitem value="Documentos" icon="pi pi-file-edit" outcome="/pages/documentos/nuevo.xhtml"/>
+            <p:menuitem value="Historia clínica" icon="pi pi-book" outcome="/pages/historia/buscar.xhtml"/>
+
+            <f:facet name="options">
+                <p:outputLabel value="#{sessionBean.nombreCompleto}" style="margin-right: 1rem;"/>
+                <p:commandButton value="Salir" icon="pi pi-sign-out" action="#{sessionBean.logout}" styleClass="p-button-success"/>
+            </f:facet>
+        </p:menubar>
+    </h:form>
+
+    <div class="container">
+        <h2>Bienvenido, #{sessionBean.nombreCompleto}</h2>
+
+        <p:messages showDetail="false" closable="true"/>
+
+        <p:panel header="Accesos rápidos">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                <p:link outcome="/pages/documentos/nuevo.xhtml">
+                    <p:panel header="Alta de Documento" style="text-align:center;">
+                        <i class="pi pi-file-edit" style="font-size:3rem; color:#28a745;"></i>
+                        <p>Registrar un documento clínico</p>
+                    </p:panel>
+                </p:link>
+                <p:link outcome="/pages/historia/buscar.xhtml">
+                    <p:panel header="Historia Clínica" style="text-align:center;">
+                        <i class="pi pi-book" style="font-size:3rem; color:#28a745;"></i>
+                        <p>Consultar documentos del paciente</p>
+                    </p:panel>
+                </p:link>
+            </div>
+        </p:panel>
+    </div>
+
 </h:body>
 </html>

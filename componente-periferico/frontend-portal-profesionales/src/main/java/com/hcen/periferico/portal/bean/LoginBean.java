@@ -44,6 +44,15 @@ public class LoginBean {
             sessionBean.setNombre(res.getString("nombre", ""));
             sessionBean.setApellidos(res.getString("apellidos", ""));
             sessionBean.setTenantId(res.getString("tenantId", selectedTenantId));
+
+            try {
+                var cfg = api.getConfiguracion(sessionBean.getTenantId());
+                sessionBean.setColorPrimario(cfg != null ? cfg.colorPrimario : null);
+                sessionBean.setColorSecundario(cfg != null ? cfg.colorSecundario : null);
+                sessionBean.setLogoUrl(cfg != null ? cfg.logoUrl : null);
+                sessionBean.setNombreSistema(cfg != null ? cfg.nombreSistema : null);
+                sessionBean.setTema(cfg != null ? cfg.tema : null);
+            } catch (Exception ignore) {}
             return "/pages/dashboard.xhtml?faces-redirect=true";
         } catch (Exception e) {
             jakarta.faces.context.FacesContext.getCurrentInstance()
