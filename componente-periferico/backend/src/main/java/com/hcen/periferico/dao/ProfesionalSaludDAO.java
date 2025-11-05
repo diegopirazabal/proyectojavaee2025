@@ -118,17 +118,6 @@ public class ProfesionalSaludDAO {
         return query.getSingleResult();
     }
 
-    public Optional<profesional_salud> findByEmailAndTenant(String email, UUID tenantId) {
-        TypedQuery<profesional_salud> query = em.createQuery(
-            "SELECT p FROM profesional_salud p WHERE LOWER(p.email) = LOWER(:e) AND p.tenantId = :t",
-            profesional_salud.class
-        );
-        query.setParameter("e", email);
-        query.setParameter("t", tenantId);
-        List<profesional_salud> res = query.getResultList();
-        return res.isEmpty() ? Optional.empty() : Optional.of(res.get(0));
-    }
-
     /**
      * Obtiene todos los profesionales de una clínica específica (filtrado por tenant_id)
      */
