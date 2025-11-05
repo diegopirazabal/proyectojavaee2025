@@ -12,6 +12,7 @@ public class profesional_salud_dto implements Serializable {
     private String especialidad;
     private String email;
     private String password;
+    private String tenantId;
 
     // Constructores
     public profesional_salud_dto() {
@@ -72,6 +73,14 @@ public class profesional_salud_dto implements Serializable {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getNombreCompleto() {

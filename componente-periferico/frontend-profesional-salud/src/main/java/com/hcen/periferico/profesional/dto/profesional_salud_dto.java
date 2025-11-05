@@ -1,4 +1,4 @@
-package com.hcen.periferico.dto;
+package com.hcen.periferico.profesional.dto;
 
 import java.io.Serializable;
 
@@ -11,7 +11,6 @@ public class profesional_salud_dto implements Serializable {
     private String apellidos;
     private String especialidad;
     private String email;
-    private String password;
     private String tenantId;
 
     // Constructores
@@ -67,23 +66,15 @@ public class profesional_salud_dto implements Serializable {
         this.email = email;
     }
 
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getNombreCompleto() {
-        return nombre + " " + apellidos;
-    }
-
     public String getTenantId() {
         return tenantId;
     }
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
+    }
+
+    public String getNombreCompleto() {
+        return nombre + " " + apellidos;
     }
 }

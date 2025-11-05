@@ -121,7 +121,7 @@ public class ClientCredentialsConfig {
         LOGGER.log(Level.WARNING, "Fallo al resolver credenciales dinámicas ({0}). Usando valores por defecto de desarrollo.", reason);
         this.clientId = "usuario-salud-local";
         this.clientSecret = "usuario-salud-local-secret";
-        this.centralServerUrl = "http://localhost:8080/hcen-central";
+        this.centralServerUrl = "http://localhost:8080";
         LOGGER.info("Cliente ID (dev): " + clientId);
         LOGGER.info("URL servidor central (dev): " + centralServerUrl);
         LOGGER.info("=" .repeat(60));

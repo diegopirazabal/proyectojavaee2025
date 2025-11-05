@@ -192,13 +192,15 @@ public class ProfesionalResource {
     }
 
     private profesional_salud_dto toDTO(profesional_salud entity) {
-        return new profesional_salud_dto(
+        profesional_salud_dto dto = new profesional_salud_dto(
             entity.getCi(),
             entity.getNombre(),
             entity.getApellidos(),
             entity.getEspecialidad(),
             entity.getEmail()
         );
+        dto.setTenantId(entity.getTenantId() != null ? entity.getTenantId().toString() : null);
+        return dto;
     }
 
     // Clases auxiliares

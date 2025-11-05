@@ -1,38 +1,24 @@
-package com.hcen.periferico.dto;
+package com.hcen.periferico.profesional.dto;
 
-import com.hcen.periferico.enums.TipoDocumento;
-import com.hcen.periferico.rest.LocalDateAdapter;
-import jakarta.json.bind.annotation.JsonbTypeAdapter;
 import java.io.Serializable;
 import java.time.LocalDate;
+
 public class usuario_salud_dto implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private String cedula;  // Cambiado de Integer a String
-    private TipoDocumento tipoDocumento;  // Nuevo campo
-    private String primerNombre;  // Cambiado de 'nombre' a campos separados
-    private String segundoNombre;  // Nuevo campo
-    private String primerApellido;  // Cambiado de 'apellidos' a campos separados
-    private String segundoApellido;  // Nuevo campo
+    private String cedula;
+    private String tipoDocumento;
+    private String primerNombre;
+    private String segundoNombre;
+    private String primerApellido;
+    private String segundoApellido;
     private String email;
-
-    @JsonbTypeAdapter(LocalDateAdapter.class)
-    private LocalDate fechaNacimiento;  // Cambiado de 'fechaNac'
+    private LocalDate fechaNacimiento;
     private String tenantId;
 
     // Constructores
     public usuario_salud_dto() {
-    }
-
-    public usuario_salud_dto(String cedula, TipoDocumento tipoDocumento, String primerNombre,
-                            String primerApellido, String email, LocalDate fechaNacimiento) {
-        this.cedula = cedula;
-        this.tipoDocumento = tipoDocumento;
-        this.primerNombre = primerNombre;
-        this.primerApellido = primerApellido;
-        this.email = email;
-        this.fechaNacimiento = fechaNacimiento;
     }
 
     // Getters y Setters
@@ -44,11 +30,11 @@ public class usuario_salud_dto implements Serializable {
         this.cedula = cedula;
     }
 
-    public TipoDocumento getTipoDocumento() {
+    public String getTipoDocumento() {
         return tipoDocumento;
     }
 
-    public void setTipoDocumento(TipoDocumento tipoDocumento) {
+    public void setTipoDocumento(String tipoDocumento) {
         this.tipoDocumento = tipoDocumento;
     }
 
@@ -111,9 +97,9 @@ public class usuario_salud_dto implements Serializable {
     public String getNombreCompleto() {
         StringBuilder sb = new StringBuilder();
         if (primerNombre != null) sb.append(primerNombre);
-        if (segundoNombre != null && !segundoNombre.isEmpty()) sb.append(" ").append(segundoNombre);
+        if (segundoNombre != null) sb.append(" ").append(segundoNombre);
         if (primerApellido != null) sb.append(" ").append(primerApellido);
-        if (segundoApellido != null && !segundoApellido.isEmpty()) sb.append(" ").append(segundoApellido);
+        if (segundoApellido != null) sb.append(" ").append(segundoApellido);
         return sb.toString().trim();
     }
 }

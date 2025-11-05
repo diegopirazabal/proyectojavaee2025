@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="jakarta.faces.core">
+
+<h:head>
+    <title>Historia Clínica Electrónica - Portal Profesional</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</h:head>
+
+<f:metadata>
+    <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
+    <f:event type="preRenderView" listener="#{documentoClinicoBean.prepararVista}"/>
+</f:metadata>
+
+<h:body>
+    <h:form>
+        <p:menubar>
+            <p:menuitem value="Documentos Clínicos" icon="pi pi-file-edit" outcome="/pages/documentos.xhtml"/>
+
+            <f:facet name="options">
+                <p:outputLabel value="#{sessionBean.nombreProfesional} (#{sessionBean.especialidad})" style="margin-right: 1rem;"/>
+                <p:commandButton value="Cerrar Sesión"
+                                icon="pi pi-sign-out"
+                                action="#{sessionBean.logout}"
+                                styleClass="p-button-danger"/>
+            </f:facet>
+        </p:menubar>
+    </h:form>
+
+    <div style="padding: 2rem;">
+        <h:form id="documentosForm">
+            <p:messages id="messages" showDetail="false" closable="true"/>
+
+            <p:panel header="Historia Clínica Electrónica Ambulatoria">
+
+                <!-- Selector de Paciente -->
+                <p:panel header="Seleccionar Paciente" style="margin-bottom: 1rem;">
+                    <p:panelGrid columns="2" layout="grid">
+                        <p:outputLabel for="paciente" value="Paciente:"/>
+                        <p:selectOneMenu id="paciente"
+                                        value="#{documentoClinicoBean.cedulaPacienteSeleccionado}"
+                                        filter="true"
+                                        filterMatchMode="contains"
+                                        style="width: 100%;">
+                            <f:selectItem itemLabel="Seleccione un paciente..." itemValue="#{null}"/>
+                            <f:selectItems value="#{documentoClinicoBean.pacientes}"
+                                          var="p"
+                                          itemLabel="#{p.nombreCompleto} - CI: #{p.cedula}"
+                                          itemValue="#{p.cedula}"/>
+                        </p:selectOneMenu>
+                    </p:panelGrid>
+
+                    <p:commandButton value="Cargar Historia Clínica"
+                                    icon="pi pi-search"
+                                    action="#{documentoClinicoBean.cargarDocumentosPorPaciente}"
+                                    update=":documentosForm:documentosTable,:documentosForm:messages,:documentosForm:pacienteInfo"
+                                    style="margin-top: 1rem;"/>
+                </p:panel>
+
+                <!-- Información del Paciente Seleccionado -->
+                <p:panel id="pacienteInfo"
+                        header="Paciente: #{documentoClinicoBean.pacienteSeleccionado.nombreCompleto}"
+                        rendered="#{documentoClinicoBean.pacienteSeleccionado != null}"
+                        style="margin-bottom: 1rem;">
+                    <p:panelGrid columns="2" layout="grid">
+                        <h:outputText value="Cédula:"/>
+                        <h:outputText value="#{documentoClinicoBean.pacienteSeleccionado.cedula}"/>
+
+                        <h:outputText value="Email:"/>
+                        <h:outputText value="#{documentoClinicoBean.pacienteSeleccionado.email}"/>
+
+                        <h:outputText value="Fecha Nacimiento:"/>
+                        <h:outputText value="#{documentoClinicoBean.pacienteSeleccionado.fechaNacimiento}">
+                            <f:convertDateTime pattern="dd/MM/yyyy"/>
+                        </h:outputText>
+                    </p:panelGrid>
+                </p:panel>
+
+                <!-- Toolbar -->
+                <p:toolbar style="margin-bottom: 1rem;" rendered="#{documentoClinicoBean.cedulaPacienteSeleccionado != null}">
+                    <p:toolbarGroup>
+                    <p:commandButton value="Nueva Consulta"
+                                    icon="pi pi-plus"
+                                    styleClass="p-button-success"
+                                    update=":dlgNuevoDocumento"
+                                    action="#{documentoClinicoBean.prepararNuevoDocumento}"
+                                    oncomplete="PF('dlgNuevoDocumento').show();"/>
+                    </p:toolbarGroup>
+                </p:toolbar>
+
+                <!-- Tabla de Documentos -->
+                <p:dataTable id="documentosTable"
+                            value="#{documentoClinicoBean.documentos}"
+                            var="doc"
+                            paginator="true"
+                            rows="10"
+                            emptyMessage="No hay documentos clínicos registrados para este paciente">
+
+                    <p:column headerText="Fecha Creación" sortBy="#{doc.fecCreacion}">
+                        <h:outputText value="#{doc.fecCreacion}">
+                            <f:convertDateTime pattern="dd/MM/yyyy HH:mm"/>
+                        </h:outputText>
+                    </p:column>
+
+                    <p:column headerText="Motivo Consulta">
+                        <h:outputText value="#{doc.nombreMotivoConsulta}"/>
+                    </p:column>
+
+                    <p:column headerText="Diagnóstico" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
+                        <h:outputText value="#{doc.descripcionDiagnostico}"/>
+                    </p:column>
+
+                    <p:column headerText="Grado Certeza">
+                        <h:outputText value="#{doc.nombreGradoCerteza}"/>
+                    </p:column>
+
+                    <p:column headerText="Profesional">
+                        <h:outputText value="#{doc.nombreCompletoProfesional}"/>
+                    </p:column>
+
+                    <p:column headerText="Acciones" style="width: 120px;">
+                        <p:commandButton icon="pi pi-eye"
+                                        styleClass="p-button-info"
+                                        onclick="PF('dlgVerDocumento').show();"
+                                        action="#{documentoClinicoBean.seleccionarDocumento(doc)}"
+                                        update=":verDocumentoPanel"
+                                        title="Ver detalles"/>
+                    </p:column>
+                </p:dataTable>
+            </p:panel>
+        </h:form>
+    </div>
+
+    <!-- Dialog: Nuevo Documento -->
+    <p:dialog id="dlgNuevoDocumento"
+              widgetVar="dlgNuevoDocumento"
+              header="Nueva Consulta No Urgente"
+              modal="true"
+              width="800"
+              responsive="true">
+        <h:form id="newDocumentoPanel">
+            <p:messages id="dlgMessages" showDetail="false" closable="true"/>
+
+            <p:panel header="Motivos de consulta">
+                <p:panelGrid columns="2" layout="grid">
+                    <p:outputLabel for="motivoConsulta" value="Motivo de consulta: *"/>
+                    <p:autoComplete id="motivoConsulta"
+                                   value="#{documentoClinicoBean.motivoConsultaAutoComplete}"
+                                   completeMethod="#{documentoClinicoBean.completeMotivo}"
+                                   minQueryLength="2"
+                                   queryDelay="500"
+                                   placeholder="Escriba al menos 2 caracteres para buscar..."
+                                   forceSelection="true"
+                                   scrollHeight="250"
+                                   style="width: 100%;">
+                        <p:ajax event="itemSelect" update="@this"/>
+                    </p:autoComplete>
+                </p:panelGrid>
+                <p:outputLabel value="Escriba al menos 2 caracteres para buscar en más de 12,000 motivos de consulta"
+                              style="font-size: 0.9em; color: #666; font-style: italic;"/>
+            </p:panel>
+
+            <p:panel header="Diagnósticos" style="margin-top: 1rem;">
+                <p:panelGrid columns="2" layout="grid">
+                    <p:outputLabel for="descripcionDiag" value="Descripción del diagnóstico: *"/>
+                    <p:inputTextarea id="descripcionDiag"
+                                    value="#{documentoClinicoBean.newDocumento.descripcionDiagnostico}"
+                                    rows="4"
+                                    style="width: 100%;"
+                                    placeholder="Denominación del diagnóstico o problema de salud"/>
+
+                    <p:outputLabel for="fechaInicio" value="Fecha de inicio: *"/>
+                    <p:calendar id="fechaInicio"
+                               value="#{documentoClinicoBean.newDocumento.fechaInicioDiagnostico}"
+                               pattern="dd/MM/yyyy"
+                               showIcon="true"
+                               yearRange="c-100:c+0"
+                               navigator="true"/>
+
+                    <p:outputLabel for="estadoProblema" value="Estado del problema:"/>
+                    <p:selectOneMenu id="estadoProblema"
+                                    value="#{documentoClinicoBean.newDocumento.codigoEstadoProblema}"
+                                    style="width: 100%;">
+                        <f:selectItem itemLabel="Seleccione..." itemValue="#{null}"/>
+                        <f:selectItems value="#{documentoClinicoBean.estadosProblemaList}"
+                                      var="e"
+                                      itemLabel="#{e.value}"
+                                      itemValue="#{e.key}"/>
+                    </p:selectOneMenu>
+
+                    <p:outputLabel for="gradoCerteza" value="Grado de certeza: *"/>
+                    <p:selectOneMenu id="gradoCerteza"
+                                    value="#{documentoClinicoBean.newDocumento.codigoGradoCerteza}"
+                                    style="width: 100%;">
+                        <f:selectItem itemLabel="Seleccione..." itemValue="#{null}"/>
+                        <f:selectItems value="#{documentoClinicoBean.gradosCertezaList}"
+                                      var="g"
+                                      itemLabel="#{g.value}"
+                                      itemValue="#{g.key}"/>
+                    </p:selectOneMenu>
+                </p:panelGrid>
+            </p:panel>
+
+            <p:panel header="Instrucciones de seguimiento" style="margin-top: 1rem;">
+                <p:panelGrid columns="2" layout="grid">
+                    <p:outputLabel for="fechaProxima" value="Fecha de próxima consulta:"/>
+                    <p:calendar id="fechaProxima"
+                               value="#{documentoClinicoBean.newDocumento.fechaProximaConsulta}"
+                               pattern="dd/MM/yyyy"
+                               showIcon="true"
+                               mindate="#{documentoClinicoBean.newDocumento.fechaInicioDiagnostico}"
+                               yearRange="c+0:c+5"
+                               navigator="true"/>
+
+                    <p:outputLabel for="descripcionProxima" value="Próxima consulta:"/>
+                    <p:inputTextarea id="descripcionProxima"
+                                    value="#{documentoClinicoBean.newDocumento.descripcionProximaConsulta}"
+                                    rows="3"
+                                    style="width: 100%;"
+                                    placeholder="Ej: control en 3 meses con resultados de paraclínica"/>
+
+                    <p:outputLabel for="referenciaAlta" value="Referencia al alta:"/>
+                    <p:inputText id="referenciaAlta"
+                                value="#{documentoClinicoBean.newDocumento.referenciaAlta}"
+                                style="width: 100%;"
+                                placeholder="Ej: Endocrinología"/>
+                </p:panelGrid>
+            </p:panel>
+
+            <div style="margin-top: 1rem; text-align: right;">
+                <p:commandButton value="Cancelar"
+                                icon="pi pi-times"
+                                onclick="PF('dlgNuevoDocumento').hide();"
+                                styleClass="p-button-secondary"
+                                style="margin-right: 0.5rem;"/>
+                <p:commandButton value="Guardar Historia"
+                                icon="pi pi-check"
+                                action="#{documentoClinicoBean.guardarDocumento}"
+                                update=":documentosForm:documentosTable,:documentosForm:messages,dlgMessages"
+                                oncomplete="if (args.validationFailed) {} else { PF('dlgNuevoDocumento').hide(); }"
+                                styleClass="p-button-success"/>
+            </div>
+        </h:form>
+    </p:dialog>
+
+    <!-- Dialog: Ver Documento -->
+    <p:dialog id="dlgVerDocumento"
+              widgetVar="dlgVerDocumento"
+              header="Documento Clínico"
+              modal="true"
+              width="800"
+              responsive="true">
+        <h:form id="verDocumentoPanel">
+            <p:panel header="Información General">
+                <p:panelGrid columns="2" layout="grid">
+                    <h:outputText value="Fecha de creación:" style="font-weight: bold;"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.fecCreacion}">
+                        <f:convertDateTime pattern="dd/MM/yyyy HH:mm"/>
+                    </h:outputText>
+
+                    <h:outputText value="Profesional:" style="font-weight: bold;"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.nombreCompletoProfesional}"/>
+
+                    <h:outputText value="Especialidad:" style="font-weight: bold;"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.especialidadProfesional}"/>
+                </p:panelGrid>
+            </p:panel>
+
+            <p:panel header="Motivo de consulta" style="margin-top: 1rem;">
+                <h:outputText value="#{documentoClinicoBean.selectedDocumento.nombreMotivoConsulta}"/>
+            </p:panel>
+
+            <p:panel header="Diagnóstico" style="margin-top: 1rem;">
+                <p:panelGrid columns="2" layout="grid">
+                    <h:outputText value="Descripción:" style="font-weight: bold;"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.descripcionDiagnostico}"/>
+
+                    <h:outputText value="Fecha de inicio:" style="font-weight: bold;"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.fechaInicioDiagnostico}">
+                        <f:convertDateTime pattern="dd/MM/yyyy"/>
+                    </h:outputText>
+
+                    <h:outputText value="Estado del problema:" style="font-weight: bold;"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.nombreEstadoProblema}"/>
+
+                    <h:outputText value="Grado de certeza:" style="font-weight: bold;"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.nombreGradoCerteza}"/>
+                </p:panelGrid>
+            </p:panel>
+
+            <p:panel header="Instrucciones de seguimiento"
+                    style="margin-top: 1rem;"
+                    rendered="#{documentoClinicoBean.selectedDocumento.fechaProximaConsulta != null or
+                              documentoClinicoBean.selectedDocumento.descripcionProximaConsulta != null or
+                              documentoClinicoBean.selectedDocumento.referenciaAlta != null}">
+                <p:panelGrid columns="2" layout="grid">
+                    <h:outputText value="Fecha de próxima consulta:"
+                                 style="font-weight: bold;"
+                                 rendered="#{documentoClinicoBean.selectedDocumento.fechaProximaConsulta != null}"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.fechaProximaConsulta}"
+                                 rendered="#{documentoClinicoBean.selectedDocumento.fechaProximaConsulta != null}">
+                        <f:convertDateTime pattern="dd/MM/yyyy"/>
+                    </h:outputText>
+
+                    <h:outputText value="Próxima consulta:"
+                                 style="font-weight: bold;"
+                                 rendered="#{documentoClinicoBean.selectedDocumento.descripcionProximaConsulta != null}"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.descripcionProximaConsulta}"
+                                 rendered="#{documentoClinicoBean.selectedDocumento.descripcionProximaConsulta != null}"/>
+
+                    <h:outputText value="Referencia al alta:"
+                                 style="font-weight: bold;"
+                                 rendered="#{documentoClinicoBean.selectedDocumento.referenciaAlta != null}"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.referenciaAlta}"
+                                 rendered="#{documentoClinicoBean.selectedDocumento.referenciaAlta != null}"/>
+                </p:panelGrid>
+            </p:panel>
+
+            <div style="margin-top: 1rem; text-align: right;">
+                <p:commandButton value="Cerrar"
+                                icon="pi pi-times"
+                                onclick="PF('dlgVerDocumento').hide();"
+                                styleClass="p-button-secondary"/>
+            </div>
+        </h:form>
+    </p:dialog>
+
+</h:body>
+</html>

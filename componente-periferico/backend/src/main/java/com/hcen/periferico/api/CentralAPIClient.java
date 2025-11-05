@@ -6,6 +6,8 @@ import com.hcen.periferico.enums.TipoDocumento;
 import com.hcen.periferico.service.CentralAuthService;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionAttributeType;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
@@ -20,6 +22,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -47,6 +50,7 @@ public class CentralAPIClient {
 
     private static final String API_USUARIOS = CENTRAL_BASE_URL + "/api/usuarios";
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
+    private static final String API_HISTORIA = CENTRAL_BASE_URL + "/api/historia-clinica";
     
     // Nuevos servicios para autenticación JWT (no tocar código existente)
     @EJB
@@ -212,6 +216,48 @@ public class CentralAPIClient {
     }
 
     /**
+     * Registra un documento en la historia clínica del componente central.
+     * Usa REQUIRES_NEW para ejecutarse en una transacción separada.
+     * Si falla, no afecta la transacción que guardó el documento localmente.
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public UUID registrarDocumentoHistoriaClinica(String tenantId, String cedula, UUID documentoId) {
+        try {
+            var body = Json.createObjectBuilder()
+                .add("tenantId", tenantId)
+                .add("cedula", cedula)
+                .add("documentoId", documentoId.toString())
+                .build();
+
+            HttpResponse<String> response = executeAuthenticatedPost(
+                API_HISTORIA + "/documentos",
+                body.toString()
+            );
+
+            int status = response.statusCode();
+            if (status != 201 && status != 200) {
+                LOGGER.severe("Error al registrar documento en historia clínica central. Status: " + status +
+                    ", Body: " + response.body());
+                throw new IOException("Error HTTP " + status + " al registrar documento en historia clínica");
+            }
+
+            try (JsonReader reader = Json.createReader(new StringReader(response.body()))) {
+                JsonObject json = reader.readObject();
+                String historiaId = json.getString("historiaId", null);
+                if (historiaId == null || historiaId.isBlank()) {
+                    throw new IOException("Respuesta del componente central sin historiaId");
+                }
+                return UUID.fromString(historiaId);
+            }
+        } catch (IOException | InterruptedException e) {
+            LOGGER.log(Level.SEVERE, "Error comunicándose con el central para registrar documento", e);
+            throw new RuntimeException("No se pudo registrar el documento en el componente central: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("El componente central devolvió un historiaId inválido", e);
+        }
+    }
+
+    /**
      * Obtiene datos de un usuario por cédula desde el componente central
      */
     public usuario_salud_dto getUsuarioByCedula(String cedula) {
@@ -347,6 +393,7 @@ public class CentralAPIClient {
             dto.setPrimerApellido(jsonObject.getString("primerApellido"));
             dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
             dto.setEmail(jsonObject.getString("email"));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
 
             String tipoDocStr = jsonObject.getString("tipoDocumento", "DO");
             dto.setTipoDocumento(TipoDocumento.valueOf(tipoDocStr));
@@ -381,6 +428,7 @@ public class CentralAPIClient {
                 dto.setPrimerApellido(jsonObject.getString("primerApellido"));
                 dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
                 dto.setEmail(jsonObject.getString("email"));
+                dto.setTenantId(jsonObject.getString("tenantId", null));
 
                 String tipoDocStr = jsonObject.getString("tipoDocumento", "DO");
                 dto.setTipoDocumento(TipoDocumento.valueOf(tipoDocStr));
