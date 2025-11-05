@@ -15,5 +15,6 @@
         <module>componente-central/backend</module>
         <module>componente-periferico/backend</module>
         <module>mock-laboratorio</module>
+        <module>tests</module>
     </modules>
 </project>
