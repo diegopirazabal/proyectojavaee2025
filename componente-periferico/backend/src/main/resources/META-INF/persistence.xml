@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <persistence xmlns="https://jakarta.ee/xml/ns/persistence"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence
@@ -7,7 +7,7 @@
 
     <persistence-unit name="hcen-periferico-pu" transaction-type="JTA">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-        <jta-data-source>java:jboss/datasources/HcenPerifericoDS</jta-data-source>
+        <jta-data-source>java:jboss/datasources/HcenDS</jta-data-source>
 
         <!-- Entidades locales del periférico -->
         <class>com.hcen.periferico.entity.UsuarioSalud</class>
@@ -18,6 +18,7 @@
         <class>com.hcen.periferico.entity.configuracion_clinica</class>
         <class>com.hcen.periferico.entity.documento_clinico</class>
         <class>com.hcen.periferico.entity.politica_acceso</class>
+
 
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
@@ -30,3 +31,6 @@
         </properties>
     </persistence-unit>
 </persistence>
+
+
+

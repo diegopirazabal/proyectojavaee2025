@@ -27,6 +27,9 @@ public class historia_clinica {
     })
     private UsuarioSalud usuario;
 
+    @OneToMany(mappedBy = "historiaClinica", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<historia_clinica_documento> documentos = new ArrayList<>();
+
     // NOTA: Documentos clínicos NO se persisten en central
     // Los documentos están en backend periférico y se obtienen vía API REST
     // Ver HistoriaClinicaService para consultar documentos remotamente
@@ -38,6 +41,8 @@ public class historia_clinica {
     public void setFecActualizacion(LocalDateTime fecActualizacion) { this.fecActualizacion = fecActualizacion; }
     public UsuarioSalud getUsuario() { return usuario; }
     public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
+    public List<historia_clinica_documento> getDocumentos() { return documentos; }
+    public void setDocumentos(List<historia_clinica_documento> documentos) { this.documentos = documentos; }
 
     @Override public boolean equals(Object o){ return (this==o) || (o instanceof historia_clinica h && Objects.equals(id,h.id)); }
     @Override public int hashCode(){ return Objects.hash(id); }

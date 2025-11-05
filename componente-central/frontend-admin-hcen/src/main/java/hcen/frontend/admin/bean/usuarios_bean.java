@@ -96,7 +96,7 @@ public class usuarios_bean implements Serializable {
         cargarUsuariosIniciales();
     }
 
-    public void prepararEdicion(usuario_sistema_dto usuario) {
+    public void prepararVisualizacion(usuario_sistema_dto usuario) {
         if (usuario == null) {
             return;
         }
@@ -104,35 +104,6 @@ public class usuarios_bean implements Serializable {
         this.usuarioEdicion = copiarUsuario(usuario);
         PrimeFaces.current().ajax().update("usuariosForm:dialogoEdicion");
         PrimeFaces.current().executeScript("PF('dialogoEdicion').show()");
-    }
-
-    public void guardarCambios() {
-        if (usuarioEdicion == null) {
-            addError("Error", "No hay usuario seleccionado para editar");
-            return;
-        }
-
-        boolean actualizado;
-        if (usuarioEdicion.esUsuarioSalud()) {
-            actualizado = apiService.actualizarUsuarioSalud(usuarioEdicion);
-        } else if (usuarioEdicion.esProfesionalSalud()) {
-            actualizado = apiService.actualizarProfesional(usuarioEdicion);
-        } else if (usuarioEdicion.esAdministradorClinica()) {
-            actualizado = apiService.actualizarAdministradorClinica(usuarioEdicion);
-        } else {
-            addError("Tipo desconocido", "No se reconoce el tipo de usuario seleccionado");
-            return;
-        }
-
-        if (actualizado) {
-            recomponerNombreCompleto(usuarioEdicion);
-            copiarSobreOriginal(usuarioSeleccionado, usuarioEdicion);
-            addInfo("Cambios guardados", "Se actualizó la información correctamente");
-            PrimeFaces.current().executeScript("PF('dialogoEdicion').hide()");
-            PrimeFaces.current().ajax().update("usuariosForm:tablaUsuarios", "usuariosForm:messages");
-        } else {
-            addError("Error", "No se pudo guardar la información. Revise los datos e intente nuevamente");
-        }
     }
 
     public List<usuario_sistema_dto> getUsuarios() {
@@ -228,20 +199,6 @@ public class usuarios_bean implements Serializable {
         return copia;
     }
 
-    private void copiarSobreOriginal(usuario_sistema_dto destino, usuario_sistema_dto origen) {
-        destino.setPrimerNombre(origen.getPrimerNombre());
-        destino.setSegundoNombre(origen.getSegundoNombre());
-        destino.setPrimerApellido(origen.getPrimerApellido());
-        destino.setSegundoApellido(origen.getSegundoApellido());
-        destino.setNombreCompleto(origen.getNombreCompleto());
-        destino.setEmail(origen.getEmail());
-        destino.setActivo(origen.getActivo());
-        destino.setFechaNacimiento(origen.getFechaNacimiento());
-        destino.setEspecialidad(origen.getEspecialidad());
-        destino.setTenantId(origen.getTenantId());
-        destino.setUsername(origen.getUsername());
-    }
-
     public String obtenerEtiquetaTipo(usuario_sistema_dto usuario) {
         if (usuario == null || usuario.getTipoUsuario() == null) {
             return "Desconocido";
@@ -256,32 +213,6 @@ public class usuarios_bean implements Serializable {
             return "Administrador de clínica";
         }
         return usuario.getTipoUsuario();
-    }
-
-    private void recomponerNombreCompleto(usuario_sistema_dto usuario) {
-        StringBuilder builder = new StringBuilder();
-        if (usuario.getPrimerNombre() != null && !usuario.getPrimerNombre().isBlank()) {
-            builder.append(usuario.getPrimerNombre().trim());
-        }
-        if (usuario.getSegundoNombre() != null && !usuario.getSegundoNombre().isBlank()) {
-            if (builder.length() > 0) {
-                builder.append(' ');
-            }
-            builder.append(usuario.getSegundoNombre().trim());
-        }
-        if (usuario.getPrimerApellido() != null && !usuario.getPrimerApellido().isBlank()) {
-            if (builder.length() > 0) {
-                builder.append(' ');
-            }
-            builder.append(usuario.getPrimerApellido().trim());
-        }
-        if (usuario.getSegundoApellido() != null && !usuario.getSegundoApellido().isBlank()) {
-            if (builder.length() > 0) {
-                builder.append(' ');
-            }
-            builder.append(usuario.getSegundoApellido().trim());
-        }
-        usuario.setNombreCompleto(builder.toString());
     }
 
     private void addInfo(String summary, String detail) {

@@ -237,9 +237,9 @@ public class APIService implements Serializable {
     }
 
     public profesional_salud_dto saveProfesional(Integer ci, String nombre, String apellidos,
-                                               String especialidad, String email) {
+                                               String especialidad, String email, String password, String tenantId) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPost request = new HttpPost(BACKEND_URL() + "/profesionales");
+            HttpPost request = new HttpPost(BACKEND_URL() + "/profesionales?tenantId=" + tenantId);
 
             JsonObject data = Json.createObjectBuilder()
                 .add("ci", ci)
@@ -247,6 +247,7 @@ public class APIService implements Serializable {
                 .add("apellidos", apellidos)
                 .add("especialidad", especialidad != null ? especialidad : "")
                 .add("email", email != null ? email : "")
+                .add("password", password != null ? password : "")
                 .build();
 
             StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
@@ -350,6 +351,7 @@ public class APIService implements Serializable {
             dto.setApellidos(jsonObject.getString("apellidos"));
             dto.setEspecialidad(jsonObject.getString("especialidad", null));
             dto.setEmail(jsonObject.getString("email", null));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
 
             return dto;
         } catch (Exception e) {
@@ -373,6 +375,7 @@ public class APIService implements Serializable {
                 dto.setApellidos(jsonObject.getString("apellidos"));
                 dto.setEspecialidad(jsonObject.getString("especialidad", null));
                 dto.setEmail(jsonObject.getString("email", null));
+                dto.setTenantId(jsonObject.getString("tenantId", null));
 
                 list.add(dto);
             }
@@ -488,6 +491,7 @@ public class APIService implements Serializable {
             dto.setPrimerApellido(jsonObject.getString("primerApellido", null));
             dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
             dto.setEmail(jsonObject.getString("email", null));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
 
             String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
             if (fechaNacStr != null) {
@@ -517,6 +521,7 @@ public class APIService implements Serializable {
                 dto.setPrimerApellido(jsonObject.getString("primerApellido", null));
                 dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
                 dto.setEmail(jsonObject.getString("email", null));
+                dto.setTenantId(jsonObject.getString("tenantId", null));
 
                 String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
                 if (fechaNacStr != null) {
@@ -529,6 +534,253 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return list;
+    }
+
+    // ========== DOCUMENTOS CLÍNICOS ==========
+
+    public com.hcen.periferico.frontend.dto.documento_clinico_dto crearDocumento(
+            String usuarioSaludCedula, Integer profesionalCi, String codigoMotivoConsulta,
+            String descripcionDiagnostico, String fechaInicioDiagnostico, String codigoEstadoProblema,
+            String codigoGradoCerteza, String fechaProximaConsulta, String descripcionProximaConsulta,
+            String referenciaAlta, UUID tenantId) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPost request = new HttpPost(BACKEND_URL() + "/documentos?tenantId=" + tenantId);
+
+            var builder = Json.createObjectBuilder()
+                    .add("usuarioSaludCedula", usuarioSaludCedula)
+                    .add("profesionalCi", profesionalCi)
+                    .add("codigoMotivoConsulta", codigoMotivoConsulta)
+                    .add("descripcionDiagnostico", descripcionDiagnostico)
+                    .add("fechaInicioDiagnostico", fechaInicioDiagnostico)
+                    .add("codigoGradoCerteza", codigoGradoCerteza);
+
+            if (codigoEstadoProblema != null && !codigoEstadoProblema.isEmpty()) {
+                builder.add("codigoEstadoProblema", codigoEstadoProblema);
+            }
+            if (fechaProximaConsulta != null && !fechaProximaConsulta.isEmpty()) {
+                builder.add("fechaProximaConsulta", fechaProximaConsulta);
+            }
+            if (descripcionProximaConsulta != null && !descripcionProximaConsulta.isEmpty()) {
+                builder.add("descripcionProximaConsulta", descripcionProximaConsulta);
+            }
+            if (referenciaAlta != null && !referenciaAlta.isEmpty()) {
+                builder.add("referenciaAlta", referenciaAlta);
+            }
+
+            StringEntity entity = new StringEntity(builder.build().toString(), ContentType.APPLICATION_JSON);
+            request.setEntity(entity);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                if (response.getCode() == 201 || response.getCode() == 200) {
+                    return parseDocumentoFromJson(responseBody);
+                } else {
+                    System.err.println("Error al crear documento: " + extractErrorMessage(responseBody));
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<com.hcen.periferico.frontend.dto.documento_clinico_dto> getDocumentosPorPaciente(
+            String cedula, UUID tenantId) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(BACKEND_URL() + "/documentos/paciente/" + cedula + "?tenantId=" + tenantId);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    // La respuesta es un objeto con {data: [...], totalCount: n}
+                    return parseDocumentosListFromJson(responseBody);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
+    public com.hcen.periferico.frontend.dto.documento_clinico_dto getDocumentoPorId(
+            String documentoId, UUID tenantId) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(BACKEND_URL() + "/documentos/" + documentoId + "?tenantId=" + tenantId);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseDocumentoFromJson(responseBody);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public java.util.Map<String, String> getMotivosConsulta() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(BACKEND_URL() + "/documentos/catalogos/motivos");
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseMapFromJson(responseBody);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new java.util.HashMap<>();
+    }
+
+    public java.util.Map<String, String> getEstadosProblema() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(BACKEND_URL() + "/documentos/catalogos/estados");
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseMapFromJson(responseBody);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new java.util.HashMap<>();
+    }
+
+    public java.util.Map<String, String> getGradosCerteza() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(BACKEND_URL() + "/documentos/catalogos/grados-certeza");
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseMapFromJson(responseBody);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new java.util.HashMap<>();
+    }
+
+    private com.hcen.periferico.frontend.dto.documento_clinico_dto parseDocumentoFromJson(String jsonString) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject json = reader.readObject();
+            com.hcen.periferico.frontend.dto.documento_clinico_dto dto =
+                new com.hcen.periferico.frontend.dto.documento_clinico_dto();
+
+            dto.setId(json.getString("id", null));
+            dto.setTenantId(json.getString("tenantId", null));
+            dto.setUsuarioSaludCedula(json.getString("usuarioSaludCedula", null));
+            dto.setProfesionalCi(json.getInt("profesionalCi", 0));
+            dto.setNombreCompletoPaciente(json.getString("nombreCompletoPaciente", null));
+            dto.setNombreCompletoProfesional(json.getString("nombreCompletoProfesional", null));
+            dto.setEspecialidadProfesional(json.getString("especialidadProfesional", null));
+            dto.setCodigoMotivoConsulta(json.getString("codigoMotivoConsulta", null));
+            dto.setNombreMotivoConsulta(json.getString("nombreMotivoConsulta", null));
+            dto.setDescripcionDiagnostico(json.getString("descripcionDiagnostico", null));
+
+            String fechaInicio = json.getString("fechaInicioDiagnostico", null);
+            if (fechaInicio != null) {
+                dto.setFechaInicioDiagnostico(java.time.LocalDate.parse(fechaInicio));
+            }
+
+            dto.setCodigoEstadoProblema(json.getString("codigoEstadoProblema", null));
+            dto.setNombreEstadoProblema(json.getString("nombreEstadoProblema", null));
+            dto.setCodigoGradoCerteza(json.getString("codigoGradoCerteza", null));
+            dto.setNombreGradoCerteza(json.getString("nombreGradoCerteza", null));
+
+            String fechaProxima = json.getString("fechaProximaConsulta", null);
+            if (fechaProxima != null) {
+                dto.setFechaProximaConsulta(java.time.LocalDate.parse(fechaProxima));
+            }
+
+            dto.setDescripcionProximaConsulta(json.getString("descripcionProximaConsulta", null));
+            dto.setReferenciaAlta(json.getString("referenciaAlta", null));
+
+            return dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private List<com.hcen.periferico.frontend.dto.documento_clinico_dto> parseDocumentosListFromJson(String jsonString) {
+        List<com.hcen.periferico.frontend.dto.documento_clinico_dto> list = new ArrayList<>();
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject response = reader.readObject();
+            JsonArray jsonArray = response.getJsonArray("data");
+
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JsonObject json = jsonArray.getJsonObject(i);
+                com.hcen.periferico.frontend.dto.documento_clinico_dto dto = parseDocumentoFromJsonObject(json);
+                if (dto != null) {
+                    list.add(dto);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    private com.hcen.periferico.frontend.dto.documento_clinico_dto parseDocumentoFromJsonObject(JsonObject json) {
+        try {
+            com.hcen.periferico.frontend.dto.documento_clinico_dto dto =
+                new com.hcen.periferico.frontend.dto.documento_clinico_dto();
+
+            dto.setId(json.getString("id", null));
+            dto.setTenantId(json.getString("tenantId", null));
+            dto.setUsuarioSaludCedula(json.getString("usuarioSaludCedula", null));
+            dto.setProfesionalCi(json.getInt("profesionalCi", 0));
+            dto.setNombreCompletoPaciente(json.getString("nombreCompletoPaciente", null));
+            dto.setNombreCompletoProfesional(json.getString("nombreCompletoProfesional", null));
+            dto.setEspecialidadProfesional(json.getString("especialidadProfesional", null));
+            dto.setCodigoMotivoConsulta(json.getString("codigoMotivoConsulta", null));
+            dto.setNombreMotivoConsulta(json.getString("nombreMotivoConsulta", null));
+            dto.setDescripcionDiagnostico(json.getString("descripcionDiagnostico", null));
+
+            String fechaInicio = json.getString("fechaInicioDiagnostico", null);
+            if (fechaInicio != null) {
+                dto.setFechaInicioDiagnostico(java.time.LocalDate.parse(fechaInicio));
+            }
+
+            dto.setCodigoEstadoProblema(json.getString("codigoEstadoProblema", null));
+            dto.setNombreEstadoProblema(json.getString("nombreEstadoProblema", null));
+            dto.setCodigoGradoCerteza(json.getString("codigoGradoCerteza", null));
+            dto.setNombreGradoCerteza(json.getString("nombreGradoCerteza", null));
+
+            String fechaProxima = json.getString("fechaProximaConsulta", null);
+            if (fechaProxima != null) {
+                dto.setFechaProximaConsulta(java.time.LocalDate.parse(fechaProxima));
+            }
+
+            dto.setDescripcionProximaConsulta(json.getString("descripcionProximaConsulta", null));
+            dto.setReferenciaAlta(json.getString("referenciaAlta", null));
+
+            return dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private java.util.Map<String, String> parseMapFromJson(String jsonString) {
+        java.util.Map<String, String> map = new java.util.LinkedHashMap<>();
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject json = reader.readObject();
+            for (String key : json.keySet()) {
+                map.put(key, json.getString(key));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return map;
     }
 
     public boolean isBackendAvailable() {

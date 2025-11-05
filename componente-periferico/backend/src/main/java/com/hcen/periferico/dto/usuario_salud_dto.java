@@ -5,7 +5,6 @@ import com.hcen.periferico.rest.LocalDateAdapter;
 import jakarta.json.bind.annotation.JsonbTypeAdapter;
 import java.io.Serializable;
 import java.time.LocalDate;
-
 public class usuario_salud_dto implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -20,6 +19,7 @@ public class usuario_salud_dto implements Serializable {
 
     @JsonbTypeAdapter(LocalDateAdapter.class)
     private LocalDate fechaNacimiento;  // Cambiado de 'fechaNac'
+    private String tenantId;
 
     // Constructores
     public usuario_salud_dto() {
@@ -98,6 +98,14 @@ public class usuario_salud_dto implements Serializable {
 
     public void setFechaNacimiento(LocalDate fechaNacimiento) {
         this.fechaNacimiento = fechaNacimiento;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getNombreCompleto() {
