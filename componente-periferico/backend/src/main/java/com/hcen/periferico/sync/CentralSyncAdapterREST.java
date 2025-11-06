@@ -3,6 +3,7 @@ package com.hcen.periferico.sync;
 import com.hcen.periferico.api.CentralAPIClient;
 import com.hcen.periferico.entity.UsuarioSalud;
 import com.hcen.periferico.enums.TipoDocumento;
+import com.hcen.periferico.enums.TipoSincronizacion;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 
@@ -89,6 +90,11 @@ public class CentralSyncAdapterREST implements ICentralSyncAdapter {
     @Override
     public String getNombre() {
         return "REST";
+    }
+
+    @Override
+    public TipoSincronizacion getTipo() {
+        return TipoSincronizacion.USUARIO;
     }
 
     /**

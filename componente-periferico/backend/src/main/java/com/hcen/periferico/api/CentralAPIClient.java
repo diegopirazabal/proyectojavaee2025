@@ -121,13 +121,7 @@ public class CentralAPIClient {
             String url = API_USUARIOS + "/verificar/" + cedula;
             LOGGER.info("Verificando existencia de usuario en central: " + url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .GET()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedGet(url);
 
             if (response.statusCode() == 200) {
                 JsonReader jsonReader = Json.createReader(new StringReader(response.body()));
@@ -190,14 +184,7 @@ public class CentralAPIClient {
             String jsonBody = jsonBuilder.build().toString();
             LOGGER.fine("Request body: " + jsonBody);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedPost(url, jsonBody);
 
             // Aceptar tanto 200 (ya existe) como 201 (creado) como éxito
             if (response.statusCode() == 200 || response.statusCode() == 201) {
@@ -213,6 +200,17 @@ public class CentralAPIClient {
             LOGGER.log(Level.SEVERE, "Error al registrar usuario en central", e);
             throw new RuntimeException("Error al comunicarse con el componente central: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Registra un documento en la historia clínica del componente central.
+     * Sobrecarga que acepta UUID para tenantId (para usar desde adapters).
+     * Usa REQUIRES_NEW para ejecutarse en una transacción separada.
+     * Si falla, no afecta la transacción que guardó el documento localmente.
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public UUID registrarDocumentoHistoriaClinica(String cedula, UUID tenantId, UUID documentoId) {
+        return registrarDocumentoHistoriaClinica(tenantId.toString(), cedula, documentoId);
     }
 
     /**
@@ -265,13 +263,7 @@ public class CentralAPIClient {
             String url = API_USUARIOS + "/" + cedula;
             LOGGER.info("Obteniendo usuario desde central: " + url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .GET()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedGet(url);
 
             if (response.statusCode() == 200) {
                 return parseUsuarioFromJson(response.body());
@@ -296,13 +288,7 @@ public class CentralAPIClient {
             String url = API_USUARIOS + "?tenantId=" + tenantId;
             LOGGER.info("Obteniendo todos los usuarios desde central: " + url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .GET()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedGet(url);
 
             if (response.statusCode() == 200) {
                 return parseUsuariosListFromJson(response.body());
@@ -325,13 +311,7 @@ public class CentralAPIClient {
             String url = API_USUARIOS + "?tenantId=" + tenantId + "&search=" + encodedTerm;
             LOGGER.info("Buscando usuarios en central: " + url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .GET()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedGet(url);
 
             if (response.statusCode() == 200) {
                 return parseUsuariosListFromJson(response.body());
@@ -353,13 +333,7 @@ public class CentralAPIClient {
             String url = API_USUARIOS + "/" + cedula + "/clinica/" + tenantId;
             LOGGER.info("Eliminando usuario de clínica en central: " + url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .DELETE()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedDelete(url);
 
             if (response.statusCode() == 200) {
                 LOGGER.info("Usuario desasociado exitosamente de la clínica");

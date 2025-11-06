@@ -4,7 +4,11 @@ import com.hcen.periferico.api.CentralAPIClient;
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
 import com.hcen.periferico.dao.SincronizacionPendienteDAO;
 import com.hcen.periferico.entity.SincronizacionPendiente;
+import com.hcen.periferico.entity.UsuarioSalud;
 import com.hcen.periferico.entity.documento_clinico;
+import com.hcen.periferico.enums.TipoSincronizacion;
+import com.hcen.periferico.sync.ICentralSyncAdapter;
+import com.hcen.periferico.sync.SyncResult;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Schedule;
 import jakarta.ejb.Singleton;
@@ -35,6 +39,13 @@ public class SincronizacionReintentosService {
     private CentralAPIClient centralAPIClient;
 
     /**
+     * Adapter para sincronización de DOCUMENTOS con el componente central.
+     * Especificamos beanName porque hay múltiples implementaciones de ICentralSyncAdapter.
+     */
+    @EJB(beanName = "CentralSyncAdapterDocumentos")
+    private ICentralSyncAdapter documentosSyncAdapter;
+
+    /**
      * Procesa reintentos de sincronización cada 15 minutos.
      * Se ejecuta automáticamente gracias a @Schedule.
      */
@@ -43,9 +54,9 @@ public class SincronizacionReintentosService {
         System.out.println("=== Iniciando procesamiento de reintentos de sincronización ===");
 
         try {
-            // Obtener sincronizaciones pendientes o con error (con límite de intentos)
+            // Obtener sincronizaciones pendientes de DOCUMENTOS (filtrado por tipo)
             List<SincronizacionPendiente> pendientes =
-                sincronizacionDAO.findParaReintentar(MAX_INTENTOS);
+                sincronizacionDAO.findByTipoParaReintentar(TipoSincronizacion.DOCUMENTO, MAX_INTENTOS);
 
             if (pendientes.isEmpty()) {
                 System.out.println("No hay sincronizaciones pendientes para procesar.");
@@ -87,7 +98,7 @@ public class SincronizacionReintentosService {
     }
 
     /**
-     * Procesa una sincronización individual.
+     * Procesa una sincronización individual usando el adapter.
      * @return true si tuvo éxito, false si falló
      */
     private boolean procesarSincronizacion(SincronizacionPendiente sync) {
@@ -96,34 +107,29 @@ public class SincronizacionReintentosService {
                              sync.getUsuarioCedula() + " (intento " +
                              (sync.getIntentos() + 1) + "/" + MAX_INTENTOS + ")");
 
-            // Buscar todos los documentos no sincronizados de este usuario
-            List<documento_clinico> documentos =
-                documentoDAO.findByPaciente(sync.getUsuarioCedula(), sync.getTenantId());
+            // Crear objeto UsuarioSalud temporal para el adapter
+            UsuarioSalud usuario = new UsuarioSalud();
+            usuario.setCedula(sync.getUsuarioCedula());
+            usuario.setTenantId(sync.getTenantId());
 
-            boolean algunoSincronizado = false;
+            // Usar el adapter para sincronizar todos los documentos pendientes del usuario
+            SyncResult resultado = documentosSyncAdapter.enviarUsuario(usuario);
 
-            for (documento_clinico doc : documentos) {
-                // Solo procesar documentos sin histClinicaId
-                if (doc.getHistClinicaId() == null) {
-                    boolean sincronizado = sincronizarDocumento(doc, sync.getTenantId());
-                    if (sincronizado) {
-                        algunoSincronizado = true;
-                    }
-                }
-            }
-
-            if (algunoSincronizado) {
-                // Si al menos un documento se sincronizó, marcar como resuelto
+            if (resultado.isExito()) {
+                // Sincronización exitosa, marcar como resuelto
                 sync.marcarComoResuelta();
                 sincronizacionDAO.save(sync);
-                System.out.println("✓ Sincronización exitosa para usuario " + sync.getUsuarioCedula());
+                System.out.println("✓ Sincronización exitosa para usuario " + sync.getUsuarioCedula() +
+                                 ": " + resultado.getMensaje());
                 return true;
             } else {
-                // Si ningún documento se pudo sincronizar, registrar error
-                sync.registrarError("No se pudo sincronizar ningún documento en el intento " +
-                                   (sync.getIntentos()));
+                // Sincronización falló, registrar error
+                sync.registrarError("Intento " + (sync.getIntentos()) + " falló: " +
+                                   resultado.getMensaje() +
+                                   (resultado.getErrorDetalle() != null ? " - " + resultado.getErrorDetalle() : ""));
                 sincronizacionDAO.save(sync);
-                System.out.println("✗ Sincronización falló para usuario " + sync.getUsuarioCedula());
+                System.out.println("✗ Sincronización falló para usuario " + sync.getUsuarioCedula() +
+                                 ": " + resultado.getMensaje());
                 return false;
             }
 
@@ -133,36 +139,6 @@ public class SincronizacionReintentosService {
             sincronizacionDAO.save(sync);
             System.err.println("✗ Error al procesar sincronización para " +
                              sync.getUsuarioCedula() + ": " + e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Intenta sincronizar un documento individual con el central.
-     * @return true si tuvo éxito, false si falló
-     */
-    private boolean sincronizarDocumento(documento_clinico documento, UUID tenantId) {
-        try {
-            UUID historiaClinicaId = centralAPIClient.registrarDocumentoHistoriaClinica(
-                tenantId.toString(),
-                documento.getUsuarioSaludCedula(),
-                documento.getId()
-            );
-
-            if (historiaClinicaId != null) {
-                // Actualizar documento con el ID de historia clínica
-                documento.setHistClinicaId(historiaClinicaId);
-                documentoDAO.save(documento);
-                System.out.println("  ✓ Documento " + documento.getId() + " sincronizado con historia " +
-                                 historiaClinicaId);
-                return true;
-            }
-
-            return false;
-
-        } catch (Exception e) {
-            System.err.println("  ✗ Error al sincronizar documento " + documento.getId() +
-                             ": " + e.getMessage());
             return false;
         }
     }

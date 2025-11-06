@@ -2,6 +2,7 @@ package com.hcen.periferico.dao;
 
 import com.hcen.periferico.entity.SincronizacionPendiente;
 import com.hcen.periferico.entity.SincronizacionPendiente.EstadoSincronizacion;
+import com.hcen.periferico.enums.TipoSincronizacion;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -82,6 +83,22 @@ public class SincronizacionPendienteDAO {
             "ORDER BY s.createdAt",
             SincronizacionPendiente.class
         );
+        query.setParameter("maxIntentos", maxIntentos);
+        return query.getResultList();
+    }
+
+    /**
+     * Obtiene sincronizaciones de un tipo específico que tienen menos de N intentos
+     * Útil para separar el procesamiento de usuarios y documentos
+     */
+    public List<SincronizacionPendiente> findByTipoParaReintentar(TipoSincronizacion tipo, int maxIntentos) {
+        TypedQuery<SincronizacionPendiente> query = em.createQuery(
+            "SELECT s FROM SincronizacionPendiente s " +
+            "WHERE s.tipo = :tipo AND s.estado IN ('PENDIENTE', 'ERROR') AND s.intentos < :maxIntentos " +
+            "ORDER BY s.createdAt",
+            SincronizacionPendiente.class
+        );
+        query.setParameter("tipo", tipo);
         query.setParameter("maxIntentos", maxIntentos);
         return query.getResultList();
     }
