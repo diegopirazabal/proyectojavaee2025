@@ -43,8 +43,14 @@ public class UsuarioSaludService {
     @EJB
     private SincronizacionPendienteDAO sincronizacionDAO;
 
-    @EJB
-    private ICentralSyncAdapter syncAdapter;  // Implementación REST (futura: MQ)
+    /**
+     * Adapter para sincronización de USUARIOS con el componente central.
+     * Especificamos beanName porque hay múltiples implementaciones de ICentralSyncAdapter:
+     * - CentralSyncAdapterREST: para sincronizar usuarios
+     * - CentralSyncAdapterDocumentos: para sincronizar documentos clínicos
+     */
+    @EJB(beanName = "CentralSyncAdapterREST")
+    private ICentralSyncAdapter syncAdapter;
 
     /**
      * Registra un usuario en una clínica (componente periférico).

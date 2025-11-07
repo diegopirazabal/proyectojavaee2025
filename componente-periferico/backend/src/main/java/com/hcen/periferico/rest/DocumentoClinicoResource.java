@@ -30,6 +30,9 @@ public class DocumentoClinicoResource {
     @EJB
     private DocumentoClinicoDAO documentoDAO;
 
+    @EJB
+    private com.hcen.periferico.service.SincronizacionReintentosService sincronizacionService;
+
     /**
      * Crea un nuevo documento clínico
      * POST /api/documentos?tenantId=xxx
@@ -348,6 +351,27 @@ public class DocumentoClinicoResource {
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(new ErrorResponse("Error al obtener catálogo: " + e.getMessage()))
+                    .build();
+        }
+    }
+
+    /**
+     * Fuerza la sincronización inmediata de documentos pendientes con el componente central
+     * POST /api/documentos/sincronizar-pendientes
+     *
+     * NOTA: Este es un endpoint provisional para testing/debugging.
+     * En producción debería estar protegido con autenticación de admin.
+     */
+    @POST
+    @Path("/sincronizar-pendientes")
+    public Response sincronizarPendientes() {
+        try {
+            System.out.println("=== Sincronización manual solicitada desde frontend ===");
+            sincronizacionService.procesarInmediato();
+            return Response.ok(new SuccessResponse("Sincronización de documentos pendientes iniciada correctamente")).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Error al sincronizar: " + e.getMessage()))
                     .build();
         }
     }
