@@ -23,7 +23,12 @@ public class UsuarioSalud {
     @SequenceGenerator(name = "usuario_salud_seq", sequenceName = "usuario_salud_id_seq", allocationSize = 1)
     @Column(name = "id")
     private Long id;
-    
+
+
+    @OneToOne
+    @JoinColumn(name = "historia_clinica_id")
+    private historia_clinica historiaClinica;
+
     @Id
     @Column(name = "cedula", nullable = false, length = 20)
     private String cedula;
@@ -89,6 +94,13 @@ public class UsuarioSalud {
         this.email = email;
         this.primerNombre = primerNombre;
         this.primerApellido = primerApellido;
+    }
+
+    public void setHistoriaClinica(historia_clinica historiaClinica) {
+        this.historiaClinica = historiaClinica;
+        if (historiaClinica != null && historiaClinica.getUsuario() != this) {
+            historiaClinica.setUsuario(this);
+        }
     }
     
     public Long getId() { return id; }

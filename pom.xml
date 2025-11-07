@@ -17,7 +17,6 @@
         <module>componente-periferico/frontend-admin-clinica</module>
         <module>mock-laboratorio</module>
         <module>componente-periferico/frontend-profesional-salud</module>
-        <module>componente-periferico/frontend-portal-profesionales</module>
     </modules>
 </project>
 
