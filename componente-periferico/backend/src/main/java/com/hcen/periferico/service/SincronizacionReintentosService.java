@@ -26,7 +26,7 @@ import java.util.UUID;
 @Startup
 public class SincronizacionReintentosService {
 
-    private static final int MAX_INTENTOS = 5;
+    private static final int MAX_INTENTOS = 20;
     private static final int BATCH_SIZE = 50;
 
     @EJB
