@@ -1,6 +1,6 @@
 package com.hcen.periferico.messaging;
 
-import com.hcen.periferico.dto.documento_sincronizacion_message;
+import hcen.central.inus.dto.DocumentoSincronizacionMessage;
 import jakarta.annotation.Resource;
 import jakarta.ejb.Stateless;
 import jakarta.jms.*;
@@ -65,7 +65,7 @@ public class DocumentoSincronizacionProducer {
         }
 
         // Crear mensaje DTO
-        documento_sincronizacion_message mensaje = new documento_sincronizacion_message(
+        DocumentoSincronizacionMessage mensaje = new DocumentoSincronizacionMessage(
                 documentoId,
                 tenantId,
                 cedula
@@ -103,9 +103,11 @@ public class DocumentoSincronizacionProducer {
             LOGGER.log(Level.INFO, "Documento {0} enviado exitosamente a cola. MessageID: {1}",
                     new Object[]{documentoId, messageId});
 
-        } catch (JMSException e) {
+        } catch (JMSRuntimeException e) {
             LOGGER.log(Level.SEVERE, "Error al enviar documento " + documentoId + " a cola de sincronización", e);
-            throw e; // Propagar excepción para rollback de transacción
+            JMSException jmsException = new JMSException("Error al enviar documento a cola JMS");
+            jmsException.setLinkedException(e);
+            throw jmsException; // Propagar excepción para rollback de transacción
         }
 
         return messageId;
@@ -119,7 +121,7 @@ public class DocumentoSincronizacionProducer {
      * @param mensajes Lista de mensajes a enviar
      * @return Número de mensajes enviados exitosamente
      */
-    public int enviarDocumentos(java.util.List<documento_sincronizacion_message> mensajes) {
+    public int enviarDocumentos(java.util.List<DocumentoSincronizacionMessage> mensajes) {
 
         int enviados = 0;
 
@@ -129,7 +131,7 @@ public class DocumentoSincronizacionProducer {
             producer.setDeliveryMode(DeliveryMode.PERSISTENT);
             producer.setPriority(4);
 
-            for (documento_sincronizacion_message mensaje : mensajes) {
+            for (DocumentoSincronizacionMessage mensaje : mensajes) {
 
                 if (!mensaje.isValid()) {
                     LOGGER.log(Level.WARNING, "Mensaje inválido omitido: {0}", mensaje);
@@ -154,7 +156,7 @@ public class DocumentoSincronizacionProducer {
                 }
             }
 
-        } catch (JMSException e) {
+        } catch (JMSRuntimeException e) {
             LOGGER.log(Level.SEVERE, "Error al crear contexto JMS para envío batch", e);
         }
 

@@ -4,6 +4,7 @@ import com.hcen.periferico.dto.documento_clinico_dto;
 import com.hcen.periferico.entity.documento_clinico;
 import com.hcen.periferico.service.DocumentoClinicoService;
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
+import com.hcen.periferico.service.SincronizacionReintentosService;
 import jakarta.ejb.EJB;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -31,7 +32,7 @@ public class DocumentoClinicoResource {
     private DocumentoClinicoDAO documentoDAO;
 
     @EJB
-    private com.hcen.periferico.service.SincronizacionReintentosService sincronizacionService;
+    private SincronizacionReintentosService sincronizacionService;
 
     /**
      * Crea un nuevo documento clínico
@@ -367,8 +368,9 @@ public class DocumentoClinicoResource {
     public Response sincronizarPendientes() {
         try {
             System.out.println("=== Sincronización manual solicitada desde frontend ===");
-            sincronizacionService.procesarInmediato();
-            return Response.ok(new SuccessResponse("Sincronización de documentos pendientes iniciada correctamente")).build();
+            int reenviados = sincronizacionService.procesarInmediato();
+            return Response.ok(new SuccessResponse(
+                    "Reintentos disparados para " + reenviados + " documentos pendientes")).build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(new ErrorResponse("Error al sincronizar: " + e.getMessage()))

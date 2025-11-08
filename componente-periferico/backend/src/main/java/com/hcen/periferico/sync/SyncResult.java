@@ -44,6 +44,15 @@ public class SyncResult implements Serializable {
         return new SyncResult(false, false, mensaje);
     }
 
+    /**
+     * Representa una operación que quedó encolada para procesamiento asíncrono.
+     * Se considera exitosa para la capa de sincronización, pero la confirmación
+     * final dependerá del consumidor de la cola.
+     */
+    public static SyncResult encolado(String mensaje) {
+        return new SyncResult(true, false, mensaje);
+    }
+
     // Getters y Setters
     public boolean isExito() {
         return exito;
