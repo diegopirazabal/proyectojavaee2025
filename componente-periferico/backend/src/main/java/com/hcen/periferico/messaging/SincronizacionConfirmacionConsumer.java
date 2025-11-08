@@ -2,7 +2,7 @@ package com.hcen.periferico.messaging;
 
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
 import com.hcen.periferico.dao.SincronizacionPendienteDAO;
-import com.hcen.periferico.dto.sincronizacion_confirmacion_message;
+import hcen.central.inus.dto.SincronizacionConfirmacionMessage;
 import com.hcen.periferico.entity.SincronizacionPendiente;
 import com.hcen.periferico.entity.documento_clinico;
 import jakarta.ejb.ActivationConfigProperty;
@@ -75,7 +75,7 @@ public class SincronizacionConfirmacionConsumer implements MessageListener {
     public void onMessage(Message message) {
 
         String messageId = null;
-        sincronizacion_confirmacion_message confirmacion = null;
+        SincronizacionConfirmacionMessage confirmacion = null;
 
         try {
             // Obtener ID del mensaje para trazabilidad
@@ -93,13 +93,13 @@ public class SincronizacionConfirmacionConsumer implements MessageListener {
 
             // Deserializar mensaje
             Object payload = objectMessage.getObject();
-            if (!(payload instanceof sincronizacion_confirmacion_message)) {
-                LOGGER.log(Level.SEVERE, "Payload no es sincronizacion_confirmacion_message: {0}",
+            if (!(payload instanceof SincronizacionConfirmacionMessage)) {
+                LOGGER.log(Level.SEVERE, "Payload no es SincronizacionConfirmacionMessage: {0}",
                         payload != null ? payload.getClass() : "null");
                 throw new IllegalArgumentException("Payload inválido");
             }
 
-            confirmacion = (sincronizacion_confirmacion_message) payload;
+            confirmacion = (SincronizacionConfirmacionMessage) payload;
 
             // Validar mensaje
             if (!confirmacion.isValid()) {
@@ -144,7 +144,7 @@ public class SincronizacionConfirmacionConsumer implements MessageListener {
      * - Actualiza documento.hist_clinica_id
      * - Actualiza sincronizacion_pendiente.estado = RESUELTA
      */
-    private void procesarConfirmacionExitosa(sincronizacion_confirmacion_message confirmacion) {
+    private void procesarConfirmacionExitosa(SincronizacionConfirmacionMessage confirmacion) {
 
         // 1. Actualizar documento con hist_clinica_id
         Optional<documento_clinico> documentoOpt = documentoDAO.findById(confirmacion.getDocumentoId());
@@ -192,7 +192,7 @@ public class SincronizacionConfirmacionConsumer implements MessageListener {
      * - Actualiza sincronizacion_pendiente.estado = ERROR
      * - Registra mensaje de error
      */
-    private void procesarConfirmacionError(sincronizacion_confirmacion_message confirmacion) {
+    private void procesarConfirmacionError(SincronizacionConfirmacionMessage confirmacion) {
 
         LOGGER.log(Level.WARNING,
                 "Sincronización FALLÓ para documento {0}: {1}",
@@ -211,7 +211,7 @@ public class SincronizacionConfirmacionConsumer implements MessageListener {
      * @param errorMensaje Mensaje de error (null si no hay error)
      */
     private void actualizarAuditoria(
-            sincronizacion_confirmacion_message confirmacion,
+            SincronizacionConfirmacionMessage confirmacion,
             SincronizacionPendiente.EstadoSincronizacion estado,
             String errorMensaje) {
 
