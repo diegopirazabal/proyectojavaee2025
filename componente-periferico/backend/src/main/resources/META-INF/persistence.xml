@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <persistence xmlns="https://jakarta.ee/xml/ns/persistence"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence
@@ -19,6 +19,7 @@
         <class>com.hcen.periferico.entity.documento_clinico</class>
         <class>com.hcen.periferico.entity.politica_acceso</class>
 
+
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
             <property name="hibernate.hbm2ddl.auto" value="validate"/>
@@ -30,3 +31,6 @@
         </properties>
     </persistence-unit>
 </persistence>
+
+
+

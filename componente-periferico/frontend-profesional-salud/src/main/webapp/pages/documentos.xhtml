@@ -17,6 +17,8 @@
 <h:body>
     <h:form>
         <p:menubar>
+            <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>
+            <p:menuitem value="Historia clínica" icon="pi pi-book" outcome="/pages/historia/buscar.xhtml"/>
             <p:menuitem value="Documentos Clínicos" icon="pi pi-file-edit" outcome="/pages/documentos.xhtml"/>
 
             <f:facet name="options">
@@ -87,6 +89,14 @@
                                     update=":dlgNuevoDocumento"
                                     action="#{documentoClinicoBean.prepararNuevoDocumento}"
                                     oncomplete="PF('dlgNuevoDocumento').show();"/>
+
+                    <p:commandButton value="🔄 Sincronizar Pendientes"
+                                    icon="pi pi-sync"
+                                    styleClass="p-button-warning"
+                                    action="#{documentoClinicoBean.forzarSincronizacion}"
+                                    update=":documentosForm:messages"
+                                    style="margin-left: 0.5rem;"
+                                    title="Fuerza la sincronización manual de documentos pendientes con el componente central (DEBUG)"/>
                     </p:toolbarGroup>
                 </p:toolbar>
 
@@ -125,7 +135,7 @@
                                         styleClass="p-button-info"
                                         onclick="PF('dlgVerDocumento').show();"
                                         action="#{documentoClinicoBean.seleccionarDocumento(doc)}"
-                                        update=":documentosForm:verDocumentoPanel"
+                                        update=":verDocumentoPanel"
                                         title="Ver detalles"/>
                     </p:column>
                 </p:dataTable>
@@ -146,16 +156,20 @@
             <p:panel header="Motivos de consulta">
                 <p:panelGrid columns="2" layout="grid">
                     <p:outputLabel for="motivoConsulta" value="Motivo de consulta: *"/>
-                    <p:selectOneMenu id="motivoConsulta"
-                                    value="#{documentoClinicoBean.newDocumento.codigoMotivoConsulta}"
-                                    style="width: 100%;">
-                        <f:selectItem itemLabel="Seleccione..." itemValue="#{null}"/>
-                        <f:selectItems value="#{documentoClinicoBean.motivosConsultaList}"
-                                      var="m"
-                                      itemLabel="#{m.value}"
-                                      itemValue="#{m.key}"/>
-                    </p:selectOneMenu>
+                    <p:autoComplete id="motivoConsulta"
+                                   value="#{documentoClinicoBean.motivoConsultaAutoComplete}"
+                                   completeMethod="#{documentoClinicoBean.completeMotivo}"
+                                   minQueryLength="2"
+                                   queryDelay="500"
+                                   placeholder="Escriba al menos 2 caracteres para buscar..."
+                                   forceSelection="true"
+                                   scrollHeight="250"
+                                   style="width: 100%;">
+                        <p:ajax event="itemSelect" update="@this"/>
+                    </p:autoComplete>
                 </p:panelGrid>
+                <p:outputLabel value="Escriba al menos 2 caracteres para buscar en más de 12,000 motivos de consulta"
+                              style="font-size: 0.9em; color: #666; font-style: italic;"/>
             </p:panel>
 
             <p:panel header="Diagnósticos" style="margin-top: 1rem;">

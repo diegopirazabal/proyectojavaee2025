@@ -41,6 +41,17 @@ public class DocumentoClinicoDAO {
     }
 
     /**
+     * Busca un documento por ID sin filtrar por tenant.
+     * Útil para procesos internos donde la validación se realiza en otra capa.
+     */
+    public Optional<documento_clinico> findById(UUID id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(em.find(documento_clinico.class, id));
+    }
+
+    /**
      * Lista todos los documentos de un paciente específico
      */
     public List<documento_clinico> findByPaciente(String cedula, UUID tenantId) {
@@ -198,7 +209,35 @@ public class DocumentoClinicoDAO {
     }
 
     /**
+     * Busca motivos de consulta por término (para autocompletado)
+     * Limitado a 50 resultados para optimizar rendimiento
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, String> buscarMotivosConsulta(String termino) {
+        Map<String, String> motivos = new LinkedHashMap<>();
+        try {
+            String query = "SELECT id, concepto FROM motivo_consulta " +
+                          "WHERE LOWER(concepto) LIKE LOWER(?) " +
+                          "ORDER BY concepto LIMIT 50";
+
+            List<Object[]> results = em.createNativeQuery(query)
+                .setParameter(1, "%" + termino + "%")
+                .getResultList();
+
+            for (Object[] row : results) {
+                motivos.put(row[0].toString(), row[1].toString());
+            }
+        } catch (Exception e) {
+            // Log error si es necesario
+            e.printStackTrace();
+        }
+        return motivos;
+    }
+
+    /**
      * Obtiene todos los motivos de consulta disponibles
+     * NOTA: Este método carga TODOS los registros (~12k) y puede ser muy lento.
+     * Se recomienda usar buscarMotivosConsulta() con filtro para mejor rendimiento.
      */
     @SuppressWarnings("unchecked")
     public Map<String, String> getAllMotivosConsulta() {

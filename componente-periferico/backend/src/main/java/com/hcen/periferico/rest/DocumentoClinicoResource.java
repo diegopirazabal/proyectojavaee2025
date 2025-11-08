@@ -4,12 +4,14 @@ import com.hcen.periferico.dto.documento_clinico_dto;
 import com.hcen.periferico.entity.documento_clinico;
 import com.hcen.periferico.service.DocumentoClinicoService;
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
+import com.hcen.periferico.service.SincronizacionReintentosService;
 import jakarta.ejb.EJB;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,6 +30,9 @@ public class DocumentoClinicoResource {
 
     @EJB
     private DocumentoClinicoDAO documentoDAO;
+
+    @EJB
+    private SincronizacionReintentosService sincronizacionService;
 
     /**
      * Crea un nuevo documento clínico
@@ -303,6 +308,28 @@ public class DocumentoClinicoResource {
         }
     }
 
+    /**
+     * Busca motivos de consulta por término (para autocompletado)
+     * GET /api/documentos/catalogos/motivos/buscar?termino=dolor
+     */
+    @GET
+    @Path("/catalogos/motivos/buscar")
+    public Response buscarMotivosConsulta(@QueryParam("termino") String termino) {
+        try {
+            if (termino == null || termino.trim().isEmpty()) {
+                // Si no hay término, devolver lista vacía o los primeros N
+                return Response.ok(new LinkedHashMap<String, String>()).build();
+            }
+
+            Map<String, String> motivos = documentoDAO.buscarMotivosConsulta(termino.trim());
+            return Response.ok(motivos).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Error al buscar motivos: " + e.getMessage()))
+                    .build();
+        }
+    }
+
     @GET
     @Path("/catalogos/estados")
     public Response getEstadosProblema() {
@@ -325,6 +352,28 @@ public class DocumentoClinicoResource {
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(new ErrorResponse("Error al obtener catálogo: " + e.getMessage()))
+                    .build();
+        }
+    }
+
+    /**
+     * Fuerza la sincronización inmediata de documentos pendientes con el componente central
+     * POST /api/documentos/sincronizar-pendientes
+     *
+     * NOTA: Este es un endpoint provisional para testing/debugging.
+     * En producción debería estar protegido con autenticación de admin.
+     */
+    @POST
+    @Path("/sincronizar-pendientes")
+    public Response sincronizarPendientes() {
+        try {
+            System.out.println("=== Sincronización manual solicitada desde frontend ===");
+            int reenviados = sincronizacionService.procesarInmediato();
+            return Response.ok(new SuccessResponse(
+                    "Reintentos disparados para " + reenviados + " documentos pendientes")).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Error al sincronizar: " + e.getMessage()))
                     .build();
         }
     }

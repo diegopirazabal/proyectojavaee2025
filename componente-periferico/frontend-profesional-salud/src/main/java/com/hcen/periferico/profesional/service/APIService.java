@@ -214,6 +214,27 @@ public class APIService implements Serializable {
         return new LinkedHashMap<>();
     }
 
+    /**
+     * Busca motivos de consulta por término (para autocompletado)
+     */
+    public Map<String, String> buscarMotivosConsulta(String termino) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            String url = getBackendUrl() + "/documentos/catalogos/motivos/buscar?termino=" +
+                        java.net.URLEncoder.encode(termino, "UTF-8");
+            HttpGet request = new HttpGet(url);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseMapFromJson(responseBody);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new LinkedHashMap<>();
+    }
+
     public Map<String, String> getEstadosProblema() {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpGet request = new HttpGet(getBackendUrl() + "/documentos/catalogos/estados");
@@ -244,6 +265,32 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return new LinkedHashMap<>();
+    }
+
+    /**
+     * Fuerza la sincronización inmediata de documentos pendientes con el componente central
+     * NOTA: Este es un método provisional para testing/debugging
+     */
+    public boolean sincronizarPendientes() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPost request = new HttpPost(getBackendUrl() + "/documentos/sincronizar-pendientes");
+            request.setHeader("Content-Type", "application/json");
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    System.out.println("Sincronización pendientes iniciada correctamente");
+                    return true;
+                } else {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    System.err.println("Error al sincronizar pendientes: " + responseBody);
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error en sincronizarPendientes: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 
     // ========== PARSERS ==========

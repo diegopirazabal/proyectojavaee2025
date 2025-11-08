@@ -57,7 +57,7 @@ public class api_service {
 
     private static final String PERIPHERAL_ENV_VAR = "HCEN_PERIPHERAL_API_BASE_URL";
     private static final String PERIPHERAL_SYS_PROP = "hcen.peripheralApiBaseUrl";
-    private static final String DEFAULT_PERIPHERAL_URL = "https://proyectojavaee2025-production.up.railway.app/multitenant-api";
+    private static final String DEFAULT_PERIPHERAL_URL = "https://prestador-salud.up.railway.app/multitenant-api/";
 
     private static final Logger LOGGER = Logger.getLogger(api_service.class.getName());
 

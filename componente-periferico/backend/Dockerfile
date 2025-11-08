@@ -24,8 +24,8 @@ RUN mvn clean package -DskipTests
 FROM quay.io/wildfly/wildfly:31.0.0.Final-jdk17
 USER root
 
-# Install PostgreSQL driver
-RUN curl -L https://jdbc.postgresql.org/download/postgresql-42.6.0.jar -o /opt/jboss/wildfly/standalone/deployments/postgresql-42.6.0.jar
+# Install PostgreSQL driver from Maven Central
+RUN curl -L https://repo1.maven.org/maven2/org/postgresql/postgresql/42.6.0/postgresql-42.6.0.jar -o /opt/jboss/wildfly/standalone/deployments/postgresql-42.6.0.jar
 
 # Copy datasource configuration script
 COPY --chown=jboss:jboss componente-periferico/backend/datasource-config.cli /opt/jboss/

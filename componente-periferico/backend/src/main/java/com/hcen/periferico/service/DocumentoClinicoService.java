@@ -1,16 +1,22 @@
 package com.hcen.periferico.service;
 
-import com.hcen.periferico.api.CentralAPIClient;
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
 import com.hcen.periferico.dao.ProfesionalSaludDAO;
+import com.hcen.periferico.dao.SincronizacionPendienteDAO;
 import com.hcen.periferico.dto.documento_clinico_dto;
+import com.hcen.periferico.entity.SincronizacionPendiente;
 import com.hcen.periferico.entity.UsuarioSalud;
 import com.hcen.periferico.entity.documento_clinico;
 import com.hcen.periferico.entity.profesional_salud;
+import com.hcen.periferico.enums.TipoSincronizacion;
+import com.hcen.periferico.messaging.DocumentoSincronizacionProducer;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
+import jakarta.jms.JMSException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,6 +32,7 @@ import java.util.stream.Collectors;
 @Stateless
 public class DocumentoClinicoService {
 
+    private static final Logger LOGGER = Logger.getLogger(DocumentoClinicoService.class.getName());
     private static final int PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 200;
 
@@ -35,11 +42,17 @@ public class DocumentoClinicoService {
     @EJB
     private ProfesionalSaludDAO profesionalDAO;
 
+    @EJB
+    private SincronizacionPendienteDAO sincronizacionDAO;
+
     @PersistenceContext(unitName = "hcen-periferico-pu")
     private EntityManager em;
 
+    /**
+     * Productor JMS para enviar documentos a la cola de sincronización
+     */
     @EJB
-    private CentralAPIClient centralAPIClient;
+    private DocumentoSincronizacionProducer sincronizacionProducer;
 
     /**
      * Crea un nuevo documento clínico
@@ -80,26 +93,9 @@ public class DocumentoClinicoService {
         // Validar que las codigueras existan
         validarCodigueras(codigoMotivoConsulta, codigoEstadoProblema, codigoGradoCerteza);
 
-        UUID documentoId = UUID.randomUUID();
-        UUID historiaCentralId;
-        try {
-            historiaCentralId = centralAPIClient.registrarDocumentoHistoriaClinica(
-                tenantId.toString(),
-                usuarioSaludCedula,
-                documentoId
-            );
-        } catch (RuntimeException e) {
-            throw new IllegalStateException("No se pudo registrar el documento en el componente central", e);
-        }
-
-        if (historiaCentralId == null) {
-            throw new IllegalStateException("El componente central no devolvió un ID de historia clínica válido");
-        }
-
-        asegurarHistoriaClinicaLocal(historiaCentralId, usuarioSaludCedula, tenantId);
-
+        // PRIMERO: Crear y persistir el documento localmente
+        // NO asignamos el ID manualmente - Hibernate lo generará automáticamente con @GeneratedValue
         documento_clinico documento = new documento_clinico();
-        documento.setId(documentoId);
         documento.setTenantId(tenantId);
         documento.setUsuarioSaludCedula(usuarioSaludCedula);
         documento.setPaciente(paciente);
@@ -113,9 +109,15 @@ public class DocumentoClinicoService {
         documento.setFechaProximaConsulta(fechaProximaConsulta);
         documento.setDescripcionProximaConsulta(descripcionProximaConsulta != null ? descripcionProximaConsulta.trim() : null);
         documento.setReferenciaAlta(referenciaAlta != null ? referenciaAlta.trim() : null);
-        documento.setHistClinicaId(historiaCentralId);
+        documento.setHistClinicaId(null); // Se asignará después si la sincronización tiene éxito
 
-        return documentoDAO.save(documento);
+        // Guardar documento localmente (Hibernate generará el UUID automáticamente)
+        documento_clinico documentoGuardado = documentoDAO.save(documento);
+
+        // Enviar a cola JMS para sincronización asíncrona con el central
+        enviarDocumentoACola(documentoGuardado, tenantId);
+
+        return documentoGuardado;
     }
 
     private void asegurarHistoriaClinicaLocal(UUID historiaId, String cedulaPaciente, UUID tenantId) {
@@ -357,5 +359,78 @@ public class DocumentoClinicoService {
             return PAGE_SIZE;
         }
         return Math.min(size, MAX_PAGE_SIZE);
+    }
+
+    /**
+     * Envía un documento recién creado a la cola JMS para sincronización asíncrona con el componente central.
+     * Registra el envío en la tabla sincronizacion_pendiente para auditoría y monitoreo.
+     *
+     * Este método NO intenta sincronizar directamente vía REST. En su lugar:
+     * 1. Envía mensaje a cola "DocumentosSincronizacion"
+     * 2. Registra en tabla de auditoría (sincronizacion_pendiente)
+     * 3. El componente central consumirá el mensaje y procesará el documento
+     * 4. El central enviará confirmación a cola "SincronizacionConfirmaciones"
+     * 5. El consumidor de confirmaciones actualizará hist_clinica_id y estado de auditoría
+     *
+     * @param documento Documento recién creado
+     * @param tenantId ID de la clínica
+     */
+    private void enviarDocumentoACola(documento_clinico documento, UUID tenantId) {
+
+        LOGGER.log(Level.INFO, "Enviando documento {0} a cola de sincronización (paciente: {1}, tenant: {2})",
+                new Object[]{documento.getId(), documento.getUsuarioSaludCedula(), tenantId});
+
+        String messageId = null;
+
+        try {
+            // Enviar mensaje JMS a la cola
+            messageId = sincronizacionProducer.enviarDocumento(
+                    documento.getId(),
+                    documento.getUsuarioSaludCedula(),
+                    tenantId
+            );
+
+            LOGGER.log(Level.INFO, "Documento {0} enviado a cola exitosamente. MessageID: {1}",
+                    new Object[]{documento.getId(), messageId});
+
+        } catch (JMSException e) {
+            // Error crítico: no se pudo enviar a la cola
+            LOGGER.log(Level.SEVERE, "Error al enviar documento " + documento.getId() +
+                    " a cola de sincronización", e);
+
+            // Continuar para registrar en tabla de auditoría con estado ERROR
+        }
+
+        // Registrar en tabla de auditoría para monitoreo
+        // Se crea SIEMPRE, independientemente si el envío a cola fue exitoso o no
+        try {
+            SincronizacionPendiente auditoria = new SincronizacionPendiente(
+                    documento.getUsuarioSaludCedula(),
+                    tenantId,
+                    documento.getId() // documento_id
+            );
+
+            auditoria.setMessageId(messageId);
+            auditoria.setFecEnvioCola(LocalDateTime.now());
+
+            if (messageId != null) {
+                // Mensaje enviado exitosamente
+                auditoria.setEstado(SincronizacionPendiente.EstadoSincronizacion.PENDIENTE);
+            } else {
+                // Falló envío a cola
+                auditoria.setEstado(SincronizacionPendiente.EstadoSincronizacion.ERROR);
+                auditoria.registrarError("Error al enviar mensaje a cola JMS");
+            }
+
+            sincronizacionDAO.save(auditoria);
+
+            LOGGER.log(Level.INFO, "Registro de auditoría creado para documento {0}",
+                    documento.getId());
+
+        } catch (Exception e) {
+            // Error al guardar auditoría - loguear pero no fallar la transacción principal
+            LOGGER.log(Level.SEVERE, "Error al crear registro de auditoría para documento " +
+                    documento.getId(), e);
+        }
     }
 }
