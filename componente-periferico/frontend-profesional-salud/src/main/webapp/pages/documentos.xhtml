@@ -89,6 +89,14 @@
                                     update=":dlgNuevoDocumento"
                                     action="#{documentoClinicoBean.prepararNuevoDocumento}"
                                     oncomplete="PF('dlgNuevoDocumento').show();"/>
+
+                    <p:commandButton value="🔄 Sincronizar Pendientes"
+                                    icon="pi pi-sync"
+                                    styleClass="p-button-warning"
+                                    action="#{documentoClinicoBean.forzarSincronizacion}"
+                                    update=":documentosForm:messages"
+                                    style="margin-left: 0.5rem;"
+                                    title="Fuerza la sincronización manual de documentos pendientes con el componente central (DEBUG)"/>
                     </p:toolbarGroup>
                 </p:toolbar>
 

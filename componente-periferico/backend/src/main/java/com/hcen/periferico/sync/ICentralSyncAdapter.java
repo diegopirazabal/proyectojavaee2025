@@ -1,6 +1,7 @@
 package com.hcen.periferico.sync;
 
 import com.hcen.periferico.entity.UsuarioSalud;
+import com.hcen.periferico.enums.TipoSincronizacion;
 
 /**
  * Interface para adaptadores de sincronización con el componente central.
@@ -8,12 +9,18 @@ import com.hcen.periferico.entity.UsuarioSalud;
  * Patrón Strategy: Permite cambiar la implementación de sincronización
  * sin modificar el código del servicio.
  *
- * Implementaciones:
- * - CentralSyncAdapterREST: Sincronización vía HTTP/REST (actual)
- * - CentralSyncAdapterMQ: Sincronización vía mensajería asíncrona (futuro)
+ * Tipos de sincronización:
+ * - USUARIO: Sincronización de usuarios de salud
+ * - DOCUMENTO: Sincronización de documentos clínicos
  *
- * Este diseño permite migrar de REST a mensajería (RabbitMQ, ActiveMQ, etc.)
- * sin refactorizar el service layer.
+ * Implementaciones actuales:
+ * - CentralSyncAdapterREST: Sincronización de usuarios vía HTTP/REST
+ * - CentralSyncAdapterDocumentos: Sincronización de documentos vía HTTP/REST
+ *
+ * Este diseño permite:
+ * - Separar la lógica de sincronización de usuarios y documentos
+ * - Migrar a mensajería asíncrona (RabbitMQ, ActiveMQ) sin refactorizar
+ * - Procesar reintentos de forma independiente por tipo
  */
 public interface ICentralSyncAdapter {
 
@@ -39,4 +46,12 @@ public interface ICentralSyncAdapter {
      * @return Nombre del adapter (ej: "REST", "MQ")
      */
     String getNombre();
+
+    /**
+     * Obtiene el tipo de sincronización que maneja este adapter.
+     * Permite al sistema de reintentos filtrar por tipo (USUARIO o DOCUMENTO).
+     *
+     * @return TipoSincronizacion (USUARIO o DOCUMENTO)
+     */
+    TipoSincronizacion getTipo();
 }

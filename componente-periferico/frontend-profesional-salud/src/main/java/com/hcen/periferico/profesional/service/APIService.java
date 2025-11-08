@@ -267,6 +267,32 @@ public class APIService implements Serializable {
         return new LinkedHashMap<>();
     }
 
+    /**
+     * Fuerza la sincronización inmediata de documentos pendientes con el componente central
+     * NOTA: Este es un método provisional para testing/debugging
+     */
+    public boolean sincronizarPendientes() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPost request = new HttpPost(getBackendUrl() + "/documentos/sincronizar-pendientes");
+            request.setHeader("Content-Type", "application/json");
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    System.out.println("Sincronización pendientes iniciada correctamente");
+                    return true;
+                } else {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    System.err.println("Error al sincronizar pendientes: " + responseBody);
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error en sincronizarPendientes: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     // ========== PARSERS ==========
 
     private List<usuario_salud_dto> parseUsuariosFromJson(String jsonString) {

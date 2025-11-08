@@ -235,6 +235,26 @@ public class DocumentoClinicoBean implements Serializable {
     }
 
     /**
+     * Método provisional para forzar sincronización manual con el componente central
+     * Útil para debugging y testing sin tener que crear nuevos documentos
+     */
+    public void forzarSincronizacion() {
+        try {
+            System.out.println("=== Forzando sincronización manual desde frontend ===");
+            boolean exito = apiService.sincronizarPendientes();
+
+            if (exito) {
+                addMessage(FacesMessage.SEVERITY_INFO, "Sincronización iniciada correctamente. Revisa los logs del servidor para ver el resultado.");
+            } else {
+                addMessage(FacesMessage.SEVERITY_WARN, "La sincronización se ejecutó pero hubo problemas. Revisa los logs del servidor.");
+            }
+        } catch (Exception e) {
+            addMessage(FacesMessage.SEVERITY_ERROR, "Error al forzar sincronización: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Se ejecuta antes de renderizar la vista para asegurar que las listas estén cargadas
      * cuando el profesional inicia sesión desde la pantalla principal.
      */

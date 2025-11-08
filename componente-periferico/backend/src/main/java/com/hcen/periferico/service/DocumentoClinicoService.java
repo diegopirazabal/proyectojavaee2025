@@ -3,10 +3,15 @@ package com.hcen.periferico.service;
 import com.hcen.periferico.api.CentralAPIClient;
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
 import com.hcen.periferico.dao.ProfesionalSaludDAO;
+import com.hcen.periferico.dao.SincronizacionPendienteDAO;
 import com.hcen.periferico.dto.documento_clinico_dto;
+import com.hcen.periferico.entity.SincronizacionPendiente;
 import com.hcen.periferico.entity.UsuarioSalud;
 import com.hcen.periferico.entity.documento_clinico;
 import com.hcen.periferico.entity.profesional_salud;
+import com.hcen.periferico.enums.TipoSincronizacion;
+import com.hcen.periferico.sync.ICentralSyncAdapter;
+import com.hcen.periferico.sync.SyncResult;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
@@ -35,11 +40,21 @@ public class DocumentoClinicoService {
     @EJB
     private ProfesionalSaludDAO profesionalDAO;
 
+    @EJB
+    private SincronizacionPendienteDAO sincronizacionDAO;
+
     @PersistenceContext(unitName = "hcen-periferico-pu")
     private EntityManager em;
 
     @EJB
     private CentralAPIClient centralAPIClient;
+
+    /**
+     * Adapter para sincronización de DOCUMENTOS con el componente central.
+     * Especificamos beanName porque hay múltiples implementaciones de ICentralSyncAdapter.
+     */
+    @EJB(beanName = "CentralSyncAdapterDocumentos")
+    private ICentralSyncAdapter documentosSyncAdapter;
 
     /**
      * Crea un nuevo documento clínico
@@ -101,8 +116,8 @@ public class DocumentoClinicoService {
         // Guardar documento localmente (Hibernate generará el UUID automáticamente)
         documento_clinico documentoGuardado = documentoDAO.save(documento);
 
-        // TODO: Sincronización con el central deshabilitada por ahora
-        // La sincronización se implementará posteriormente cuando esté configurado el componente central
+        // Sincronización asíncrona con el central
+        sincronizarConCentral(documentoGuardado, tenantId);
 
         return documentoGuardado;
     }
@@ -346,5 +361,77 @@ public class DocumentoClinicoService {
             return PAGE_SIZE;
         }
         return Math.min(size, MAX_PAGE_SIZE);
+    }
+
+    /**
+     * Sincroniza el documento con el componente central.
+     * Si la sincronización falla, registra el documento en la cola de reintentos.
+     *
+     * IMPORTANTE: Se sincroniza directamente el documento en lugar de usar el adapter
+     * para evitar problemas de visibilidad transaccional (el adapter con REQUIRES_NEW
+     * no vería el documento recién creado en la transacción padre).
+     */
+    private void sincronizarConCentral(documento_clinico documento, UUID tenantId) {
+        try {
+            System.out.println("=== Iniciando sincronización de documento " + documento.getId() + " ===");
+
+            // Sincronizar directamente con el central (sin usar adapter para evitar problemas transaccionales)
+            UUID historiaId = centralAPIClient.registrarDocumentoHistoriaClinica(
+                documento.getUsuarioSaludCedula(),
+                tenantId,
+                documento.getId()
+            );
+
+            // Actualizar el documento con el hist_clinica_id retornado
+            documento.setHistClinicaId(historiaId);
+            documentoDAO.save(documento);
+
+            System.out.println("✓ Documento " + documento.getId() + " sincronizado exitosamente con historia ID " + historiaId);
+
+            // Si existía un registro pendiente para este usuario, marcarlo como resuelto
+            sincronizacionDAO.findByUsuarioCedulaAndTenant(
+                documento.getUsuarioSaludCedula(),
+                tenantId
+            ).ifPresent(sync -> {
+                // Solo marcar como resuelto si es de tipo DOCUMENTO
+                if (sync.getTipo() == TipoSincronizacion.DOCUMENTO) {
+                    sync.marcarComoResuelta();
+                    sincronizacionDAO.save(sync);
+                    System.out.println("✓ Registro de sincronización pendiente marcado como resuelto");
+                }
+            });
+
+        } catch (Exception e) {
+            // Si falla la sincronización, registrar en cola de reintentos
+            System.err.println("✗ Error al sincronizar documento " + documento.getId() +
+                             " con el central: " + e.getMessage());
+            e.printStackTrace();
+
+            // Verificar si ya existe un registro pendiente para este usuario y tipo DOCUMENTO
+            Optional<SincronizacionPendiente> syncExistente =
+                sincronizacionDAO.findByUsuarioCedulaAndTenant(
+                    documento.getUsuarioSaludCedula(),
+                    tenantId
+                );
+
+            if (syncExistente.isPresent() && syncExistente.get().getTipo() == TipoSincronizacion.DOCUMENTO) {
+                // Actualizar registro existente
+                SincronizacionPendiente sync = syncExistente.get();
+                sync.registrarError("Error al sincronizar documento: " + e.getMessage());
+                sync.setDocumentoId(documento.getId());
+                sincronizacionDAO.save(sync);
+                System.out.println("Actualizado registro de sincronización pendiente existente");
+            } else {
+                // Crear nuevo registro en la cola con tipo DOCUMENTO
+                SincronizacionPendiente nuevaSync = new SincronizacionPendiente(
+                    documento.getUsuarioSaludCedula(),
+                    tenantId,
+                    documento.getId() // documento_id
+                );
+                nuevaSync.registrarError("Sincronización inicial falló: " + e.getMessage());
+                sincronizacionDAO.save(nuevaSync);
+                System.out.println("Creado nuevo registro de sincronización pendiente");
+            }
+        }
     }
 }

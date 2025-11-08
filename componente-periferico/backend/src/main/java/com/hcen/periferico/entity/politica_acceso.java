@@ -32,8 +32,8 @@ public class politica_acceso {
     // Usuario - Referencia a UsuarioSalud local con composite key (cedula, tenantId)
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumns({
-        @JoinColumn(name = "USUARIO_CEDULA", referencedColumnName = "cedula", nullable = false),
-        @JoinColumn(name = "USUARIO_TENANT", referencedColumnName = "tenant_id", nullable = false)
+        @JoinColumn(name = "usuario_ci", referencedColumnName = "cedula", nullable = false),
+        @JoinColumn(name = "usuario_tenant_id", referencedColumnName = "tenant_id", nullable = false)
     })
     private UsuarioSalud usuario;
 
@@ -48,6 +48,7 @@ public class politica_acceso {
     public void setFecVencimiento(LocalDateTime fecVencimiento) { this.fecVencimiento = fecVencimiento; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+
     public UsuarioSalud getUsuario() { return usuario; }
     public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
 
