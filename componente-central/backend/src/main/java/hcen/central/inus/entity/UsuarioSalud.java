@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -23,7 +25,15 @@ public class UsuarioSalud {
     @SequenceGenerator(name = "usuario_salud_seq", sequenceName = "usuario_salud_id_seq", allocationSize = 1)
     @Column(name = "id")
     private Long id;
-    
+
+
+    @OneToOne
+    @JoinColumn(name = "historia_clinica_id")
+    private historia_clinica historiaClinica;
+
+    @OneToMany(mappedBy = "usuarioSalud", cascade = CascadeType.ALL)
+    private List<politica_acceso> politicasAcceso = new ArrayList<>();
+
     @Id
     @Column(name = "cedula", nullable = false, length = 20)
     private String cedula;
@@ -89,6 +99,35 @@ public class UsuarioSalud {
         this.email = email;
         this.primerNombre = primerNombre;
         this.primerApellido = primerApellido;
+    }
+
+    public void setHistoriaClinica(historia_clinica historiaClinica) {
+        this.historiaClinica = historiaClinica;
+        if (historiaClinica != null && historiaClinica.getUsuario() != this) {
+            historiaClinica.setUsuario(this);
+        }
+    }
+
+    public historia_clinica getHistoriaClinica() {
+        return historiaClinica;
+    }
+
+    public List<politica_acceso> getPoliticasAcceso() {
+        return politicasAcceso;
+    }
+
+    public void setPoliticasAcceso(List<politica_acceso> politicasAcceso) {
+        this.politicasAcceso = politicasAcceso;
+    }
+
+    public void agregarPoliticaAcceso(politica_acceso politica) {
+        this.politicasAcceso.add(politica);
+        politica.setUsuarioSalud(this);
+    }
+
+    public void removerPoliticaAcceso(politica_acceso politica) {
+        this.politicasAcceso.remove(politica);
+        politica.setUsuarioSalud(null);
     }
     
     public Long getId() { return id; }
