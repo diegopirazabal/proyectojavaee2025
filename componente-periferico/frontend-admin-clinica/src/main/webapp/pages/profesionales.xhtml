@@ -150,6 +150,11 @@
                     <p:inputText id="newEmail"
                                 value="#{profesionalBean.newProfesional.email}"
                                 type="email"/>
+
+                    <p:outputLabel for="newPassword" value="Contraseña*"/>
+                    <p:password id="newPassword"
+                                value="#{profesionalBean.newProfesional.password}"
+                                required="true"/>
                 </h:panelGrid>
 
                 <f:facet name="footer">
@@ -176,7 +181,7 @@
                     <p:outputLabel for="editCi" value="Cédula"/>
                     <p:inputNumber id="editCi"
                                   value="#{profesionalBean.selectedProfesional.ci}"
-                                  disabled="true"
+                                  disabled="true" 
                                   decimalPlaces="0"/>
 
                     <p:outputLabel for="editNombre" value="Nombre*"/>

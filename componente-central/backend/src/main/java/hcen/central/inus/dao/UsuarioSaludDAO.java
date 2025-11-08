@@ -10,6 +10,7 @@ import jakarta.persistence.TypedQuery;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * DAO para operaciones CRUD sobre UsuarioSalud
@@ -43,6 +44,20 @@ public class UsuarioSaludDAO {
                 UsuarioSalud.class
             );
             query.setParameter("cedula", cedula);
+            return Optional.of(query.getSingleResult());
+        } catch (NoResultException e) {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<UsuarioSalud> findByCedulaAndTenant(String cedula, UUID tenantId) {
+        try {
+            TypedQuery<UsuarioSalud> query = em.createQuery(
+                "SELECT u FROM UsuarioSalud u WHERE u.cedula = :cedula AND u.tenantId = :tenantId",
+                UsuarioSalud.class
+            );
+            query.setParameter("cedula", cedula);
+            query.setParameter("tenantId", tenantId);
             return Optional.of(query.getSingleResult());
         } catch (NoResultException e) {
             return Optional.empty();

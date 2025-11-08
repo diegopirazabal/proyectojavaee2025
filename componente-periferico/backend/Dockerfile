@@ -6,13 +6,7 @@ WORKDIR /build
 COPY pom.xml ./pom.xml
 RUN mvn install -N
 
-# Copiar y compilar core-domain
-COPY core-domain ./core-domain
-WORKDIR /build/core-domain
-RUN mvn clean install -DskipTests
-
 # Copiar ambos pom.xml (backend y frontend)
-WORKDIR /build
 COPY componente-periferico/backend/pom.xml ./componente-periferico/backend/pom.xml
 COPY componente-periferico/frontend-admin-clinica/pom.xml ./componente-periferico/frontend-admin-clinica/pom.xml
 
@@ -30,8 +24,8 @@ RUN mvn clean package -DskipTests
 FROM quay.io/wildfly/wildfly:31.0.0.Final-jdk17
 USER root
 
-# Install PostgreSQL driver
-RUN curl -L https://jdbc.postgresql.org/download/postgresql-42.6.0.jar -o /opt/jboss/wildfly/standalone/deployments/postgresql-42.6.0.jar
+# Install PostgreSQL driver from Maven Central
+RUN curl -L https://repo1.maven.org/maven2/org/postgresql/postgresql/42.6.0/postgresql-42.6.0.jar -o /opt/jboss/wildfly/standalone/deployments/postgresql-42.6.0.jar
 
 # Copy datasource configuration script
 COPY --chown=jboss:jboss componente-periferico/backend/datasource-config.cli /opt/jboss/

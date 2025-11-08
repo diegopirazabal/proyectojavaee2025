@@ -6,6 +6,8 @@ import com.hcen.periferico.enums.TipoDocumento;
 import com.hcen.periferico.service.CentralAuthService;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionAttributeType;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
@@ -20,6 +22,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -27,7 +30,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSession;
 import java.security.cert.X509Certificate;
 import java.security.SecureRandom;
 
@@ -40,12 +43,6 @@ public class CentralAPIClient {
 
     private static final Logger LOGGER = Logger.getLogger(CentralAPIClient.class.getName());
 
-    // URL base del componente central - TODO: Hacer configurable via properties/env var
-    private static final String CENTRAL_BASE_URL = System.getenv("HCEN_CENTRAL_URL") != null
-        ? System.getenv("HCEN_CENTRAL_URL")
-        : "http://localhost:8080";
-
-    private static final String API_USUARIOS = CENTRAL_BASE_URL + "/api/usuarios";
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
     
     // Nuevos servicios para autenticación JWT (no tocar código existente)
@@ -71,20 +68,29 @@ public class CentralAPIClient {
             TrustManager[] trustAllCerts = new TrustManager[] {
                 new X509TrustManager() {
                     public X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
+                        return null;
                     }
                     public void checkClientTrusted(X509Certificate[] certs, String authType) {}
                     public void checkServerTrusted(X509Certificate[] certs, String authType) {}
                 }
             };
             
+            // HostnameVerifier que acepta todos los hostnames
+            HostnameVerifier allHostsValid = new HostnameVerifier() {
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            };
+            
             // Configurar SSLContext con el TrustManager que acepta todo
-            SSLContext sslContext = SSLContext.getInstance("TLS");
+            SSLContext sslContext = SSLContext.getInstance("SSL");
             sslContext.init(null, trustAllCerts, new SecureRandom());
             
-            // Crear HttpClient con el SSLContext configurado y hostname verifier que acepta todo
+            // Configurar SSL parameters para deshabilitar endpoint identification
             SSLParameters sslParams = new SSLParameters();
-            sslParams.setEndpointIdentificationAlgorithm(null); // Deshabilita validación de hostname
+            sslParams.setEndpointIdentificationAlgorithm(null);
+            
+            LOGGER.warning("CentralAPIClient configurado con SSL bypass - SIN VALIDACIÓN DE CERTIFICADOS (solo para desarrollo)");
             
             return HttpClient.newBuilder()
                 .connectTimeout(TIMEOUT)
@@ -93,7 +99,7 @@ public class CentralAPIClient {
                 .build();
                 
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "No se pudo configurar SSL permisivo, usando cliente por defecto", e);
+            LOGGER.log(Level.SEVERE, "No se pudo configurar SSL permisivo, usando cliente por defecto", e);
             return HttpClient.newBuilder()
                 .connectTimeout(TIMEOUT)
                 .build();
@@ -101,20 +107,35 @@ public class CentralAPIClient {
     }
 
     /**
+     * Obtiene la URL base del componente central desde la configuración
+     */
+    private String getCentralBaseUrl() {
+        return credentialsConfig.getCentralServerUrl();
+    }
+
+    /**
+     * Construye la URL completa del API de usuarios
+     */
+    private String getApiUsuariosUrl() {
+        return getCentralBaseUrl() + "/api/usuarios";
+    }
+
+    /**
+     * Construye la URL completa del API de historia clínica
+     */
+    private String getApiHistoriaUrl() {
+        return getCentralBaseUrl() + "/api/historia-clinica";
+    }
+
+    /**
      * Verifica si un usuario existe en el componente central por cédula
      */
     public boolean verificarUsuarioExiste(String cedula) {
         try {
-            String url = API_USUARIOS + "/verificar/" + cedula;
+            String url = getApiUsuariosUrl() + "/verificar/" + cedula;
             LOGGER.info("Verificando existencia de usuario en central: " + url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .GET()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedGet(url);
 
             if (response.statusCode() == 200) {
                 JsonReader jsonReader = Json.createReader(new StringReader(response.body()));
@@ -133,7 +154,11 @@ public class CentralAPIClient {
     }
 
     /**
-     * Registra un usuario en una clínica en el componente central
+     * Registra un usuario en el componente central.
+     *
+     * NOTA: A partir de la migración, el central NO almacena tenant_id.
+     * Si tenantId es null, se registra como usuario único global.
+     * Si tenantId no es null, se mantiene compatibilidad con versión anterior (temporal).
      */
     public usuario_salud_dto registrarUsuarioEnClinica(String cedula, TipoDocumento tipoDocumento,
                                                        String primerNombre, String segundoNombre,
@@ -141,10 +166,11 @@ public class CentralAPIClient {
                                                        String email, LocalDate fechaNacimiento,
                                                        String tenantId) {
         try {
-            String url = API_USUARIOS + "/registrar";
+            String url = getApiUsuariosUrl() + "/registrar";
             LOGGER.info("=== Registrando usuario en central ===");
             LOGGER.info("URL completa: " + url);
-            LOGGER.info("CENTRAL_BASE_URL: " + CENTRAL_BASE_URL);
+            LOGGER.info("CENTRAL_BASE_URL: " + getCentralBaseUrl());
+            LOGGER.info("tenantId: " + (tenantId != null ? tenantId : "null (usuario global)"));
 
             // Construir JSON del request
             var jsonBuilder = Json.createObjectBuilder()
@@ -153,8 +179,13 @@ public class CentralAPIClient {
                 .add("primerNombre", primerNombre)
                 .add("primerApellido", primerApellido)
                 .add("email", email)
-                .add("fechaNacimiento", fechaNacimiento.toString())
-                .add("tenantId", tenantId);
+                .add("fechaNacimiento", fechaNacimiento.toString());
+
+            // SOLO agregar tenantId si no es null (compatibilidad temporal)
+            // Cuando el central migre, este campo será ignorado
+            if (tenantId != null) {
+                jsonBuilder.add("tenantId", tenantId);
+            }
 
             // Agregar campos opcionales
             if (segundoNombre != null && !segundoNombre.isEmpty()) {
@@ -167,17 +198,11 @@ public class CentralAPIClient {
             String jsonBody = jsonBuilder.build().toString();
             LOGGER.fine("Request body: " + jsonBody);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
+            HttpResponse<String> response = executeAuthenticatedPost(url, jsonBody);
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                LOGGER.info("Usuario registrado exitosamente en central");
+            // Aceptar tanto 200 (ya existe) como 201 (creado) como éxito
+            if (response.statusCode() == 200 || response.statusCode() == 201) {
+                LOGGER.info("Usuario registrado exitosamente en central (status: " + response.statusCode() + ")");
                 return parseUsuarioFromJson(response.body());
             } else {
                 String errorMsg = "Error al registrar usuario. Status: " + response.statusCode() +
@@ -192,20 +217,67 @@ public class CentralAPIClient {
     }
 
     /**
+     * Registra un documento en la historia clínica del componente central.
+     * Sobrecarga que acepta UUID para tenantId (para usar desde adapters).
+     * Usa REQUIRES_NEW para ejecutarse en una transacción separada.
+     * Si falla, no afecta la transacción que guardó el documento localmente.
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public UUID registrarDocumentoHistoriaClinica(String cedula, UUID tenantId, UUID documentoId) {
+        return registrarDocumentoHistoriaClinica(tenantId.toString(), cedula, documentoId);
+    }
+
+    /**
+     * Registra un documento en la historia clínica del componente central.
+     * Usa REQUIRES_NEW para ejecutarse en una transacción separada.
+     * Si falla, no afecta la transacción que guardó el documento localmente.
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public UUID registrarDocumentoHistoriaClinica(String tenantId, String cedula, UUID documentoId) {
+        try {
+            var body = Json.createObjectBuilder()
+                .add("tenantId", tenantId)
+                .add("cedula", cedula)
+                .add("documentoId", documentoId.toString())
+                .build();
+
+            HttpResponse<String> response = executeAuthenticatedPost(
+                getApiHistoriaUrl() + "/documentos",
+                body.toString()
+            );
+
+            int status = response.statusCode();
+            if (status != 201 && status != 200) {
+                LOGGER.severe("Error al registrar documento en historia clínica central. Status: " + status +
+                    ", Body: " + response.body());
+                throw new IOException("Error HTTP " + status + " al registrar documento en historia clínica");
+            }
+
+            try (JsonReader reader = Json.createReader(new StringReader(response.body()))) {
+                JsonObject json = reader.readObject();
+                String historiaId = json.getString("historiaId", null);
+                if (historiaId == null || historiaId.isBlank()) {
+                    throw new IOException("Respuesta del componente central sin historiaId");
+                }
+                return UUID.fromString(historiaId);
+            }
+        } catch (IOException | InterruptedException e) {
+            LOGGER.log(Level.SEVERE, "Error comunicándose con el central para registrar documento", e);
+            throw new RuntimeException("No se pudo registrar el documento en el componente central: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("El componente central devolvió un historiaId inválido", e);
+        }
+    }
+
+    /**
      * Obtiene datos de un usuario por cédula desde el componente central
      */
     public usuario_salud_dto getUsuarioByCedula(String cedula) {
         try {
-            String url = API_USUARIOS + "/" + cedula;
+            String url = getApiUsuariosUrl() + "/" + cedula;
             LOGGER.info("Obteniendo usuario desde central: " + url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .GET()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedGet(url);
 
             if (response.statusCode() == 200) {
                 return parseUsuarioFromJson(response.body());
@@ -227,16 +299,10 @@ public class CentralAPIClient {
      */
     public java.util.List<usuario_salud_dto> getAllUsuariosByTenantId(String tenantId) {
         try {
-            String url = API_USUARIOS + "?tenantId=" + tenantId;
+            String url = getApiUsuariosUrl() + "?tenantId=" + tenantId;
             LOGGER.info("Obteniendo todos los usuarios desde central: " + url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .GET()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedGet(url);
 
             if (response.statusCode() == 200) {
                 return parseUsuariosListFromJson(response.body());
@@ -256,16 +322,10 @@ public class CentralAPIClient {
     public java.util.List<usuario_salud_dto> searchUsuariosByTenantId(String searchTerm, String tenantId) {
         try {
             String encodedTerm = java.net.URLEncoder.encode(searchTerm, java.nio.charset.StandardCharsets.UTF_8);
-            String url = API_USUARIOS + "?tenantId=" + tenantId + "&search=" + encodedTerm;
+            String url = getApiUsuariosUrl() + "?tenantId=" + tenantId + "&search=" + encodedTerm;
             LOGGER.info("Buscando usuarios en central: " + url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .GET()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedGet(url);
 
             if (response.statusCode() == 200) {
                 return parseUsuariosListFromJson(response.body());
@@ -284,16 +344,10 @@ public class CentralAPIClient {
      */
     public boolean deleteUsuarioDeClinica(String cedula, String tenantId) {
         try {
-            String url = API_USUARIOS + "/" + cedula + "/clinica/" + tenantId;
+            String url = getApiUsuariosUrl() + "/" + cedula + "/clinica/" + tenantId;
             LOGGER.info("Eliminando usuario de clínica en central: " + url);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(TIMEOUT)
-                .DELETE()
-                .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = executeAuthenticatedDelete(url);
 
             if (response.statusCode() == 200) {
                 LOGGER.info("Usuario desasociado exitosamente de la clínica");
@@ -327,6 +381,7 @@ public class CentralAPIClient {
             dto.setPrimerApellido(jsonObject.getString("primerApellido"));
             dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
             dto.setEmail(jsonObject.getString("email"));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
 
             String tipoDocStr = jsonObject.getString("tipoDocumento", "DO");
             dto.setTipoDocumento(TipoDocumento.valueOf(tipoDocStr));
@@ -361,6 +416,7 @@ public class CentralAPIClient {
                 dto.setPrimerApellido(jsonObject.getString("primerApellido"));
                 dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
                 dto.setEmail(jsonObject.getString("email"));
+                dto.setTenantId(jsonObject.getString("tenantId", null));
 
                 String tipoDocStr = jsonObject.getString("tipoDocumento", "DO");
                 dto.setTipoDocumento(TipoDocumento.valueOf(tipoDocStr));
@@ -390,13 +446,19 @@ public class CentralAPIClient {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
             .uri(URI.create(url))
             .timeout(TIMEOUT);
-        
+
         // Inyectar JWT si está disponible
         if (authService != null && authService.hasToken()) {
             String token = authService.getToken();
+            LOGGER.info("=== JWT DISPONIBLE - Inyectando en header Authorization ===");
+            LOGGER.info("Token (primeros 20 chars): " + (token != null ? token.substring(0, Math.min(20, token.length())) + "..." : "null"));
             builder.header("Authorization", "Bearer " + token);
+        } else {
+            LOGGER.warning("=== JWT NO DISPONIBLE - No se inyectará header Authorization ===");
+            LOGGER.warning("authService: " + (authService != null ? "present" : "null"));
+            LOGGER.warning("hasToken: " + (authService != null ? authService.hasToken() : "N/A"));
         }
-        
+
         return builder;
     }
     

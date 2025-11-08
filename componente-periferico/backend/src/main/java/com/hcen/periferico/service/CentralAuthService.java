@@ -5,24 +5,21 @@ import jakarta.annotation.PostConstruct;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
+import jakarta.inject.Inject;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 
 import java.io.StringReader;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import javax.net.ssl.SSLParameters;
-import java.security.cert.X509Certificate;
-import java.security.SecureRandom;
+
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.ContentType;
 
 /**
  * Servicio de autenticación con componente-central
@@ -33,56 +30,15 @@ import java.security.SecureRandom;
 public class CentralAuthService {
     
     private static final Logger LOGGER = Logger.getLogger(CentralAuthService.class.getName());
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
     
     @EJB
     private ClientCredentialsConfig credentialsConfig;
     
+    @Inject
+    private CloseableHttpClient httpClient;
+    
     private String currentToken;
-    private final HttpClient httpClient;
-    
-    public CentralAuthService() {
-        this.httpClient = createHttpClient();
-    }
-    
-    /**
-     * Crea un HttpClient que acepta certificados SSL no confiables
-     * NOTA: Esto es solo para desarrollo. En producción debe usarse un truststore apropiado.
-     */
-    private HttpClient createHttpClient() {
-        try {
-            // TrustManager que acepta todos los certificados
-            TrustManager[] trustAllCerts = new TrustManager[] {
-                new X509TrustManager() {
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
-                    }
-                    public void checkClientTrusted(X509Certificate[] certs, String authType) {}
-                    public void checkServerTrusted(X509Certificate[] certs, String authType) {}
-                }
-            };
-            
-            // Configurar SSLContext con el TrustManager que acepta todo
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, trustAllCerts, new SecureRandom());
-            
-            // Crear HttpClient con el SSLContext configurado y hostname verifier que acepta todo
-            SSLParameters sslParams = new SSLParameters();
-            sslParams.setEndpointIdentificationAlgorithm(null); // Deshabilita validación de hostname
-            
-            return HttpClient.newBuilder()
-                .connectTimeout(REQUEST_TIMEOUT)
-                .sslContext(sslContext)
-                .sslParameters(sslParams)
-                .build();
-                
-        } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "No se pudo configurar SSL permisivo, usando cliente por defecto", e);
-            return HttpClient.newBuilder()
-                .connectTimeout(REQUEST_TIMEOUT)
-                .build();
-        }
-    }
+    private volatile boolean centralAuthDisabled;
     
     @PostConstruct
     public void init() {
@@ -94,6 +50,10 @@ public class CentralAuthService {
      * Autentica con componente-central y obtiene JWT
      */
     public synchronized boolean authenticate() {
+        if (centralAuthDisabled) {
+            LOGGER.fine("Autenticación con componente-central deshabilitada tras fallos previos.");
+            return false;
+        }
         try {
             LOGGER.info("Autenticando con componente-central...");
             
@@ -104,28 +64,36 @@ public class CentralAuthService {
                 .build()
                 .toString();
             
-            // Hacer request al endpoint de autenticación
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(credentialsConfig.getAuthTokenUrl()))
-                .timeout(REQUEST_TIMEOUT)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
+            // Crear POST request
+            HttpPost httpPost = new HttpPost(credentialsConfig.getAuthTokenUrl());
+            httpPost.setEntity(new StringEntity(requestBody, ContentType.APPLICATION_JSON));
             
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            
-            if (response.statusCode() == 200) {
-                // Parsear respuesta y extraer token
-                try (JsonReader jsonReader = Json.createReader(new StringReader(response.body()))) {
-                    JsonObject jsonResponse = jsonReader.readObject();
-                    this.currentToken = jsonResponse.getString("accessToken");
-                    
-                    LOGGER.info("Autenticación exitosa, token obtenido");
-                    return true;
+            // Ejecutar request
+            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+                int statusCode = response.getCode();
+                String responseBody = response.getEntity() != null
+                    ? EntityUtils.toString(response.getEntity())
+                    : "";
+                
+                if (statusCode == 200) {
+                    // Parsear respuesta y extraer token
+                    try (JsonReader jsonReader = Json.createReader(new StringReader(responseBody))) {
+                        JsonObject jsonResponse = jsonReader.readObject();
+                        this.currentToken = jsonResponse.getString("accessToken");
+                        
+                        LOGGER.info("Autenticación exitosa, token obtenido");
+                        return true;
+                    }
+                } else if (statusCode == 404 || statusCode == 405) {
+                    centralAuthDisabled = true;
+                    LOGGER.log(Level.WARNING,
+                        "Endpoint de autenticación {0} no disponible (HTTP {1}). Se continuará sin token.",
+                        new Object[]{credentialsConfig.getAuthTokenUrl(), statusCode});
+                    return false;
+                } else {
+                    LOGGER.severe("Error en autenticación. Status: " + statusCode + ", Body: " + responseBody);
+                    return false;
                 }
-            } else {
-                LOGGER.severe("Error en autenticación. Status: " + response.statusCode() + ", Body: " + response.body());
-                return false;
             }
             
         } catch (Exception e) {
@@ -150,6 +118,7 @@ public class CentralAuthService {
     public synchronized void refreshToken() {
         LOGGER.info("Refrescando token...");
         this.currentToken = null;
+        this.centralAuthDisabled = false;
         authenticate();
     }
     

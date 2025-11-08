@@ -118,17 +118,19 @@ public class UsuarioBean implements Serializable {
                 tenantId
             );
 
-            if (resultado != null) {
-                addMessage(FacesMessage.SEVERITY_INFO,
-                    "Usuario registrado exitosamente en el sistema central y asociado a la clínica");
-                loadUsuarios();
-                newUsuario = new usuario_salud_dto(); // Reset form
-            } else {
-                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo registrar el usuario");
-            }
+            // Si llegamos aquí, el registro fue exitoso
+            addMessage(FacesMessage.SEVERITY_INFO,
+                "Usuario registrado exitosamente en el sistema central y asociado a la clínica");
+            loadUsuarios();
+            newUsuario = new usuario_salud_dto(); // Reset form
 
+        } catch (RuntimeException e) {
+            // Mostrar el mensaje específico del backend
+            addMessage(FacesMessage.SEVERITY_ERROR, e.getMessage());
+            e.printStackTrace();
         } catch (Exception e) {
-            addMessage(FacesMessage.SEVERITY_ERROR, "Error al registrar usuario: " + e.getMessage());
+            // Otros errores inesperados
+            addMessage(FacesMessage.SEVERITY_ERROR, "Error inesperado: " + e.getMessage());
             e.printStackTrace();
         }
     }

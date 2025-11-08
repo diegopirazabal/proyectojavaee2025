@@ -59,7 +59,7 @@
             <artifactId>parsson</artifactId>
             <version>1.1.1</version>
         </dependency>
-        
+
         <!-- Backend Periférico (para acceder a servicios) -->
         <dependency>
             <groupId>com.hcen.periferico</groupId>
