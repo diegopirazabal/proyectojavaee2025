@@ -6,18 +6,24 @@ WORKDIR /build
 COPY pom.xml ./pom.xml
 RUN mvn install -N
 
-# Copiar ambos pom.xml (backend y frontend)
+# Copiar todos los pom.xml (backend y frontends)
 COPY componente-periferico/backend/pom.xml ./componente-periferico/backend/pom.xml
 COPY componente-periferico/frontend-admin-clinica/pom.xml ./componente-periferico/frontend-admin-clinica/pom.xml
+COPY componente-periferico/frontend-profesional-salud/pom.xml ./componente-periferico/frontend-profesional-salud/pom.xml
 
 # Build backend e instalarlo para que frontend pueda usarlo
 WORKDIR /build/componente-periferico/backend
 COPY componente-periferico/backend/src ./src
 RUN mvn clean install -DskipTests
 
-# Build frontend
+# Build frontend-admin-clinica
 WORKDIR /build/componente-periferico/frontend-admin-clinica
 COPY componente-periferico/frontend-admin-clinica/src ./src
+RUN mvn clean package -DskipTests
+
+# Build frontend-profesional-salud
+WORKDIR /build/componente-periferico/frontend-profesional-salud
+COPY componente-periferico/frontend-profesional-salud/src ./src
 RUN mvn clean package -DskipTests
 
 # Runtime stage
@@ -37,8 +43,11 @@ RUN chmod +x /opt/jboss/startup.sh
 # Copy backend WAR
 COPY --from=build --chown=jboss:jboss /build/componente-periferico/backend/target/multitenant-api.war /opt/jboss/wildfly/standalone/deployments/
 
-# Copy frontend WAR
+# Copy frontend-admin-clinica WAR
 COPY --from=build --chown=jboss:jboss /build/componente-periferico/frontend-admin-clinica/target/prestador-salud.war /opt/jboss/wildfly/standalone/deployments/
+
+# Copy frontend-profesional-salud WAR
+COPY --from=build --chown=jboss:jboss /build/componente-periferico/frontend-profesional-salud/target/profesional-salud.war /opt/jboss/wildfly/standalone/deployments/
 
 # Expose port
 EXPOSE 8080
