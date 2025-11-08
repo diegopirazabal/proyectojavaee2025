@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OIDCAuthenticationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.security.oidc</a> &gt; <span class="el_source">OIDCAuthenticationService.java</span></div><h1>OIDCAuthenticationService.java</h1><pre class="source lang-java linenums">package hcen.central.inus.security.oidc;
+
+import hcen.central.inus.dao.OIDCUserDAO;
+import hcen.central.inus.dto.JWTTokenResponse;
+import hcen.central.inus.dto.OIDCAuthRequest;
+import hcen.central.inus.dto.OIDCTokenResponse;
+import hcen.central.inus.dto.OIDCUserInfo;
+import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.security.config.OIDCConfiguration;
+import hcen.central.inus.security.jwt.JWTTokenProvider;
+import hcen.central.inus.util.TipoDocumentoMapper;
+// import hcen.central.inus.security.pkce.PKCEGenerator; // PKCE removido
+import io.jsonwebtoken.Claims;
+import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Servicio principal de autenticación OpenID Connect
+ * Orquesta el flujo completo de autenticación con gub.uy
+ */
+@Stateless
+<span class="nc" id="L32">public class OIDCAuthenticationService {</span>
+
+<span class="nc" id="L34">    private static final Logger LOGGER = Logger.getLogger(OIDCAuthenticationService.class.getName());</span>
+<span class="nc" id="L35">    private static final ZoneId URUGUAY_ZONE = ZoneId.of(&quot;America/Montevideo&quot;);</span>
+
+    @Inject
+    private OIDCConfiguration oidcConfig;
+
+    // @Inject
+    // private PKCEGenerator pkceGenerator; // PKCE removido
+
+    @Inject
+    private OIDCCallbackHandler callbackHandler;
+
+    @Inject
+    private OIDCTokenValidator tokenValidator;
+
+    @Inject
+    private OIDCUserInfoService userInfoService;
+
+    @Inject
+    private JWTTokenProvider jwtTokenProvider;
+
+    @Inject
+    private OIDCUserDAO userDAO;
+
+    /**
+     * Inicia el flujo de autenticación OIDC (sin PKCE)
+     *
+     * @param redirectUri URI de redirección configurada en tu aplicación
+     * @return OIDCAuthRequest con URL, state y nonce
+     */
+    public OIDCAuthRequest initiateLogin(String redirectUri) {
+<span class="nc" id="L65">        LOGGER.info(&quot;Iniciando flujo de login OIDC (sin PKCE)&quot;);</span>
+
+        // Generar state y nonce para seguridad
+<span class="nc" id="L68">        String state = generateRandomString(32);</span>
+<span class="nc" id="L69">        String nonce = generateRandomString(32);</span>
+
+        // Construir URL de autorización (sin PKCE)
+<span class="nc" id="L72">        String authorizationUrl = buildAuthorizationUrl(redirectUri, state, nonce);</span>
+
+<span class="nc" id="L74">        OIDCAuthRequest authRequest = new OIDCAuthRequest();</span>
+<span class="nc" id="L75">        authRequest.setAuthorizationUrl(authorizationUrl);</span>
+<span class="nc" id="L76">        authRequest.setState(state);</span>
+<span class="nc" id="L77">        authRequest.setNonce(nonce);</span>
+        // authRequest.setCodeVerifier(codeVerifier); // PKCE removido
+        // authRequest.setCodeChallenge(codeChallenge); // PKCE removido
+
+<span class="nc" id="L81">        LOGGER.info(&quot;URL de autorización generada exitosamente&quot;);</span>
+<span class="nc" id="L82">        return authRequest;</span>
+    }
+
+    /**
+     * Procesa el callback de gub.uy y completa la autenticación (sin PKCE)
+     * Intercambia code por tokens, valida ID token, obtiene UserInfo,
+     * crea/actualiza usuario y genera JWT propios
+     *
+     * @param code          Authorization code del callback
+     * @param state         State parameter del callback
+     * @param expectedState State esperado (guardado en sesión)
+     * @param expectedNonce Nonce esperado (guardado en sesión)
+     * @param redirectUri   Redirect URI usado en el inicio
+     * @return JWTTokenResponse con los JWT propios de la aplicación
+     * @throws Exception si falla algún paso del proceso
+     */
+    public JWTTokenResponse handleCallback(String code, String state, String expectedState,
+                                            String expectedNonce,
+                                            String redirectUri) throws Exception {
+<span class="nc" id="L101">        LOGGER.info(&quot;Procesando callback de autenticación OIDC (sin PKCE)&quot;);</span>
+
+        // 1. Validar state (protección CSRF)
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (!callbackHandler.validateState(state, expectedState)) {</span>
+<span class="nc" id="L105">            throw new SecurityException(&quot;State inválido. Posible ataque CSRF.&quot;);</span>
+        }
+
+        // 2. Intercambiar code por tokens (sin PKCE)
+<span class="nc" id="L109">        OIDCTokenResponse tokenResponse = callbackHandler.handleCallback(code, state, null, redirectUri);</span>
+
+        // 3. Validar ID Token
+<span class="nc" id="L112">        Claims idTokenClaims = tokenValidator.validateIdToken(tokenResponse.getIdToken(), expectedNonce);</span>
+<span class="nc" id="L113">        String userSub = idTokenClaims.getSubject();</span>
+
+<span class="nc" id="L115">        LOGGER.info(&quot;ID Token validado para usuario: &quot; + userSub);</span>
+
+        // 4. Obtener información del usuario desde UserInfo endpoint
+<span class="nc" id="L118">        OIDCUserInfo userInfo = userInfoService.getUserInfo(tokenResponse.getAccessToken());</span>
+
+        // 5. Crear o actualizar usuario en la base de datos
+<span class="nc" id="L121">        UsuarioSalud user = createOrUpdateUser(userInfo, tokenResponse);</span>
+
+        // 6. Generar JWT propios de la aplicación (stateless)
+<span class="nc" id="L124">        JWTTokenResponse jwtResponse = generateApplicationJWT(user);</span>
+
+<span class="nc" id="L126">        LOGGER.info(&quot;Éxito en autenticación completa para usuario: &quot; + userSub);</span>
+<span class="nc" id="L127">        return jwtResponse;</span>
+    }
+
+    /**
+     * Crea o actualiza un usuario en la base de datos
+     * Mapea claims de gub.uy a UsuarioSalud:
+     * - numero_documento -&gt; cedula (PK)
+     * - tipo_documento -&gt; tipoDeDocumento
+     * - nombre_completo -&gt; nombreCompleto
+     * - primer_nombre -&gt; primerNombre
+     * - segundo_nombre -&gt; segundoNombre
+     * - primer_apellido -&gt; primerApellido
+     * - segundo_apellido -&gt; segundoApellido
+     * - email -&gt; email
+     * - email_verified -&gt; emailVerificado
+     * 
+     * Ignoramos: sub, uid, rid, nid, pais_documento, name, given_name, family_name, ae
+     */
+    private UsuarioSalud createOrUpdateUser(OIDCUserInfo userInfo, OIDCTokenResponse tokenResponse) {
+        // numero_documento -&gt; cedula
+<span class="nc" id="L147">        String cedula = userInfo.getNumeroDocumento();</span>
+        
+<span class="nc bnc" id="L149" title="All 4 branches missed.">        if (cedula == null || cedula.isEmpty()) {</span>
+<span class="nc" id="L150">            throw new IllegalArgumentException(&quot;numero_documento es requerido de gub.uy&quot;);</span>
+        }
+
+        // Buscar usuario existente por cédula
+<span class="nc" id="L154">        UsuarioSalud user = userDAO.findByCedula(cedula);</span>
+
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        if (user == null) {</span>
+            // Crear nuevo usuario
+<span class="nc" id="L158">            LOGGER.info(&quot;Creando nuevo usuario con cédula: &quot; + cedula);</span>
+<span class="nc" id="L159">            user = new UsuarioSalud();</span>
+<span class="nc" id="L160">            user.setCedula(cedula);</span>
+<span class="nc" id="L161">            user.setCreatedAt(Instant.now());</span>
+        } else {
+<span class="nc" id="L163">            LOGGER.info(&quot;Actualizando usuario existente con cédula: &quot; + cedula);</span>
+        }
+
+        // Mapear claims de gub.uy a UsuarioSalud
+<span class="nc" id="L167">        user.setEmail(userInfo.getEmail());</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">        user.setEmailVerificado(userInfo.getEmailVerified() != null ? userInfo.getEmailVerified() : false);</span>
+        
+        // tipo_documento -&gt; tipoDeDocumento: normalizar String de gub.uy
+<span class="nc" id="L171">        user.setTipoDeDocumento(TipoDocumentoMapper.toEnum(userInfo.getTipoDocumento()));</span>
+        
+<span class="nc" id="L173">        user.setNombreCompleto(userInfo.getNombreCompleto());</span>
+<span class="nc" id="L174">        user.setPrimerNombre(userInfo.getPrimerNombre());</span>
+<span class="nc" id="L175">        user.setSegundoNombre(userInfo.getSegundoNombre());</span>
+<span class="nc" id="L176">        user.setPrimerApellido(userInfo.getPrimerApellido());</span>
+<span class="nc" id="L177">        user.setSegundoApellido(userInfo.getSegundoApellido());</span>
+        
+<span class="nc" id="L179">        user.setLastLogin(Instant.now());</span>
+<span class="nc" id="L180">        user.setActive(true);</span>
+<span class="nc" id="L181">        user.setUpdatedAt(Instant.now());</span>
+
+        // Guardar en base de datos
+<span class="nc" id="L184">        user = userDAO.save(user);</span>
+<span class="nc" id="L185">        LOGGER.info(&quot;Usuario guardado con ID: &quot; + user.getId());</span>
+
+<span class="nc" id="L187">        return user;</span>
+    }
+
+
+    /**
+     * Genera JWT propios de la aplicación para el usuario autenticado (stateless)
+     */
+    private JWTTokenResponse generateApplicationJWT(UsuarioSalud user) {
+<span class="nc" id="L195">        LOGGER.info(&quot;Generando JWT propio de la aplicación para usuario con cédula: &quot; + user.getCedula());</span>
+
+        // Roles del usuario (por ahora, rol básico &quot;USER&quot;)
+<span class="nc" id="L198">        List&lt;String&gt; roles = Arrays.asList(&quot;USER&quot;);</span>
+
+        // Generar access token JWT usando la cédula como subject
+<span class="nc" id="L201">        String accessToken = jwtTokenProvider.generateAccessToken(user.getCedula(), roles);</span>
+
+        // Generar refresh token JWT
+<span class="nc" id="L204">        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getCedula());</span>
+
+<span class="nc" id="L206">        JWTTokenResponse jwtResponse = new JWTTokenResponse(</span>
+                accessToken,
+                refreshToken,
+                &quot;Bearer&quot;,
+                3600, // expires_in en segundos
+<span class="nc" id="L211">                user.getCedula(), // Usar cédula como userSub</span>
+                roles
+        );
+<span class="nc" id="L214">        attachMinorWarningIfNeeded(user, jwtResponse);</span>
+
+<span class="nc" id="L216">        LOGGER.info(&quot;JWT generados exitosamente&quot;);</span>
+<span class="nc" id="L217">        return jwtResponse;</span>
+    }
+
+    /**
+     * Refresca un JWT usando el refresh token
+     *
+     * @param refreshToken Refresh token JWT propio de la aplicación
+     * @return Nuevo JWTTokenResponse
+     * @throws Exception si el refresh token es inválido
+     */
+    public JWTTokenResponse refreshToken(String refreshToken) throws Exception {
+<span class="nc" id="L228">        LOGGER.info(&quot;Refrescando JWT&quot;);</span>
+
+        // Validar refresh token
+<span class="nc" id="L231">        Claims claims = jwtTokenProvider.validateRefreshToken(refreshToken);</span>
+<span class="nc" id="L232">        String cedula = claims.getSubject();</span>
+
+        // Buscar usuario por cédula
+<span class="nc" id="L235">        UsuarioSalud user = userDAO.findByCedula(cedula);</span>
+<span class="nc bnc" id="L236" title="All 4 branches missed.">        if (user == null || !user.isActive()) {</span>
+<span class="nc" id="L237">            throw new SecurityException(&quot;Usuario no encontrado o inactivo&quot;);</span>
+        }
+
+        // Generar nuevos tokens
+<span class="nc" id="L241">        List&lt;String&gt; roles = Arrays.asList(&quot;USER&quot;);</span>
+<span class="nc" id="L242">        String newAccessToken = jwtTokenProvider.generateAccessToken(cedula, roles);</span>
+<span class="nc" id="L243">        String newRefreshToken = jwtTokenProvider.generateRefreshToken(cedula);</span>
+
+<span class="nc" id="L245">        JWTTokenResponse jwtResponse = new JWTTokenResponse(</span>
+                newAccessToken,
+                newRefreshToken,
+                &quot;Bearer&quot;,
+                3600,
+                cedula,
+                roles
+        );
+<span class="nc" id="L253">        attachMinorWarningIfNeeded(user, jwtResponse);</span>
+
+<span class="nc" id="L255">        LOGGER.info(&quot;JWT refrescado exitosamente para usuario con cédula: &quot; + cedula);</span>
+<span class="nc" id="L256">        return jwtResponse;</span>
+    }
+
+    /**
+     * Logout (con JWT stateless, solo informativo)
+     * El cliente debe descartar el JWT
+     *
+     * @param cedula Cédula del usuario
+     */
+    public void logout(String cedula) {
+<span class="nc" id="L266">        LOGGER.info(&quot;Logout solicitado para usuario con cédula: &quot; + cedula);</span>
+        // Con JWT stateless, el cliente simplemente descarta el token
+        // No hay sesiones del lado del servidor para invalidar
+<span class="nc" id="L269">    }</span>
+
+    /**
+     * Construye la URL de autorización para redirigir al usuario (sin PKCE)
+     */
+    private String buildAuthorizationUrl(String redirectUri, String state, String nonce) {
+        try {
+<span class="nc" id="L276">            StringBuilder url = new StringBuilder(oidcConfig.getAuthorizationEndpoint());</span>
+<span class="nc" id="L277">            url.append(&quot;?response_type=code&quot;);</span>
+<span class="nc" id="L278">            url.append(&quot;&amp;client_id=&quot;).append(oidcConfig.getClientId());</span>
+<span class="nc" id="L279">            url.append(&quot;&amp;redirect_uri=&quot;).append(URLEncoder.encode(redirectUri, StandardCharsets.UTF_8));</span>
+<span class="nc" id="L280">            url.append(&quot;&amp;scope=&quot;).append(URLEncoder.encode(oidcConfig.getScope(), StandardCharsets.UTF_8));</span>
+<span class="nc" id="L281">            url.append(&quot;&amp;state=&quot;).append(state);</span>
+<span class="nc" id="L282">            url.append(&quot;&amp;nonce=&quot;).append(nonce);</span>
+            // PKCE removido: no se envían code_challenge ni code_challenge_method
+
+<span class="nc" id="L285">            return url.toString();</span>
+<span class="nc" id="L286">        } catch (Exception e) {</span>
+<span class="nc" id="L287">            throw new RuntimeException(&quot;Error construyendo URL de autorización&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Genera un string random para state y nonce
+     */
+    private String generateRandomString(int length) {
+<span class="nc" id="L295">        byte[] randomBytes = new byte[length];</span>
+<span class="nc" id="L296">        new Random().nextBytes(randomBytes);</span>
+<span class="nc" id="L297">        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);</span>
+    }
+
+    private void attachMinorWarningIfNeeded(UsuarioSalud user, JWTTokenResponse jwtResponse) {
+<span class="nc bnc" id="L301" title="All 2 branches missed.">        if (user == null) {</span>
+<span class="nc" id="L302">            return;</span>
+        }
+<span class="nc" id="L304">        LocalDate birthDate = user.getFechaNacimiento();</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">        if (birthDate == null) {</span>
+            try {
+<span class="nc" id="L307">                UsuarioSalud persisted = userDAO.findByCedula(user.getCedula());</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">                birthDate = persisted != null ? persisted.getFechaNacimiento() : null;</span>
+<span class="nc" id="L309">            } catch (Exception e) {</span>
+<span class="nc" id="L310">                LOGGER.log(Level.FINE, &quot;No se pudo recuperar la fecha de nacimiento para advertencia de menor&quot;, e);</span>
+<span class="nc" id="L311">            }</span>
+<span class="nc bnc" id="L312" title="All 2 branches missed.">            if (birthDate == null) {</span>
+<span class="nc" id="L313">                LOGGER.fine(() -&gt; &quot;No se pudo determinar la fecha de nacimiento para el usuario &quot; + user.getCedula());</span>
+<span class="nc" id="L314">                return;</span>
+            }
+        }
+<span class="nc" id="L317">        LocalDate today = LocalDate.now(URUGUAY_ZONE);</span>
+<span class="nc" id="L318">        int age = Period.between(birthDate, today).getYears();</span>
+<span class="nc" id="L319">        LOGGER.log(Level.INFO,</span>
+                &quot;Evaluando advertencia de menor para cédula {0} con fecha de nacimiento {1} (edad {2} al {3})&quot;,
+<span class="nc" id="L321">                new Object[]{user.getCedula(), birthDate, age, today});</span>
+<span class="nc bnc" id="L322" title="All 2 branches missed.">        if (age &lt; 18) {</span>
+<span class="nc" id="L323">            jwtResponse.setWarningMessage(&quot;Advertencia: el usuario es menor de edad, verifique permisos de acceso.&quot;);</span>
+<span class="nc" id="L324">            LOGGER.log(Level.INFO, &quot;Advertencia de menor aplicada para cédula {0}&quot;, user.getCedula());</span>
+        }
+<span class="nc" id="L326">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

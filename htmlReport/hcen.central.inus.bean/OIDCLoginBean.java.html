@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OIDCLoginBean.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.bean</a> &gt; <span class="el_source">OIDCLoginBean.java</span></div><h1>OIDCLoginBean.java</h1><pre class="source lang-java linenums">package hcen.central.inus.bean;
+
+import hcen.central.inus.dto.OIDCAuthRequest;
+import hcen.central.inus.security.oidc.OIDCAuthenticationService;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.SessionScoped;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.context.ExternalContext;
+import jakarta.faces.context.FacesContext;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Managed bean para manejar el login OIDC con gub.uy
+ */
+@Named(&quot;oidcLoginBean&quot;)
+@SessionScoped
+<span class="nc" id="L23">public class OIDCLoginBean implements Serializable {</span>
+
+<span class="nc" id="L25">    private static final Logger LOGGER = Logger.getLogger(OIDCLoginBean.class.getName());</span>
+    private static final long serialVersionUID = 1L;
+
+    @Inject
+    private OIDCAuthenticationService authService;
+
+    private String redirectUri;
+
+    @PostConstruct
+    public void init() {
+        // Construir redirect URI basado en el contexto de la aplicación
+<span class="nc" id="L36">        FacesContext facesContext = FacesContext.getCurrentInstance();</span>
+<span class="nc" id="L37">        ExternalContext externalContext = facesContext.getExternalContext();</span>
+        
+<span class="nc" id="L39">        String scheme = externalContext.getRequestScheme();</span>
+<span class="nc" id="L40">        String serverName = externalContext.getRequestServerName();</span>
+<span class="nc" id="L41">        int serverPort = externalContext.getRequestServerPort();</span>
+<span class="nc" id="L42">        String contextPath = externalContext.getRequestContextPath();</span>
+        
+        // Construir URL base
+<span class="nc" id="L45">        StringBuilder baseUrl = new StringBuilder();</span>
+<span class="nc" id="L46">        baseUrl.append(scheme).append(&quot;://&quot;).append(serverName);</span>
+        
+        // Agregar puerto solo si no es el puerto por defecto
+<span class="nc bnc" id="L49" title="All 4 branches missed.">        if ((scheme.equals(&quot;http&quot;) &amp;&amp; serverPort != 80) || </span>
+<span class="nc bnc" id="L50" title="All 4 branches missed.">            (scheme.equals(&quot;https&quot;) &amp;&amp; serverPort != 443)) {</span>
+<span class="nc" id="L51">            baseUrl.append(&quot;:&quot;).append(serverPort);</span>
+        }
+        
+<span class="nc" id="L54">        baseUrl.append(contextPath);</span>
+        
+        // URL de callback
+<span class="nc" id="L57">        redirectUri = baseUrl.toString() + &quot;/api/auth/callback&quot;;</span>
+        
+<span class="nc" id="L59">        LOGGER.info(&quot;Redirect URI configurada: &quot; + redirectUri);</span>
+<span class="nc" id="L60">    }</span>
+
+    /**
+     * Inicia el flujo de autenticación OIDC
+     * Genera la URL de autorización y redirige al usuario a gub.uy
+     */
+    public void initiateLogin() {
+        try {
+<span class="nc" id="L68">            LOGGER.info(&quot;Iniciando flujo de login OIDC desde JSF&quot;);</span>
+            
+            // Generar request de autorización
+<span class="nc" id="L71">            OIDCAuthRequest authRequest = authService.initiateLogin(redirectUri);</span>
+            
+            // Guardar datos en sesión
+<span class="nc" id="L74">            FacesContext facesContext = FacesContext.getCurrentInstance();</span>
+<span class="nc" id="L75">            ExternalContext externalContext = facesContext.getExternalContext();</span>
+            
+<span class="nc" id="L77">            externalContext.getSessionMap().put(&quot;oidc_state&quot;, authRequest.getState());</span>
+<span class="nc" id="L78">            externalContext.getSessionMap().put(&quot;oidc_nonce&quot;, authRequest.getNonce());</span>
+//            externalContext.getSessionMap().put(&quot;oidc_code_verifier&quot;, authRequest.getCodeVerifier());
+<span class="nc" id="L80">            externalContext.getSessionMap().put(&quot;oidc_redirect_uri&quot;, redirectUri);</span>
+            
+<span class="nc" id="L82">            LOGGER.info(&quot;Redirigiendo a: &quot; + authRequest.getAuthorizationUrl());</span>
+            
+            // Redirigir al authorization endpoint de gub.uy
+<span class="nc" id="L85">            externalContext.redirect(authRequest.getAuthorizationUrl());</span>
+            
+<span class="nc" id="L87">        } catch (IOException e) {</span>
+<span class="nc" id="L88">            LOGGER.log(Level.SEVERE, &quot;Error al redirigir a gub.uy&quot;, e);</span>
+<span class="nc" id="L89">            FacesContext.getCurrentInstance().addMessage(null, </span>
+                new FacesMessage(FacesMessage.SEVERITY_ERROR, 
+                    &quot;Error al iniciar autenticación&quot;, 
+                    &quot;No se pudo conectar con gub.uy. Por favor intente nuevamente.&quot;));
+<span class="nc" id="L93">        } catch (Exception e) {</span>
+<span class="nc" id="L94">            LOGGER.log(Level.SEVERE, &quot;Error iniciando login OIDC&quot;, e);</span>
+<span class="nc" id="L95">            FacesContext.getCurrentInstance().addMessage(null, </span>
+                new FacesMessage(FacesMessage.SEVERITY_ERROR, 
+                    &quot;Error de autenticación&quot;, 
+                    &quot;Ocurrió un error inesperado. Por favor intente nuevamente.&quot;));
+<span class="nc" id="L99">        }</span>
+<span class="nc" id="L100">    }</span>
+
+    public String getRedirectUri() {
+<span class="nc" id="L103">        return redirectUri;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

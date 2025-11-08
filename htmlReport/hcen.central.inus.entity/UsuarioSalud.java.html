@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioSalud.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.entity</a> &gt; <span class="el_source">UsuarioSalud.java</span></div><h1>UsuarioSalud.java</h1><pre class="source lang-java linenums">package hcen.central.inus.entity;
+
+import hcen.central.inus.enums.TipoDocumento;
+import jakarta.persistence.*;
+import java.io.Serializable;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * JPA Entity for OpenID Connect authenticated users
+ * Maps gub.uy users to local database
+ */
+@Entity
+@Table(name = &quot;usuario_salud&quot;)
+@IdClass(UsuarioSalud.UsuarioSaludId.class)
+public class UsuarioSalud {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = &quot;usuario_salud_seq&quot;)
+    @SequenceGenerator(name = &quot;usuario_salud_seq&quot;, sequenceName = &quot;usuario_salud_id_seq&quot;, allocationSize = 1)
+    @Column(name = &quot;id&quot;)
+    private Long id;
+    
+    @Id
+    @Column(name = &quot;cedula&quot;, nullable = false, length = 20)
+    private String cedula;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;tipo_documento&quot;, length = 20, columnDefinition = &quot;VARCHAR(20) DEFAULT 'DO'&quot;)
+    private TipoDocumento tipoDeDocumento;
+
+    @Column(name = &quot;fecha_nacimiento&quot;, nullable = false)
+    private LocalDate fechaNacimiento;
+    
+    @Column(name = &quot;email&quot;, nullable = false, length = 255)
+    private String email;
+    
+<span class="pc" id="L41">    @Column(name = &quot;email_verificado&quot;, columnDefinition = &quot;BOOLEAN DEFAULT true&quot;)</span>
+<span class="pc" id="L42">    private Boolean emailVerificado = true;</span>
+    
+    @Column(name = &quot;nombre_completo&quot;, length = 255)
+    private String nombreCompleto;
+    
+    @Column(name = &quot;primer_nombre&quot;, nullable = false, length = 100)
+    private String primerNombre;
+
+    @Column(name = &quot;segundo_nombre&quot;, length = 100)
+    private String segundoNombre;
+    
+    @Column(name = &quot;primer_apellido&quot;, nullable = false, length = 100)
+    private String primerApellido;
+
+    @Column(name = &quot;segundo_apellido&quot;, length = 100)
+    private String segundoApellido;
+
+<span class="pc" id="L59">    @Column(name = &quot;active&quot;, nullable = false, columnDefinition = &quot;BOOLEAN DEFAULT true&quot;)</span>
+<span class="pc" id="L60">    private Boolean active = true;</span>
+    
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private Timestamp createdAt;
+    
+    @Column(name = &quot;updated_at&quot;)
+    private Timestamp updatedAt;
+    
+    @Column(name = &quot;last_login&quot;)
+    private Timestamp lastLogin;
+
+    @Column(name = &quot;tenant_id&quot;, length = 36)
+    private String tenantId;
+
+    @PrePersist
+    protected void onCreate() {
+<span class="fc" id="L76">        createdAt = Timestamp.from(Instant.now());</span>
+<span class="fc" id="L77">        updatedAt = Timestamp.from(Instant.now());</span>
+<span class="fc" id="L78">    }</span>
+    
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L82">        updatedAt = Timestamp.from(Instant.now());</span>
+<span class="nc" id="L83">    }</span>
+    
+<span class="fc" id="L85">    public UsuarioSalud() {}</span>
+    
+<span class="nc" id="L87">    public UsuarioSalud(String cedula, String email, String primerNombre, String primerApellido) {</span>
+<span class="nc" id="L88">        this.cedula = cedula;</span>
+<span class="nc" id="L89">        this.email = email;</span>
+<span class="nc" id="L90">        this.primerNombre = primerNombre;</span>
+<span class="nc" id="L91">        this.primerApellido = primerApellido;</span>
+<span class="nc" id="L92">    }</span>
+    
+<span class="fc" id="L94">    public Long getId() { return id; }</span>
+<span class="fc" id="L95">    public void setId(Long id) { this.id = id; }</span>
+    
+<span class="fc" id="L97">    public String getCedula() { return cedula; }</span>
+<span class="fc" id="L98">    public void setCedula(String cedula) { this.cedula = cedula; }</span>
+    
+<span class="fc" id="L100">    public TipoDocumento getTipoDeDocumento() { return tipoDeDocumento; }</span>
+<span class="fc" id="L101">    public void setTipoDeDocumento(TipoDocumento tipoDeDocumento) { this.tipoDeDocumento = tipoDeDocumento; }</span>
+    
+<span class="fc" id="L103">    public LocalDate getFechaNacimiento() { return fechaNacimiento; }</span>
+<span class="fc" id="L104">    public void setFechaNacimiento(LocalDate fechaNacimiento) { this.fechaNacimiento = fechaNacimiento; }</span>
+    
+<span class="fc" id="L106">    public String getEmail() { return email; }</span>
+<span class="fc" id="L107">    public void setEmail(String email) { this.email = email; }</span>
+    
+<span class="fc" id="L109">    public Boolean getEmailVerificado() { return emailVerificado; }</span>
+<span class="fc" id="L110">    public void setEmailVerificado(Boolean emailVerificado) { this.emailVerificado = emailVerificado; }</span>
+<span class="nc" id="L111">    public Boolean isEmailVerificado() { return emailVerificado; }</span>
+    
+<span class="fc" id="L113">    public String getNombreCompleto() { return nombreCompleto; }</span>
+<span class="fc" id="L114">    public void setNombreCompleto(String nombreCompleto) { this.nombreCompleto = nombreCompleto; }</span>
+    
+<span class="fc" id="L116">    public String getPrimerNombre() { return primerNombre; }</span>
+<span class="fc" id="L117">    public void setPrimerNombre(String primerNombre) { this.primerNombre = primerNombre; }</span>
+    
+<span class="fc" id="L119">    public String getSegundoNombre() { return segundoNombre; }</span>
+<span class="fc" id="L120">    public void setSegundoNombre(String segundoNombre) { this.segundoNombre = segundoNombre; }</span>
+    
+<span class="fc" id="L122">    public String getPrimerApellido() { return primerApellido; }</span>
+<span class="fc" id="L123">    public void setPrimerApellido(String primerApellido) { this.primerApellido = primerApellido; }</span>
+    
+<span class="fc" id="L125">    public String getSegundoApellido() { return segundoApellido; }</span>
+<span class="fc" id="L126">    public void setSegundoApellido(String segundoApellido) { this.segundoApellido = segundoApellido; }</span>
+    
+<span class="fc" id="L128">    public Boolean getActive() { return active; }</span>
+<span class="fc" id="L129">    public void setActive(Boolean active) { this.active = active; }</span>
+<span class="nc" id="L130">    public Boolean isActive() { return active; }</span>
+    
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">    public Instant getCreatedAt() { return createdAt != null ? createdAt.toInstant() : null; }</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt != null ? Timestamp.from(createdAt) : null; }</span>
+    
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">    public Instant getUpdatedAt() { return updatedAt != null ? updatedAt.toInstant() : null; }</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt != null ? Timestamp.from(updatedAt) : null; }</span>
+    
+<span class="nc bnc" id="L138" title="All 2 branches missed.">    public Instant getLastLogin() { return lastLogin != null ? lastLogin.toInstant() : null; }</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">    public void setLastLogin(Instant lastLogin) { this.lastLogin = lastLogin != null ? Timestamp.from(lastLogin) : null; }</span>
+
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">    public UUID getTenantId() { return tenantId != null ? UUID.fromString(tenantId) : null; }</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">    public void setTenantId(UUID tenantId) { this.tenantId = tenantId != null ? tenantId.toString() : null; }</span>
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L147" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L148">        UsuarioSalud usuarioSalud = (UsuarioSalud) o;</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        return Objects.equals(id, usuarioSalud.id) &amp;&amp; </span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">               Objects.equals(cedula, usuarioSalud.cedula);</span>
+    }
+    
+    @Override
+    public int hashCode() {
+<span class="nc" id="L155">        return Objects.hash(id, cedula);</span>
+    }
+    
+    /**
+     * Clase interna para la clave compuesta
+     */
+    public static class UsuarioSaludId implements Serializable {
+        private Long id;
+        private String cedula;
+        
+<span class="fc" id="L165">        public UsuarioSaludId() {}</span>
+        
+<span class="nc" id="L167">        public UsuarioSaludId(Long id, String cedula) {</span>
+<span class="nc" id="L168">            this.id = id;</span>
+<span class="nc" id="L169">            this.cedula = cedula;</span>
+<span class="nc" id="L170">        }</span>
+        
+        @Override
+        public boolean equals(Object o) {
+<span class="nc bnc" id="L174" title="All 2 branches missed.">            if (this == o) return true;</span>
+<span class="nc bnc" id="L175" title="All 4 branches missed.">            if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L176">            UsuarioSaludId that = (UsuarioSaludId) o;</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">            return Objects.equals(id, that.id) &amp;&amp; </span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                   Objects.equals(cedula, that.cedula);</span>
+        }
+        
+        @Override
+        public int hashCode() {
+<span class="fc" id="L183">            return Objects.hash(id, cedula);</span>
+        }
+    }
+    
+    @Override
+    public String toString() {
+<span class="nc" id="L189">        return &quot;UsuarioSalud{&quot; +</span>
+                &quot;id=&quot; + id +
+                &quot;, cedula='&quot; + cedula + '\'' +
+                &quot;, email='&quot; + email + '\'' +
+                &quot;, nombreCompleto='&quot; + nombreCompleto + '\'' +
+                &quot;, active=&quot; + active +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

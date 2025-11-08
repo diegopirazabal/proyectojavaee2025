@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientAuthenticationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.service</a> &gt; <span class="el_source">ClientAuthenticationService.java</span></div><h1>ClientAuthenticationService.java</h1><pre class="source lang-java linenums">package hcen.central.inus.service;
+
+import hcen.central.inus.dao.JWTSessionDAO;
+import hcen.central.inus.entity.JWTSession;
+import hcen.central.inus.security.jwt.JWTConfiguration;
+import hcen.central.inus.security.jwt.JWTTokenProvider;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Logger;
+
+/**
+ * Servicio para autenticar clientes externos (componente-periferico)
+ * usando client_credentials flow
+ */
+@Stateless
+<span class="nc" id="L20">public class ClientAuthenticationService {</span>
+    
+<span class="nc" id="L22">    private static final Logger LOGGER = Logger.getLogger(ClientAuthenticationService.class.getName());</span>
+    
+    // Credenciales hardcodeadas en componente-central para validar
+    private static final String VALID_CLIENT_ID = &quot;componente-periferico&quot;;
+    private static final String VALID_CLIENT_SECRET = &quot;hcen2025_periferico_secret_key&quot;;
+    
+    @EJB
+    private JWTTokenProvider jwtTokenProvider;
+    
+    @EJB
+    private JWTSessionDAO jwtSessionDAO;
+    
+    @EJB
+    private JWTConfiguration jwtConfig;
+    
+    /**
+     * Autentica un cliente y genera un JWT
+     * @param clientId ID del cliente
+     * @param clientSecret Secret del cliente
+     * @return JWT token o null si las credenciales son inválidas
+     */
+    public String authenticateClient(String clientId, String clientSecret) {
+<span class="nc" id="L44">        LOGGER.info(&quot;Intentando autenticar cliente: &quot; + clientId);</span>
+        
+        // Validar credenciales
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (!isValidClient(clientId, clientSecret)) {</span>
+<span class="nc" id="L48">            LOGGER.warning(&quot;Credenciales inválidas para cliente: &quot; + clientId);</span>
+<span class="nc" id="L49">            return null;</span>
+        }
+        
+<span class="nc" id="L52">        LOGGER.info(&quot;Credenciales válidas para cliente: &quot; + clientId);</span>
+        
+        // Buscar si ya existe un token activo y válido para este cliente
+<span class="nc" id="L55">        List&lt;JWTSession&gt; activeSessions = jwtSessionDAO.findActiveByClientId(clientId);</span>
+        
+<span class="nc bnc" id="L57" title="All 2 branches missed.">        if (!activeSessions.isEmpty()) {</span>
+<span class="nc" id="L58">            JWTSession existingSession = activeSessions.get(0);</span>
+            
+            // Verificar si el token aún no ha expirado
+<span class="nc bnc" id="L61" title="All 2 branches missed.">            if (!existingSession.isExpired()) {</span>
+<span class="nc" id="L62">                LOGGER.info(&quot;Reutilizando token activo existente para cliente: &quot; + clientId);</span>
+                // Actualizar último uso
+<span class="nc" id="L64">                jwtSessionDAO.updateLastUsed(existingSession.getId());</span>
+<span class="nc" id="L65">                return existingSession.getJwtToken();</span>
+            } else {
+                // Token expirado, invalidarlo
+<span class="nc" id="L68">                LOGGER.info(&quot;Token existente expirado, invalidando y generando nuevo&quot;);</span>
+<span class="nc" id="L69">                jwtSessionDAO.invalidateByToken(existingSession.getJwtToken());</span>
+            }
+        }
+        
+        // Generar nuevo JWT con rol de cliente
+<span class="nc" id="L74">        String jwt = jwtTokenProvider.generateAccessToken(</span>
+            clientId, 
+            clientId + &quot;@hcen.internal&quot;, 
+<span class="nc" id="L77">            Arrays.asList(&quot;ROLE_CLIENT&quot;, &quot;ROLE_PERIFERICO&quot;)</span>
+        );
+        
+        // Calcular fecha de expiración
+<span class="nc" id="L81">        long expirationMs = jwtConfig.getJwtAccessTokenExpiration();</span>
+<span class="nc" id="L82">        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationMs / 1000);</span>
+        
+        // Guardar nueva sesión en BD
+<span class="nc" id="L85">        JWTSession session = new JWTSession(clientId, jwt, expiresAt);</span>
+<span class="nc" id="L86">        jwtSessionDAO.save(session);</span>
+        
+<span class="nc" id="L88">        LOGGER.info(&quot;JWT generado y sesión guardada para cliente: &quot; + clientId);</span>
+        
+<span class="nc" id="L90">        return jwt;</span>
+    }
+    
+    /**
+     * Valida las credenciales del cliente contra valores hardcodeados
+     */
+    private boolean isValidClient(String clientId, String clientSecret) {
+<span class="nc bnc" id="L97" title="All 4 branches missed.">        if (clientId == null || clientSecret == null) {</span>
+<span class="nc" id="L98">            return false;</span>
+        }
+        
+        // Validar contra credenciales hardcodeadas en componente-central
+<span class="nc bnc" id="L102" title="All 4 branches missed.">        return VALID_CLIENT_ID.equals(clientId) &amp;&amp; VALID_CLIENT_SECRET.equals(clientSecret);</span>
+    }
+    
+    /**
+     * Valida un JWT en la base de datos
+     * @param token JWT a validar
+     * @return true si el token es válido y activo
+     */
+    public boolean validateToken(String token) {
+<span class="nc bnc" id="L111" title="All 4 branches missed.">        if (token == null || token.isEmpty()) {</span>
+<span class="nc" id="L112">            return false;</span>
+        }
+        
+        // Buscar sesión en BD
+<span class="nc" id="L116">        var sessionOpt = jwtSessionDAO.findByToken(token);</span>
+        
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (sessionOpt.isEmpty()) {</span>
+<span class="nc" id="L119">            LOGGER.warning(&quot;Token no encontrado en BD&quot;);</span>
+<span class="nc" id="L120">            return false;</span>
+        }
+        
+<span class="nc" id="L123">        JWTSession session = sessionOpt.get();</span>
+        
+        // Verificar si está expirado
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        if (session.isExpired()) {</span>
+<span class="nc" id="L127">            LOGGER.warning(&quot;Token expirado para cliente: &quot; + session.getClientId());</span>
+<span class="nc" id="L128">            return false;</span>
+        }
+        
+        // Actualizar último uso
+<span class="nc" id="L132">        jwtSessionDAO.updateLastUsed(session.getId());</span>
+        
+<span class="nc" id="L134">        return true;</span>
+    }
+    
+    /**
+     * Obtiene el tiempo de expiración del token en segundos
+     */
+    public long getTokenExpirationSeconds() {
+<span class="nc" id="L141">        return jwtConfig.getJwtAccessTokenExpiration() / 1000;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

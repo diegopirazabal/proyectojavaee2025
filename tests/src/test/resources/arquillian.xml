@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<arquillian xmlns="http://jboss.org/schema/arquillian"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://jboss.org/schema/arquillian http://jboss.org/schema/arquillian/arquillian_1_0.xsd">
+
+    <container qualifier="tomee-embedded" default="true">
+        <configuration>
+            <property name="serverXml">${serverXml:${project.basedir}/src/test/resources/tomee-server.xml}</property>
+            <property name="cleanOnStart">true</property>
+            <property name="dir">target/tomee-embedded</property>
+            <property name="properties">openejb.security.jacc=false;openejb.security.enabled=false</property>
+        </configuration>
+    </container>
+
+</arquillian>

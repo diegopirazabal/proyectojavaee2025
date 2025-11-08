@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OIDCAuthResource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.rest</a> &gt; <span class="el_source">OIDCAuthResource.java</span></div><h1>OIDCAuthResource.java</h1><pre class="source lang-java linenums">package hcen.central.inus.rest;
+
+import hcen.central.inus.dao.OIDCUserDAO;
+import hcen.central.inus.dto.JWTTokenResponse;
+import hcen.central.inus.dto.OIDCAuthRequest;
+import hcen.central.inus.dto.OIDCTokenResponse;
+import hcen.central.inus.dto.OIDCUserInfo;
+import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.security.oidc.OIDCAuthenticationService;
+import hcen.central.inus.security.oidc.OIDCCallbackHandler;
+import hcen.central.inus.security.oidc.OIDCUserInfoService;
+import io.jsonwebtoken.Claims;
+import jakarta.inject.Inject;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.*;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * REST Resource para endpoints de autenticación OIDC
+ * Base path: /api/auth
+ */
+@Path(&quot;/auth&quot;)
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+<span class="nc" id="L34">public class OIDCAuthResource {</span>
+
+<span class="nc" id="L36">    private static final Logger LOGGER = Logger.getLogger(OIDCAuthResource.class.getName());</span>
+
+    @Inject
+    private OIDCAuthenticationService authService;
+
+    @Inject
+    private OIDCCallbackHandler callbackHandler;
+
+    // TODO: QUITAR LUEGO, ES SOLO PARA DESARROLLO - Inicio
+    @Inject
+    private OIDCUserInfoService userInfoService;
+
+    @Inject
+    private OIDCUserDAO userDAO;
+    // TODO: QUITAR LUEGO, ES SOLO PARA DESARROLLO - Fin
+
+    @Context
+    private HttpServletRequest httpRequest;
+
+    /**
+     * GET /api/auth/login
+     * Inicia el flujo de autenticación OIDC
+     * Redirige al usuario al authorization endpoint de gub.uy
+     *
+     * @param redirectUri URI de redirección (debe estar registrada en gub.uy)
+     * @return Redirección 302 al authorization endpoint
+     */
+    @GET
+    @Path(&quot;/login&quot;)
+    public Response login(
+            @QueryParam(&quot;redirect_uri&quot;) String redirectUri,
+            @QueryParam(&quot;origin&quot;) String origin) {
+        try {
+<span class="nc" id="L69">            LOGGER.info(&quot;··· Iniciando login OIDC&quot;);</span>
+
+            // Detectar origen del login desde parámetro origin (prioritario) o Referer header
+<span class="nc" id="L72">            String loginOrigin = origin; // Usar el parámetro origin si viene</span>
+            
+<span class="nc bnc" id="L74" title="All 4 branches missed.">            if (loginOrigin == null || loginOrigin.isBlank()) {</span>
+                // Fallback: detectar desde Referer header
+<span class="nc" id="L76">                String referer = httpRequest.getHeader(&quot;Referer&quot;);</span>
+<span class="nc" id="L77">                loginOrigin = &quot;admin&quot;; // Por defecto admin</span>
+                
+<span class="nc bnc" id="L79" title="All 2 branches missed.">                if (referer != null) {</span>
+<span class="nc bnc" id="L80" title="All 4 branches missed.">                    if (referer.contains(&quot;portal-salud&quot;) || referer.contains(&quot;portal-usuario&quot;)) {</span>
+<span class="nc" id="L81">                        loginOrigin = &quot;usuario-salud&quot;;</span>
+<span class="nc bnc" id="L82" title="All 4 branches missed.">                    } else if (referer.contains(&quot;portal-admin&quot;) || referer.contains(&quot;frontend-admin-hcen&quot;)) {</span>
+<span class="nc" id="L83">                        loginOrigin = &quot;admin&quot;;</span>
+                    }
+                }
+            }
+            
+            // Si es mobile, usar el redirect_uri del backend, no el de la app
+            String actualRedirectUri;
+<span class="nc bnc" id="L90" title="All 2 branches missed.">            if (&quot;mobile&quot;.equals(loginOrigin)) {</span>
+                // Para mobile, usar el redirect_uri del backend registrado en gub.uy
+<span class="nc" id="L92">                String serverName = httpRequest.getServerName();</span>
+<span class="nc" id="L93">                boolean isProduction = &quot;hcen-uy.web.elasticloud.uy&quot;.equals(serverName);</span>
+                
+<span class="nc bnc" id="L95" title="All 2 branches missed.">                if (isProduction) {</span>
+<span class="nc" id="L96">                    actualRedirectUri = &quot;https://hcen-uy.web.elasticloud.uy/api/auth/callback&quot;;</span>
+                } else {
+<span class="nc" id="L98">                    actualRedirectUri = &quot;http://localhost:8080/hcen-central/api/auth/callback&quot;;</span>
+                }
+                
+<span class="nc" id="L101">                LOGGER.info(&quot;Mobile detectado, usando redirect_uri del backend: &quot; + actualRedirectUri);</span>
+<span class="nc" id="L102">            } else {</span>
+                // Para web, validar que venga redirect_uri
+<span class="nc bnc" id="L104" title="All 4 branches missed.">                if (redirectUri == null || redirectUri.isEmpty()) {</span>
+<span class="nc" id="L105">                    return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L106">                            .entity(createErrorResponse(&quot;redirect_uri es requerido&quot;))</span>
+<span class="nc" id="L107">                            .build();</span>
+                }
+<span class="nc" id="L109">                actualRedirectUri = redirectUri;</span>
+            }
+
+            // Generar request de autorización
+<span class="nc" id="L113">            OIDCAuthRequest authRequest = authService.initiateLogin(actualRedirectUri);</span>
+
+            // Guardar state y nonce en la sesión HTTP (PKCE removido)
+<span class="nc" id="L116">            HttpSession session = httpRequest.getSession(true);</span>
+<span class="nc" id="L117">            session.setAttribute(&quot;oidc_state&quot;, authRequest.getState());</span>
+<span class="nc" id="L118">            session.setAttribute(&quot;oidc_nonce&quot;, authRequest.getNonce());</span>
+            // session.setAttribute(&quot;oidc_code_verifier&quot;, authRequest.getCodeVerifier()); // PKCE removido
+            // session.setAttribute(&quot;oidc_code_challenge&quot;, authRequest.getCodeChallenge()); // PKCE removido
+<span class="nc" id="L121">            session.setAttribute(&quot;oidc_redirect_uri&quot;, actualRedirectUri);</span>
+<span class="nc" id="L122">            session.setAttribute(&quot;oidc_client_redirect_uri&quot;, redirectUri); // Guardar el redirect_uri del cliente</span>
+            
+<span class="nc" id="L124">            session.setAttribute(&quot;oidc_login_origin&quot;, loginOrigin);</span>
+<span class="nc" id="L125">            LOGGER.info(&quot;Login origin detectado: '&quot; + loginOrigin + &quot;' (origin param: '&quot; + origin + &quot;')&quot;);</span>
+            // Redirigir al authorization endpoint
+<span class="nc" id="L127">            return Response.seeOther(URI.create(authRequest.getAuthorizationUrl())).build();</span>
+
+<span class="nc" id="L129">        } catch (Exception e) {</span>
+<span class="nc" id="L130">            LOGGER.log(Level.SEVERE, &quot;Error en login OIDC&quot;, e);</span>
+<span class="nc" id="L131">            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L132">                    .entity(createErrorResponse(&quot;Error iniciando autenticación: &quot; + e.getMessage()))</span>
+<span class="nc" id="L133">                    .build();</span>
+        }
+    }
+
+    /**
+     * GET /api/auth/callback
+     * Maneja el callback de gub.uy después de la autenticación
+     * Intercambia el authorization code por tokens y genera JWT propios
+     *
+     * @param code  Authorization code
+     * @param state State parameter (protección CSRF)
+     * @param error Error code (si la autenticación falló)
+     * @param errorDescription Descripción del error
+     * @return JWTTokenResponse con los tokens de la aplicación
+     */
+    @GET
+    @Path(&quot;/callback&quot;)
+    public Response callback(
+            @QueryParam(&quot;code&quot;) String code,
+            @QueryParam(&quot;state&quot;) String state,
+            @QueryParam(&quot;error&quot;) String error,
+            @QueryParam(&quot;error_description&quot;) String errorDescription) {
+        try {
+<span class="nc" id="L156">            LOGGER.info(&quot;··· Procesando callback OIDC&quot;);</span>
+
+            // Verificar si hay error
+<span class="nc bnc" id="L159" title="All 2 branches missed.">            if (error != null) {</span>
+<span class="nc" id="L160">                LOGGER.log(Level.SEVERE, &quot;Error en callback: &quot; + error + &quot; - &quot; + errorDescription);</span>
+<span class="nc" id="L161">                callbackHandler.handleError(error, errorDescription);</span>
+<span class="nc" id="L162">                return Response.status(Response.Status.UNAUTHORIZED)</span>
+<span class="nc" id="L163">                        .entity(createErrorResponse(&quot;Autenticación fallida: &quot; + error))</span>
+<span class="nc" id="L164">                        .build();</span>
+            }
+
+            // Validar code y state
+<span class="nc bnc" id="L168" title="All 4 branches missed.">            if (code == null || state == null) {</span>
+<span class="nc" id="L169">                return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L170">                        .entity(createErrorResponse(&quot;code y state son requeridos&quot;))</span>
+<span class="nc" id="L171">                        .build();</span>
+            }
+
+            // Recuperar datos de la sesión
+<span class="nc" id="L175">            HttpSession session = httpRequest.getSession(false);</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">            if (session == null) {</span>
+<span class="nc" id="L177">                return Response.status(Response.Status.UNAUTHORIZED)</span>
+<span class="nc" id="L178">                        .entity(createErrorResponse(&quot;Sesión expirada&quot;))</span>
+<span class="nc" id="L179">                        .build();</span>
+            }
+
+<span class="nc" id="L182">            String expectedState = (String) session.getAttribute(&quot;oidc_state&quot;);</span>
+<span class="nc" id="L183">            String expectedNonce = (String) session.getAttribute(&quot;oidc_nonce&quot;);</span>
+            // String codeVerifier = (String) session.getAttribute(&quot;oidc_code_verifier&quot;); // PKCE removido
+<span class="nc" id="L185">            String redirectUri = (String) session.getAttribute(&quot;oidc_redirect_uri&quot;);</span>
+
+            // Limpiar atributos de sesión
+<span class="nc" id="L188">            session.removeAttribute(&quot;oidc_state&quot;);</span>
+<span class="nc" id="L189">            session.removeAttribute(&quot;oidc_nonce&quot;);</span>
+            // session.removeAttribute(&quot;oidc_code_verifier&quot;); // PKCE removido
+<span class="nc" id="L191">            session.removeAttribute(&quot;oidc_redirect_uri&quot;);</span>
+
+            // Procesar callback y obtener tokens (sin PKCE)
+<span class="nc" id="L194">            JWTTokenResponse tokenResponse = authService.handleCallback(</span>
+                    code, state, expectedState, expectedNonce, redirectUri
+            );
+
+<span class="nc" id="L198">            LOGGER.info(&quot;Éxito en callback OIDC&quot;);</span>
+
+            // TODO: QUITAR LUEGO, ES SOLO PARA DESARROLLO - Inicio
+            // Guardar datos en sesión HTTP y cookie HttpOnly para el frontend JSF de desarrollo
+            try {
+<span class="nc" id="L203">                String cedula = tokenResponse.getUserSub();</span>
+                
+                // Obtener usuario de la BD
+<span class="nc" id="L206">                UsuarioSalud user = userDAO.findByCedula(cedula);</span>
+                
+<span class="nc bnc" id="L208" title="All 2 branches missed.">                if (user != null) {</span>
+                    // Crear DTO de UserInfo desde entidad
+<span class="nc" id="L210">                    OIDCUserInfo userInfo = new OIDCUserInfo();</span>
+<span class="nc" id="L211">                    userInfo.setNumeroDocumento(user.getCedula());</span>
+<span class="nc" id="L212">                    userInfo.setEmail(user.getEmail());</span>
+<span class="nc" id="L213">                    userInfo.setEmailVerified(user.isEmailVerificado());</span>
+<span class="nc" id="L214">                    userInfo.setNombreCompleto(user.getNombreCompleto());</span>
+<span class="nc" id="L215">                    userInfo.setPrimerNombre(user.getPrimerNombre());</span>
+<span class="nc" id="L216">                    userInfo.setSegundoNombre(user.getSegundoNombre());</span>
+<span class="nc" id="L217">                    userInfo.setPrimerApellido(user.getPrimerApellido());</span>
+<span class="nc" id="L218">                    userInfo.setSegundoApellido(user.getSegundoApellido());</span>
+                    
+                    // Guardar en sesión HTTP
+<span class="nc" id="L221">                    session.setAttribute(&quot;userInfo&quot;, userInfo);</span>
+<span class="nc" id="L222">                    session.setAttribute(&quot;jwtToken&quot;, tokenResponse);</span>
+                    
+<span class="nc" id="L224">                    LOGGER.info(&quot;Datos guardados en sesión HTTP y cookie para desarrollo&quot;);</span>
+                    
+                    // Determinar dashboard según origen del login y entorno
+<span class="nc" id="L227">                    String loginOrigin = (String) session.getAttribute(&quot;oidc_login_origin&quot;);</span>
+<span class="nc" id="L228">                    String serverName = httpRequest.getServerName();</span>
+<span class="nc" id="L229">                    boolean isProduction = &quot;hcen-uy.web.elasticloud.uy&quot;.equals(serverName);</span>
+                    
+<span class="nc" id="L231">                    LOGGER.info(&quot;Callback - loginOrigin: '&quot; + loginOrigin + &quot;', serverName: '&quot; + serverName + &quot;', isProduction: &quot; + isProduction);</span>
+                    
+                    // Si el origen es mobile, redirigir al deep link de la app
+<span class="nc bnc" id="L234" title="All 2 branches missed.">                    if (&quot;mobile&quot;.equals(loginOrigin)) {</span>
+<span class="nc" id="L235">                        LOGGER.info(&quot;Redirigiendo a aplicación móvil&quot;);</span>
+                        
+                        // Construir deep link para la app móvil
+<span class="nc" id="L238">                        StringBuilder mobileCallbackUrl = new StringBuilder(&quot;hcenmobile://auth/callback&quot;);</span>
+<span class="nc" id="L239">                        mobileCallbackUrl.append(&quot;?jwt_token=&quot;)</span>
+<span class="nc" id="L240">                                        .append(java.net.URLEncoder.encode(tokenResponse.getAccessToken(), java.nio.charset.StandardCharsets.UTF_8))</span>
+<span class="nc" id="L241">                                        .append(&quot;&amp;cedula=&quot;)</span>
+<span class="nc" id="L242">                                        .append(java.net.URLEncoder.encode(cedula, java.nio.charset.StandardCharsets.UTF_8));</span>
+                        
+                        // Agregar nombre completo si está disponible
+<span class="nc bnc" id="L245" title="All 4 branches missed.">                        if (user.getNombreCompleto() != null &amp;&amp; !user.getNombreCompleto().isBlank()) {</span>
+<span class="nc" id="L246">                            mobileCallbackUrl.append(&quot;&amp;nombre_completo=&quot;)</span>
+<span class="nc" id="L247">                                           .append(java.net.URLEncoder.encode(user.getNombreCompleto(), java.nio.charset.StandardCharsets.UTF_8));</span>
+                        }
+                        
+                        // Limpiar atributo de origen
+<span class="nc" id="L251">                        session.removeAttribute(&quot;oidc_login_origin&quot;);</span>
+                        
+                        // Redirigir al deep link de la app
+<span class="nc" id="L254">                        return Response.seeOther(URI.create(mobileCallbackUrl.toString()))</span>
+<span class="nc" id="L255">                                .build();</span>
+                    }
+                    
+                    // Flujo normal para web (admin o usuario-salud)
+                    String contextPath;
+                    
+<span class="nc bnc" id="L261" title="All 2 branches missed.">                    if (&quot;usuario-salud&quot;.equals(loginOrigin)) {</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">                        contextPath = isProduction ? &quot;/portal-usuario&quot; : &quot;/portal-salud&quot;;</span>
+                    } else {
+                        // Admin: /portal-admin en producción, /frontend-admin-hcen en desarrollo
+<span class="nc bnc" id="L265" title="All 2 branches missed.">                        contextPath = isProduction ? &quot;/portal-admin&quot; : &quot;/frontend-admin-hcen&quot;;</span>
+                    }
+                    
+<span class="nc" id="L268">                    LOGGER.info(&quot;Redirigiendo a contextPath: '&quot; + contextPath + &quot;'&quot;);</span>
+                    
+                    // Construir URL del dashboard
+<span class="nc" id="L271">                    String scheme = httpRequest.getScheme();</span>
+<span class="nc" id="L272">                    int serverPort = httpRequest.getServerPort();</span>
+                    
+<span class="nc" id="L274">                    StringBuilder dashboardUrl = new StringBuilder(scheme).append(&quot;://&quot;).append(serverName);</span>
+<span class="nc bnc" id="L275" title="All 8 branches missed.">                    if ((&quot;http&quot;.equals(scheme) &amp;&amp; serverPort != 80) || (&quot;https&quot;.equals(scheme) &amp;&amp; serverPort != 443)) {</span>
+<span class="nc" id="L276">                        dashboardUrl.append(&quot;:&quot;).append(serverPort);</span>
+                    }
+<span class="nc" id="L278">                    dashboardUrl.append(contextPath).append(&quot;/dashboard.xhtml&quot;);</span>
+                    
+                    // Agregar cédula como parámetro si es portal usuario-salud
+<span class="nc bnc" id="L281" title="All 2 branches missed.">                    if (&quot;usuario-salud&quot;.equals(loginOrigin)) {</span>
+<span class="nc" id="L282">                        dashboardUrl.append(&quot;?docType=DO&amp;docNumber=&quot;)</span>
+<span class="nc" id="L283">                                   .append(java.net.URLEncoder.encode(cedula, java.nio.charset.StandardCharsets.UTF_8));</span>
+                    }
+                    
+                    // Limpiar atributo de origen
+<span class="nc" id="L287">                    session.removeAttribute(&quot;oidc_login_origin&quot;);</span>
+                    
+                    // Redirigir al dashboard JSF con cookie HttpOnly
+<span class="nc" id="L290">                    return Response.seeOther(URI.create(dashboardUrl.toString()))</span>
+<span class="nc" id="L291">                            .cookie(createJwtCookie(tokenResponse.getAccessToken(), tokenResponse.getExpiresIn()))</span>
+<span class="nc" id="L292">                            .build();</span>
+                }
+<span class="nc" id="L294">            } catch (Exception e) {</span>
+<span class="nc" id="L295">                LOGGER.log(Level.WARNING, &quot;Error guardando datos en sesión para desarrollo&quot;, e);</span>
+<span class="nc" id="L296">            }</span>
+            // TODO: QUITAR LUEGO, ES SOLO PARA DESARROLLO - Fin
+
+<span class="nc" id="L299">            return Response.ok(tokenResponse).build();</span>
+
+<span class="nc" id="L301">        } catch (SecurityException e) {</span>
+<span class="nc" id="L302">            LOGGER.log(Level.SEVERE, &quot;Error de seguridad en callback&quot;, e);</span>
+<span class="nc" id="L303">            return Response.status(Response.Status.UNAUTHORIZED)</span>
+<span class="nc" id="L304">                    .entity(createErrorResponse(&quot;Error de seguridad: &quot; + e.getMessage()))</span>
+<span class="nc" id="L305">                    .build();</span>
+<span class="nc" id="L306">        } catch (Exception e) {</span>
+<span class="nc" id="L307">            LOGGER.log(Level.SEVERE, &quot;Error en callback OIDC&quot;, e);</span>
+<span class="nc" id="L308">            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L309">                    .entity(createErrorResponse(&quot;Error procesando callback: &quot; + e.getMessage()))</span>
+<span class="nc" id="L310">                    .build();</span>
+        }
+    }
+
+    /**
+     * POST /api/auth/refresh
+     * Refresca un JWT usando el refresh token
+     *
+     * Request body: { &quot;refresh_token&quot;: &quot;...&quot; }
+     *
+     * @param requestBody Cuerpo de la petición con refresh_token
+     * @return Nuevo JWTTokenResponse
+     */
+    @POST
+    @Path(&quot;/refresh&quot;)
+    public Response refresh(Map&lt;String, String&gt; requestBody) {
+        try {
+<span class="nc" id="L327">            LOGGER.info(&quot;··· Refrescando JWT&quot;);</span>
+
+<span class="nc" id="L329">            String refreshToken = requestBody.get(&quot;refresh_token&quot;);</span>
+<span class="nc bnc" id="L330" title="All 4 branches missed.">            if (refreshToken == null || refreshToken.isEmpty()) {</span>
+<span class="nc" id="L331">                return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L332">                        .entity(createErrorResponse(&quot;refresh_token es requerido&quot;))</span>
+<span class="nc" id="L333">                        .build();</span>
+            }
+
+<span class="nc" id="L336">            JWTTokenResponse tokenResponse = authService.refreshToken(refreshToken);</span>
+
+<span class="nc" id="L338">            LOGGER.info(&quot;Éxito al refrescar JWT&quot;);</span>
+<span class="nc" id="L339">            return Response.ok(tokenResponse).build();</span>
+
+<span class="nc" id="L341">        } catch (SecurityException e) {</span>
+<span class="nc" id="L342">            LOGGER.log(Level.WARNING, &quot;Refresh token inválido&quot;, e);</span>
+<span class="nc" id="L343">            return Response.status(Response.Status.UNAUTHORIZED)</span>
+<span class="nc" id="L344">                    .entity(createErrorResponse(&quot;Refresh token inválido&quot;))</span>
+<span class="nc" id="L345">                    .build();</span>
+<span class="nc" id="L346">        } catch (Exception e) {</span>
+<span class="nc" id="L347">            LOGGER.log(Level.SEVERE, &quot;Error refrescando JWT&quot;, e);</span>
+<span class="nc" id="L348">            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L349">                    .entity(createErrorResponse(&quot;Error refrescando token: &quot; + e.getMessage()))</span>
+<span class="nc" id="L350">                    .build();</span>
+        }
+    }
+
+    /**
+     * POST /api/auth/logout
+     * Cierra la sesión del usuario y borra la cookie JWT
+     *
+     * Requiere header: Authorization: Bearer &lt;access_token&gt; o cookie jwt_token
+     *
+     * @param authHeader Header de autorización con JWT (opcional si hay cookie)
+     * @return Respuesta de éxito con cookie borrada
+     */
+    @POST
+    @Path(&quot;/logout&quot;)
+    public Response logout(@HeaderParam(&quot;Authorization&quot;) String authHeader) {
+        try {
+<span class="nc" id="L367">            LOGGER.info(&quot;··· Cerrando sesión&quot;);</span>
+
+            // Extraer token del header (validación opcional, el filtro ya lo hizo)
+<span class="nc" id="L370">            String token = extractTokenFromHeader(authHeader);</span>
+            
+            // TODO: Si se implementa invalidación de tokens (blacklist), hacerlo aquí
+            // authService.invalidateToken(token);
+
+            // Invalidar sesión HTTP si existe
+<span class="nc" id="L376">            HttpSession session = httpRequest.getSession(false);</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">            if (session != null) {</span>
+<span class="nc" id="L378">                session.invalidate();</span>
+<span class="nc" id="L379">                LOGGER.info(&quot;Sesión HTTP invalidada&quot;);</span>
+            }
+
+<span class="nc" id="L382">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L383">            response.put(&quot;success&quot;, true);</span>
+<span class="nc" id="L384">            response.put(&quot;message&quot;, &quot;Sesión cerrada exitosamente&quot;);</span>
+
+<span class="nc" id="L386">            LOGGER.info(&quot;Éxito al cerrar sesión&quot;);</span>
+            
+            // Retornar respuesta con cookie JWT borrada
+<span class="nc" id="L389">            return Response.ok(response)</span>
+<span class="nc" id="L390">                    .cookie(deleteJwtCookie())</span>
+<span class="nc" id="L391">                    .build();</span>
+
+<span class="nc" id="L393">        } catch (Exception e) {</span>
+<span class="nc" id="L394">            LOGGER.log(Level.SEVERE, &quot;Error en logout&quot;, e);</span>
+<span class="nc" id="L395">            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L396">                    .entity(createErrorResponse(&quot;Error cerrando sesión: &quot; + e.getMessage()))</span>
+<span class="nc" id="L397">                    .build();</span>
+        }
+    }
+
+    /**
+     * GET /api/auth/me
+     * Obtiene información del usuario autenticado actual
+     *
+     * Requiere header: Authorization: Bearer &lt;access_token&gt;
+     *
+     * @param authHeader Header de autorización con JWT
+     * @return Información del usuario
+     */
+    @GET
+    @Path(&quot;/me&quot;)
+    public Response me(@HeaderParam(&quot;Authorization&quot;) String authHeader) {
+        try {
+<span class="nc" id="L414">            LOGGER.info(&quot;··· Obteniendo info del usuario autenticado&quot;);</span>
+
+            // Extraer token del header
+<span class="nc" id="L417">            String token = extractTokenFromHeader(authHeader);</span>
+<span class="nc bnc" id="L418" title="All 2 branches missed.">            if (token == null) {</span>
+<span class="nc" id="L419">                return Response.status(Response.Status.UNAUTHORIZED)</span>
+<span class="nc" id="L420">                        .entity(createErrorResponse(&quot;Token no proporcionado&quot;))</span>
+<span class="nc" id="L421">                        .build();</span>
+            }
+
+            // TODO: Validar token y extraer userSub
+            // Claims claims = jwtTokenProvider.validateAccessToken(token);
+            // String userSub = claims.getSubject();
+            // UsuarioSalud user = userDAO.findBySub(userSub);
+
+<span class="nc" id="L429">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L430">            response.put(&quot;message&quot;, &quot;Endpoint /me - TODO: Implementar validación JWT y retornar info del usuario&quot;);</span>
+
+<span class="nc" id="L432">            return Response.ok(response).build();</span>
+
+<span class="nc" id="L434">        } catch (Exception e) {</span>
+<span class="nc" id="L435">            LOGGER.log(Level.SEVERE, &quot;Error obteniendo info del usuario&quot;, e);</span>
+<span class="nc" id="L436">            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L437">                    .entity(createErrorResponse(&quot;Error: &quot; + e.getMessage()))</span>
+<span class="nc" id="L438">                    .build();</span>
+        }
+    }
+
+    /**
+     * Extrae el token del header Authorization
+     */
+    private String extractTokenFromHeader(String authHeader) {
+<span class="nc bnc" id="L446" title="All 4 branches missed.">        if (authHeader != null &amp;&amp; authHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="nc" id="L447">            return authHeader.substring(7);</span>
+        }
+<span class="nc" id="L449">        return null;</span>
+    }
+
+    /**
+     * Crea una respuesta de error estándar
+     */
+    private Map&lt;String, Object&gt; createErrorResponse(String message) {
+<span class="nc" id="L456">        Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L457">        error.put(&quot;error&quot;, true);</span>
+<span class="nc" id="L458">        error.put(&quot;message&quot;, message);</span>
+<span class="nc" id="L459">        return error;</span>
+    }
+
+    /**
+     * Crea una cookie HttpOnly para el JWT access token
+     * 
+     * @param accessToken Token JWT
+     * @param expiresInSeconds Duración del token en segundos
+     * @return NewCookie para JAX-RS Response
+     */
+    private NewCookie createJwtCookie(String accessToken, long expiresInSeconds) {
+<span class="nc" id="L470">        return new NewCookie.Builder(&quot;jwt_token&quot;)</span>
+<span class="nc" id="L471">                .value(accessToken)</span>
+<span class="nc" id="L472">                .path(&quot;/&quot;)</span>
+<span class="nc" id="L473">                .maxAge((int) expiresInSeconds)</span>
+<span class="nc" id="L474">                .httpOnly(true)</span>
+<span class="nc" id="L475">                .secure(false) // TODO: Cambiar a true en producción con HTTPS</span>
+<span class="nc" id="L476">                .sameSite(NewCookie.SameSite.LAX)</span>
+<span class="nc" id="L477">                .build();</span>
+    }
+
+    /**
+     * Crea una cookie vacía para borrar el JWT (usado en logout)
+     * 
+     * @return NewCookie con maxAge=0 para borrar la cookie
+     */
+    private NewCookie deleteJwtCookie() {
+<span class="nc" id="L486">        return new NewCookie.Builder(&quot;jwt_token&quot;)</span>
+<span class="nc" id="L487">                .value(&quot;&quot;)</span>
+<span class="nc" id="L488">                .path(&quot;/&quot;)</span>
+<span class="nc" id="L489">                .maxAge(0)</span>
+<span class="nc" id="L490">                .httpOnly(true)</span>
+<span class="nc" id="L491">                .secure(false) // TODO: Cambiar a true en producción con HTTPS</span>
+<span class="nc" id="L492">                .sameSite(NewCookie.SameSite.LAX)</span>
+<span class="nc" id="L493">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

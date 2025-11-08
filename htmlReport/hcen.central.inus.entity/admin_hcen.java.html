@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>admin_hcen.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.entity</a> &gt; <span class="el_source">admin_hcen.java</span></div><h1>admin_hcen.java</h1><pre class="source lang-java linenums">package hcen.central.inus.entity;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.Objects;
+
+@Entity
+@Table(name = &quot;admin_hcen&quot;)
+public class admin_hcen {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false, unique = true, length = 50)
+    private String username;
+    
+    @Column(nullable = false, length = 255)
+    private String passwordHash;
+    
+    @Column(nullable = false, length = 100)
+    private String firstName;
+    
+    @Column(nullable = false, length = 100)
+    private String lastName;
+    
+    @Column(nullable = false, unique = true, length = 100)
+    private String email;
+    
+<span class="nc" id="L30">    @Column(nullable = false)</span>
+<span class="nc" id="L31">    private Boolean active = true;</span>
+    
+    @Column(name = &quot;created_at&quot;, nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = &quot;last_login&quot;)
+    private LocalDateTime lastLogin;
+    
+    @PrePersist
+    protected void onCreate() {
+<span class="nc" id="L41">        createdAt = LocalDateTime.now();</span>
+<span class="nc" id="L42">    }</span>
+    
+<span class="nc" id="L44">    public admin_hcen() {}</span>
+    
+<span class="nc" id="L46">    public admin_hcen(String username, String passwordHash, String firstName, String lastName, String email) {</span>
+<span class="nc" id="L47">        this.username = username;</span>
+<span class="nc" id="L48">        this.passwordHash = passwordHash;</span>
+<span class="nc" id="L49">        this.firstName = firstName;</span>
+<span class="nc" id="L50">        this.lastName = lastName;</span>
+<span class="nc" id="L51">        this.email = email;</span>
+<span class="nc" id="L52">    }</span>
+    
+    // Getters and Setters
+    public Long getId() {
+<span class="nc" id="L56">        return id;</span>
+    }
+    
+    public void setId(Long id) {
+<span class="nc" id="L60">        this.id = id;</span>
+<span class="nc" id="L61">    }</span>
+    
+    public String getUsername() {
+<span class="nc" id="L64">        return username;</span>
+    }
+    
+    public void setUsername(String username) {
+<span class="nc" id="L68">        this.username = username;</span>
+<span class="nc" id="L69">    }</span>
+    
+    public String getPasswordHash() {
+<span class="nc" id="L72">        return passwordHash;</span>
+    }
+    
+    public void setPasswordHash(String passwordHash) {
+<span class="nc" id="L76">        this.passwordHash = passwordHash;</span>
+<span class="nc" id="L77">    }</span>
+    
+    public String getFirstName() {
+<span class="nc" id="L80">        return firstName;</span>
+    }
+    
+    public void setFirstName(String firstName) {
+<span class="nc" id="L84">        this.firstName = firstName;</span>
+<span class="nc" id="L85">    }</span>
+    
+    public String getLastName() {
+<span class="nc" id="L88">        return lastName;</span>
+    }
+    
+    public void setLastName(String lastName) {
+<span class="nc" id="L92">        this.lastName = lastName;</span>
+<span class="nc" id="L93">    }</span>
+    
+    public String getEmail() {
+<span class="nc" id="L96">        return email;</span>
+    }
+    
+    public void setEmail(String email) {
+<span class="nc" id="L100">        this.email = email;</span>
+<span class="nc" id="L101">    }</span>
+    
+    public Boolean getActive() {
+<span class="nc" id="L104">        return active;</span>
+    }
+    
+    public void setActive(Boolean active) {
+<span class="nc" id="L108">        this.active = active;</span>
+<span class="nc" id="L109">    }</span>
+    
+    public LocalDateTime getCreatedAt() {
+<span class="nc" id="L112">        return createdAt;</span>
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+<span class="nc" id="L116">        this.createdAt = createdAt;</span>
+<span class="nc" id="L117">    }</span>
+    
+    public LocalDateTime getLastLogin() {
+<span class="nc" id="L120">        return lastLogin;</span>
+    }
+    
+    public void setLastLogin(LocalDateTime lastLogin) {
+<span class="nc" id="L124">        this.lastLogin = lastLogin;</span>
+<span class="nc" id="L125">    }</span>
+    
+    public String getFullName() {
+<span class="nc" id="L128">        return firstName + &quot; &quot; + lastName;</span>
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L134" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L135">        admin_hcen adminHCEN = (admin_hcen) o;</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        return Objects.equals(id, adminHCEN.id) &amp;&amp; </span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">               Objects.equals(username, adminHCEN.username);</span>
+    }
+    
+    @Override
+    public int hashCode() {
+<span class="nc" id="L142">        return Objects.hash(id, username);</span>
+    }
+    
+    @Override
+    public String toString() {
+<span class="nc" id="L147">        return &quot;admin_hcen{&quot; +</span>
+                &quot;id=&quot; + id +
+                &quot;, username='&quot; + username + '\'' +
+                &quot;, firstName='&quot; + firstName + '\'' +
+                &quot;, lastName='&quot; + lastName + '\'' +
+                &quot;, email='&quot; + email + '\'' +
+                &quot;, active=&quot; + active +
+                &quot;, createdAt=&quot; + createdAt +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioSaludService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.service</a> &gt; <span class="el_source">UsuarioSaludService.java</span></div><h1>UsuarioSaludService.java</h1><pre class="source lang-java linenums">package hcen.central.inus.service;
+
+import hcen.central.inus.dao.UsuarioClinicaDAO;
+import hcen.central.inus.dao.UsuarioSaludDAO;
+import hcen.central.inus.dto.RegistrarUsuarioRequest;
+import hcen.central.inus.dto.UsuarioSaludDTO;
+import hcen.central.inus.dto.ActualizarUsuarioSaludRequest;
+import hcen.central.inus.entity.UsuarioClinica;
+import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.enums.TipoDocumento;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
+import java.util.Optional;
+import java.util.logging.Logger;
+
+/**
+ * Service para gestión de usuarios de salud y su asociación con clínicas
+ */
+@Stateless
+<span class="nc" id="L24">public class UsuarioSaludService {</span>
+
+<span class="nc" id="L26">    private static final Logger LOGGER = Logger.getLogger(UsuarioSaludService.class.getName());</span>
+<span class="nc" id="L27">    private static final ZoneId URUGUAY_ZONE = ZoneId.of(&quot;America/Montevideo&quot;);</span>
+
+    @EJB
+    private UsuarioSaludDAO usuarioDAO;
+
+    @EJB
+    private UsuarioClinicaDAO usuarioClinicaDAO;
+
+    /**
+     * Verifica si un usuario existe por cédula
+     */
+    public boolean verificarUsuarioExiste(String cedula) {
+<span class="nc bnc" id="L39" title="All 4 branches missed.">        if (cedula == null || cedula.trim().isEmpty()) {</span>
+<span class="nc" id="L40">            throw new IllegalArgumentException(&quot;La cédula es requerida&quot;);</span>
+        }
+<span class="nc" id="L42">        return usuarioDAO.existsByCedula(cedula.trim());</span>
+    }
+
+    /**
+     * Registra un usuario en una clínica.
+     * Verifica si ya existe la combinación cedula+tenant_id.
+     * Si YA existe: retorna error indicando que ya está registrado en esa clínica
+     * Si NO existe: crea nuevo usuario en usuario_salud con todos los datos
+     */
+    public UsuarioSaludDTO registrarUsuarioEnClinica(RegistrarUsuarioRequest request) {
+        // Validaciones
+<span class="nc" id="L53">        validateRequest(request);</span>
+
+<span class="nc" id="L55">        String cedula = request.getCedula().trim();</span>
+<span class="nc" id="L56">        java.util.UUID tenantId = request.getTenantId();</span>
+
+        // Verificar si ya existe un usuario con esta cedula+tenant_id
+<span class="nc bnc" id="L59" title="All 2 branches missed.">        if (usuarioDAO.existsByCedulaAndTenantId(cedula, tenantId)) {</span>
+<span class="nc" id="L60">            LOGGER.warning(&quot;Usuario con cédula &quot; + cedula + &quot; ya está registrado en la clínica &quot; + tenantId);</span>
+<span class="nc" id="L61">            throw new IllegalArgumentException(&quot;El usuario ya está registrado en esta clínica&quot;);</span>
+        }
+
+        // Crear nuevo usuario en usuario_salud
+<span class="nc" id="L65">        LOGGER.info(&quot;Creando nuevo usuario con cédula &quot; + cedula + &quot; y tenant_id &quot; + tenantId);</span>
+<span class="nc" id="L66">        UsuarioSalud usuario = createNuevoUsuario(request);</span>
+<span class="nc" id="L67">        usuario.setTenantId(tenantId);</span>
+<span class="nc" id="L68">        usuario = usuarioDAO.save(usuario);</span>
+
+<span class="nc" id="L70">        return toDTO(usuario);</span>
+    }
+
+    /**
+     * Obtiene datos de un usuario por cédula
+     */
+    public Optional&lt;UsuarioSaludDTO&gt; getUsuarioByCedula(String cedula) {
+<span class="nc bnc" id="L77" title="All 4 branches missed.">        if (cedula == null || cedula.trim().isEmpty()) {</span>
+<span class="nc" id="L78">            throw new IllegalArgumentException(&quot;La cédula es requerida&quot;);</span>
+        }
+<span class="nc" id="L80">        return usuarioDAO.findByCedula(cedula.trim()).map(this::toDTO);</span>
+    }
+
+    /**
+     * Lista todos los usuarios de una clínica
+     */
+    public java.util.List&lt;UsuarioSaludDTO&gt; getUsuariosByTenantId(java.util.UUID tenantId) {
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        if (tenantId == null) {</span>
+<span class="nc" id="L88">            throw new IllegalArgumentException(&quot;El tenant_id es requerido&quot;);</span>
+        }
+<span class="nc" id="L90">        return usuarioDAO.findByTenantId(tenantId).stream()</span>
+<span class="nc" id="L91">            .map(this::toDTO)</span>
+<span class="nc" id="L92">            .collect(java.util.stream.Collectors.toList());</span>
+    }
+
+    /**
+     * Busca usuarios por nombre o apellido filtrados por tenant_id
+     */
+    public java.util.List&lt;UsuarioSaludDTO&gt; searchUsuariosByTenantId(String searchTerm, java.util.UUID tenantId) {
+<span class="nc bnc" id="L99" title="All 4 branches missed.">        if (searchTerm == null || searchTerm.trim().isEmpty()) {</span>
+<span class="nc" id="L100">            throw new IllegalArgumentException(&quot;El término de búsqueda es requerido&quot;);</span>
+        }
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        if (tenantId == null) {</span>
+<span class="nc" id="L103">            throw new IllegalArgumentException(&quot;El tenant_id es requerido&quot;);</span>
+        }
+<span class="nc" id="L105">        return usuarioDAO.searchByNombreOrApellidoAndTenantId(searchTerm.trim(), tenantId).stream()</span>
+<span class="nc" id="L106">            .map(this::toDTO)</span>
+<span class="nc" id="L107">            .collect(java.util.stream.Collectors.toList());</span>
+    }
+
+    /**
+     * Actualiza los datos de un usuario sin modificar su documento
+     */
+    public UsuarioSaludDTO actualizarUsuario(String cedula, ActualizarUsuarioSaludRequest request) {
+<span class="nc bnc" id="L114" title="All 4 branches missed.">        if (cedula == null || cedula.trim().isEmpty()) {</span>
+<span class="nc" id="L115">            throw new IllegalArgumentException(&quot;La cédula es requerida&quot;);</span>
+        }
+<span class="nc bnc" id="L117" title="All 2 branches missed.">        if (request == null) {</span>
+<span class="nc" id="L118">            throw new IllegalArgumentException(&quot;La solicitud de actualización es requerida&quot;);</span>
+        }
+
+<span class="nc" id="L121">        UsuarioSalud usuario = usuarioDAO.findByCedula(cedula.trim())</span>
+<span class="nc" id="L122">            .orElseThrow(() -&gt; new IllegalArgumentException(&quot;No existe un usuario con la cédula indicada&quot;));</span>
+
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        if (request.getPrimerNombre() != null) {</span>
+<span class="nc" id="L125">            String primerNombre = request.getPrimerNombre().trim();</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">            if (primerNombre.isEmpty()) {</span>
+<span class="nc" id="L127">                throw new IllegalArgumentException(&quot;El primer nombre no puede quedar vacío&quot;);</span>
+            }
+<span class="nc" id="L129">            usuario.setPrimerNombre(primerNombre);</span>
+        }
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (request.getSegundoNombre() != null) {</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">            usuario.setSegundoNombre(request.getSegundoNombre().trim().isEmpty() ? null : request.getSegundoNombre().trim());</span>
+        }
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if (request.getPrimerApellido() != null) {</span>
+<span class="nc" id="L135">            String primerApellido = request.getPrimerApellido().trim();</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">            if (primerApellido.isEmpty()) {</span>
+<span class="nc" id="L137">                throw new IllegalArgumentException(&quot;El primer apellido no puede quedar vacío&quot;);</span>
+            }
+<span class="nc" id="L139">            usuario.setPrimerApellido(primerApellido);</span>
+        }
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        if (request.getSegundoApellido() != null) {</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">            usuario.setSegundoApellido(request.getSegundoApellido().trim().isEmpty() ? null : request.getSegundoApellido().trim());</span>
+        }
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        if (request.getEmail() != null) {</span>
+<span class="nc" id="L145">            String email = request.getEmail().trim();</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">            if (email.isEmpty()) {</span>
+<span class="nc" id="L147">                throw new IllegalArgumentException(&quot;El email no puede quedar vacío&quot;);</span>
+            }
+<span class="nc" id="L149">            usuario.setEmail(email);</span>
+        }
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (request.getActivo() != null) {</span>
+<span class="nc" id="L152">            usuario.setActive(request.getActivo());</span>
+        }
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (request.getFechaNacimiento() != null) {</span>
+<span class="nc" id="L155">            LocalDate fecha = LocalDate.parse(request.getFechaNacimiento());</span>
+<span class="nc" id="L156">            usuario.setFechaNacimiento(fecha);</span>
+        }
+<span class="nc bnc" id="L158" title="All 4 branches missed.">        if (request.getTenantId() != null &amp;&amp; !request.getTenantId().isBlank()) {</span>
+<span class="nc" id="L159">            usuario.setTenantId(java.util.UUID.fromString(request.getTenantId()));</span>
+        }
+
+<span class="nc" id="L162">        usuario.setNombreCompleto(buildNombreCompleto(</span>
+<span class="nc" id="L163">            usuario.getPrimerNombre(),</span>
+<span class="nc" id="L164">            usuario.getSegundoNombre(),</span>
+<span class="nc" id="L165">            usuario.getPrimerApellido(),</span>
+<span class="nc" id="L166">            usuario.getSegundoApellido()</span>
+        ));
+
+<span class="nc" id="L169">        UsuarioSalud actualizado = usuarioDAO.save(usuario);</span>
+<span class="nc" id="L170">        return toDTO(actualizado);</span>
+    }
+
+    /**
+     * Valida la solicitud de registro
+     */
+    private void validateRequest(RegistrarUsuarioRequest request) {
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        if (request == null) {</span>
+<span class="nc" id="L178">            throw new IllegalArgumentException(&quot;La solicitud no puede ser nula&quot;);</span>
+        }
+<span class="nc bnc" id="L180" title="All 4 branches missed.">        if (request.getCedula() == null || request.getCedula().trim().isEmpty()) {</span>
+<span class="nc" id="L181">            throw new IllegalArgumentException(&quot;La cédula es requerida&quot;);</span>
+        }
+<span class="nc bnc" id="L183" title="All 4 branches missed.">        if (request.getPrimerNombre() == null || request.getPrimerNombre().trim().isEmpty()) {</span>
+<span class="nc" id="L184">            throw new IllegalArgumentException(&quot;El primer nombre es requerido&quot;);</span>
+        }
+<span class="nc bnc" id="L186" title="All 4 branches missed.">        if (request.getPrimerApellido() == null || request.getPrimerApellido().trim().isEmpty()) {</span>
+<span class="nc" id="L187">            throw new IllegalArgumentException(&quot;El primer apellido es requerido&quot;);</span>
+        }
+<span class="nc bnc" id="L189" title="All 4 branches missed.">        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {</span>
+<span class="nc" id="L190">            throw new IllegalArgumentException(&quot;El email es requerido&quot;);</span>
+        }
+<span class="nc bnc" id="L192" title="All 2 branches missed.">        if (request.getFechaNacimiento() == null) {</span>
+<span class="nc" id="L193">            throw new IllegalArgumentException(&quot;La fecha de nacimiento es requerida&quot;);</span>
+        }
+<span class="nc" id="L195">        LocalDate today = LocalDate.now(URUGUAY_ZONE);</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">        if (request.getFechaNacimiento().isAfter(today)) {</span>
+<span class="nc" id="L197">            throw new IllegalArgumentException(&quot;La fecha de nacimiento no puede ser en el futuro&quot;);</span>
+        }
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        if (Period.between(request.getFechaNacimiento(), today).getYears() &lt; 18) {</span>
+<span class="nc" id="L200">            LOGGER.warning(() -&gt; &quot;Registro permitido para usuario menor de edad: &quot; + request.getCedula());</span>
+        }
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        if (request.getTenantId() == null) {</span>
+<span class="nc" id="L203">            throw new IllegalArgumentException(&quot;El ID de la clínica (tenant_id) es requerido&quot;);</span>
+        }
+<span class="nc bnc" id="L205" title="All 2 branches missed.">        if (request.getTipoDocumento() == null) {</span>
+<span class="nc" id="L206">            request.setTipoDocumento(TipoDocumento.DO); // Default</span>
+        }
+<span class="nc" id="L208">    }</span>
+
+    /**
+     * Crea un nuevo usuario desde la solicitud
+     */
+    private UsuarioSalud createNuevoUsuario(RegistrarUsuarioRequest request) {
+<span class="nc" id="L214">        UsuarioSalud usuario = new UsuarioSalud();</span>
+<span class="nc" id="L215">        usuario.setCedula(request.getCedula().trim());</span>
+<span class="nc" id="L216">        usuario.setTipoDeDocumento(request.getTipoDocumento());</span>
+<span class="nc" id="L217">        usuario.setPrimerNombre(request.getPrimerNombre().trim());</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        usuario.setSegundoNombre(request.getSegundoNombre() != null ? request.getSegundoNombre().trim() : null);</span>
+<span class="nc" id="L219">        usuario.setPrimerApellido(request.getPrimerApellido().trim());</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">        usuario.setSegundoApellido(request.getSegundoApellido() != null ? request.getSegundoApellido().trim() : null);</span>
+<span class="nc" id="L221">        usuario.setEmail(request.getEmail().trim());</span>
+<span class="nc" id="L222">        usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
+<span class="nc" id="L223">        usuario.setEmailVerificado(false); // No verificado por defecto</span>
+<span class="nc" id="L224">        usuario.setActive(true);</span>
+
+        // Construir nombre completo
+<span class="nc" id="L227">        String nombreCompleto = buildNombreCompleto(</span>
+<span class="nc" id="L228">            request.getPrimerNombre(),</span>
+<span class="nc" id="L229">            request.getSegundoNombre(),</span>
+<span class="nc" id="L230">            request.getPrimerApellido(),</span>
+<span class="nc" id="L231">            request.getSegundoApellido()</span>
+        );
+<span class="nc" id="L233">        usuario.setNombreCompleto(nombreCompleto);</span>
+
+<span class="nc" id="L235">        return usuario;</span>
+    }
+
+    /**
+     * Actualiza los datos de un usuario existente
+     */
+    private void updateUsuarioData(UsuarioSalud usuario, RegistrarUsuarioRequest request) {
+<span class="nc" id="L242">        usuario.setPrimerNombre(request.getPrimerNombre().trim());</span>
+<span class="nc bnc" id="L243" title="All 2 branches missed.">        usuario.setSegundoNombre(request.getSegundoNombre() != null ? request.getSegundoNombre().trim() : null);</span>
+<span class="nc" id="L244">        usuario.setPrimerApellido(request.getPrimerApellido().trim());</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        usuario.setSegundoApellido(request.getSegundoApellido() != null ? request.getSegundoApellido().trim() : null);</span>
+<span class="nc" id="L246">        usuario.setEmail(request.getEmail().trim());</span>
+<span class="nc" id="L247">        usuario.setFechaNacimiento(request.getFechaNacimiento());</span>
+<span class="nc" id="L248">        usuario.setTipoDeDocumento(request.getTipoDocumento());</span>
+
+        // Actualizar nombre completo
+<span class="nc" id="L251">        String nombreCompleto = buildNombreCompleto(</span>
+<span class="nc" id="L252">            request.getPrimerNombre(),</span>
+<span class="nc" id="L253">            request.getSegundoNombre(),</span>
+<span class="nc" id="L254">            request.getPrimerApellido(),</span>
+<span class="nc" id="L255">            request.getSegundoApellido()</span>
+        );
+<span class="nc" id="L257">        usuario.setNombreCompleto(nombreCompleto);</span>
+<span class="nc" id="L258">    }</span>
+
+    /**
+     * Construye el nombre completo del usuario
+     */
+    private String buildNombreCompleto(String primerNombre, String segundoNombre,
+                                      String primerApellido, String segundoApellido) {
+<span class="nc" id="L265">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc" id="L266">        sb.append(primerNombre.trim());</span>
+<span class="nc bnc" id="L267" title="All 4 branches missed.">        if (segundoNombre != null &amp;&amp; !segundoNombre.trim().isEmpty()) {</span>
+<span class="nc" id="L268">            sb.append(&quot; &quot;).append(segundoNombre.trim());</span>
+        }
+<span class="nc" id="L270">        sb.append(&quot; &quot;).append(primerApellido.trim());</span>
+<span class="nc bnc" id="L271" title="All 4 branches missed.">        if (segundoApellido != null &amp;&amp; !segundoApellido.trim().isEmpty()) {</span>
+<span class="nc" id="L272">            sb.append(&quot; &quot;).append(segundoApellido.trim());</span>
+        }
+<span class="nc" id="L274">        return sb.toString();</span>
+    }
+
+    /**
+     * Desasocia un usuario de una clínica eliminando el registro
+     */
+    public boolean desasociarUsuarioDeClinica(String cedula, java.util.UUID tenantId) {
+        // Validaciones
+<span class="nc bnc" id="L282" title="All 4 branches missed.">        if (cedula == null || cedula.trim().isEmpty()) {</span>
+<span class="nc" id="L283">            throw new IllegalArgumentException(&quot;La cédula es requerida&quot;);</span>
+        }
+<span class="nc bnc" id="L285" title="All 2 branches missed.">        if (tenantId == null) {</span>
+<span class="nc" id="L286">            throw new IllegalArgumentException(&quot;El tenant_id de la clínica es requerido&quot;);</span>
+        }
+
+<span class="nc" id="L289">        LOGGER.info(&quot;Desasociando usuario &quot; + cedula + &quot; de clínica &quot; + tenantId);</span>
+
+        // Buscar y eliminar el usuario con esa combinación cedula+tenant_id
+<span class="nc" id="L292">        boolean deleted = usuarioDAO.deleteByCedulaAndTenantId(cedula.trim(), tenantId);</span>
+
+<span class="nc bnc" id="L294" title="All 2 branches missed.">        if (deleted) {</span>
+<span class="nc" id="L295">            LOGGER.info(&quot;Usuario desasociado exitosamente&quot;);</span>
+        } else {
+<span class="nc" id="L297">            LOGGER.warning(&quot;No se encontró el usuario en esa clínica&quot;);</span>
+        }
+
+<span class="nc" id="L300">        return deleted;</span>
+    }
+
+    /**
+     * Convierte entidad a DTO
+     */
+    private UsuarioSaludDTO toDTO(UsuarioSalud entity) {
+<span class="nc" id="L307">        UsuarioSaludDTO dto = new UsuarioSaludDTO();</span>
+<span class="nc" id="L308">        dto.setId(entity.getId());</span>
+<span class="nc" id="L309">        dto.setCedula(entity.getCedula());</span>
+<span class="nc" id="L310">        dto.setTipoDocumento(entity.getTipoDeDocumento());</span>
+<span class="nc" id="L311">        dto.setFechaNacimiento(entity.getFechaNacimiento());</span>
+<span class="nc" id="L312">        dto.setEmail(entity.getEmail());</span>
+<span class="nc" id="L313">        dto.setEmailVerificado(entity.getEmailVerificado());</span>
+<span class="nc" id="L314">        dto.setNombreCompleto(entity.getNombreCompleto());</span>
+<span class="nc" id="L315">        dto.setPrimerNombre(entity.getPrimerNombre());</span>
+<span class="nc" id="L316">        dto.setSegundoNombre(entity.getSegundoNombre());</span>
+<span class="nc" id="L317">        dto.setPrimerApellido(entity.getPrimerApellido());</span>
+<span class="nc" id="L318">        dto.setSegundoApellido(entity.getSegundoApellido());</span>
+<span class="nc" id="L319">        dto.setActive(entity.getActive());</span>
+<span class="nc" id="L320">        dto.setCreatedAt(entity.getCreatedAt());</span>
+<span class="nc" id="L321">        dto.setUpdatedAt(entity.getUpdatedAt());</span>
+<span class="nc" id="L322">        return dto;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

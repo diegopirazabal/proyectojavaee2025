@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FirebaseInitializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.config</a> &gt; <span class="el_source">FirebaseInitializer.java</span></div><h1>FirebaseInitializer.java</h1><pre class="source lang-java linenums">package hcen.central.inus.config;
+
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.messaging.FirebaseMessaging;
+import jakarta.annotation.PostConstruct;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+@Singleton
+@Startup
+<span class="nc" id="L23">public class FirebaseInitializer {</span>
+
+<span class="nc" id="L25">    private static final Logger LOGGER = Logger.getLogger(FirebaseInitializer.class.getName());</span>
+    private static final String ENV_VAR_NAME = &quot;FIREBASE_CREDENTIALS&quot;;
+    private static final String SYS_PROP_NAME = &quot;firebase.credentials&quot;;
+
+    private FirebaseApp firebaseApp;
+
+    @PostConstruct
+    public void init() {
+<span class="nc" id="L33">        Optional&lt;InputStream&gt; credentialsStream = resolveCredentialsStream();</span>
+
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (credentialsStream.isEmpty()) {</span>
+<span class="nc" id="L36">            LOGGER.warning(() -&gt; &quot;Firebase credentials not configured; push notifications will be skipped.&quot;);</span>
+<span class="nc" id="L37">            return;</span>
+        }
+
+<span class="nc" id="L40">        try (InputStream stream = credentialsStream.get()) {</span>
+<span class="nc" id="L41">            FirebaseOptions options = FirebaseOptions.builder()</span>
+<span class="nc" id="L42">                    .setCredentials(GoogleCredentials.fromStream(stream))</span>
+<span class="nc" id="L43">                    .build();</span>
+
+<span class="nc" id="L45">            List&lt;FirebaseApp&gt; apps = FirebaseApp.getApps();</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">            if (apps.isEmpty()) {</span>
+<span class="nc" id="L47">                firebaseApp = FirebaseApp.initializeApp(options);</span>
+<span class="nc" id="L48">                LOGGER.info(&quot;Firebase app initialized for notifications.&quot;);</span>
+            } else {
+                // Reuse already bootstrapped app inside the same JVM.
+<span class="nc" id="L51">                firebaseApp = apps.get(0);</span>
+<span class="nc" id="L52">                LOGGER.info(&quot;Firebase app already initialized; reusing existing instance.&quot;);</span>
+            }
+<span class="nc" id="L54">        } catch (IOException e) {</span>
+<span class="nc" id="L55">            LOGGER.log(Level.SEVERE, &quot;Failed to initialize Firebase app; notifications will not be sent.&quot;, e);</span>
+<span class="nc" id="L56">        }</span>
+<span class="nc" id="L57">    }</span>
+
+    public boolean isReady() {
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        return firebaseApp != null;</span>
+    }
+
+    public FirebaseMessaging getMessaging() {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (!isReady()) {</span>
+<span class="nc" id="L65">            throw new IllegalStateException(&quot;Firebase not initialized. Verify credentials configuration.&quot;);</span>
+        }
+<span class="nc" id="L67">        return FirebaseMessaging.getInstance(firebaseApp);</span>
+    }
+
+    private Optional&lt;InputStream&gt; resolveCredentialsStream() {
+        // First look for external path provided via env var or system property.
+<span class="nc" id="L72">        String configuredPath = Optional.ofNullable(System.getenv(ENV_VAR_NAME))</span>
+<span class="nc" id="L73">                .orElse(System.getProperty(SYS_PROP_NAME));</span>
+
+<span class="nc bnc" id="L75" title="All 4 branches missed.">        if (configuredPath != null &amp;&amp; !configuredPath.isBlank()) {</span>
+<span class="nc" id="L76">            Path path = Paths.get(configuredPath);</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">            if (Files.exists(path)) {</span>
+                try {
+<span class="nc" id="L79">                    return Optional.of(Files.newInputStream(path));</span>
+<span class="nc" id="L80">                } catch (IOException e) {</span>
+<span class="nc" id="L81">                    LOGGER.log(Level.WARNING, &quot;Unable to read Firebase credentials from configured path: &quot; + configuredPath, e);</span>
+<span class="nc" id="L82">                }</span>
+            } else {
+<span class="nc" id="L84">                LOGGER.warning(() -&gt; &quot;Configured Firebase credentials path not found: &quot; + configuredPath);</span>
+            }
+        }
+
+        // Fallback: try to load from classpath (for local development only).
+<span class="nc" id="L89">        InputStream classpathStream = Thread.currentThread()</span>
+<span class="nc" id="L90">                .getContextClassLoader()</span>
+<span class="nc" id="L91">                .getResourceAsStream(&quot;firebase-service-account.json&quot;);</span>
+
+<span class="nc" id="L93">        return Optional.ofNullable(classpathStream);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

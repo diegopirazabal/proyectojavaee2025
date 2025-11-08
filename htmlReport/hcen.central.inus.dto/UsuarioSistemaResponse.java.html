@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioSistemaResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.dto</a> &gt; <span class="el_source">UsuarioSistemaResponse.java</span></div><h1>UsuarioSistemaResponse.java</h1><pre class="source lang-java linenums">package hcen.central.inus.dto;
+
+import hcen.central.inus.enums.UsuarioSistemaTipo;
+
+import java.io.Serializable;
+
+<span class="fc" id="L7">public class UsuarioSistemaResponse implements Serializable {</span>
+
+    private static final long serialVersionUID = 1L;
+
+    private UsuarioSistemaTipo tipo;
+    private String origen;
+    private String id;
+    private String tipoDocumento;
+    private String numeroDocumento;
+    private String primerNombre;
+    private String segundoNombre;
+    private String primerApellido;
+    private String segundoApellido;
+    private String nombreCompleto;
+    private String email;
+    private Boolean activo;
+    private String fechaNacimiento;
+    private String especialidad;
+    private String tenantId;
+    private String username;
+
+    public UsuarioSistemaTipo getTipo() {
+<span class="fc" id="L29">        return tipo;</span>
+    }
+
+    public void setTipo(UsuarioSistemaTipo tipo) {
+<span class="fc" id="L33">        this.tipo = tipo;</span>
+<span class="fc" id="L34">    }</span>
+
+    public String getOrigen() {
+<span class="fc" id="L37">        return origen;</span>
+    }
+
+    public void setOrigen(String origen) {
+<span class="fc" id="L41">        this.origen = origen;</span>
+<span class="fc" id="L42">    }</span>
+
+    public String getId() {
+<span class="nc" id="L45">        return id;</span>
+    }
+
+    public void setId(String id) {
+<span class="fc" id="L49">        this.id = id;</span>
+<span class="fc" id="L50">    }</span>
+
+    public String getTipoDocumento() {
+<span class="nc" id="L53">        return tipoDocumento;</span>
+    }
+
+    public void setTipoDocumento(String tipoDocumento) {
+<span class="fc" id="L57">        this.tipoDocumento = tipoDocumento;</span>
+<span class="fc" id="L58">    }</span>
+
+    public String getNumeroDocumento() {
+<span class="fc" id="L61">        return numeroDocumento;</span>
+    }
+
+    public void setNumeroDocumento(String numeroDocumento) {
+<span class="fc" id="L65">        this.numeroDocumento = numeroDocumento;</span>
+<span class="fc" id="L66">    }</span>
+
+    public String getPrimerNombre() {
+<span class="nc" id="L69">        return primerNombre;</span>
+    }
+
+    public void setPrimerNombre(String primerNombre) {
+<span class="fc" id="L73">        this.primerNombre = primerNombre;</span>
+<span class="fc" id="L74">    }</span>
+
+    public String getSegundoNombre() {
+<span class="nc" id="L77">        return segundoNombre;</span>
+    }
+
+    public void setSegundoNombre(String segundoNombre) {
+<span class="fc" id="L81">        this.segundoNombre = segundoNombre;</span>
+<span class="fc" id="L82">    }</span>
+
+    public String getPrimerApellido() {
+<span class="nc" id="L85">        return primerApellido;</span>
+    }
+
+    public void setPrimerApellido(String primerApellido) {
+<span class="fc" id="L89">        this.primerApellido = primerApellido;</span>
+<span class="fc" id="L90">    }</span>
+
+    public String getSegundoApellido() {
+<span class="nc" id="L93">        return segundoApellido;</span>
+    }
+
+    public void setSegundoApellido(String segundoApellido) {
+<span class="fc" id="L97">        this.segundoApellido = segundoApellido;</span>
+<span class="fc" id="L98">    }</span>
+
+    public String getNombreCompleto() {
+<span class="fc" id="L101">        return nombreCompleto;</span>
+    }
+
+    public void setNombreCompleto(String nombreCompleto) {
+<span class="fc" id="L105">        this.nombreCompleto = nombreCompleto;</span>
+<span class="fc" id="L106">    }</span>
+
+    public String getEmail() {
+<span class="fc" id="L109">        return email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="fc" id="L113">        this.email = email;</span>
+<span class="fc" id="L114">    }</span>
+
+    public Boolean getActivo() {
+<span class="fc" id="L117">        return activo;</span>
+    }
+
+    public void setActivo(Boolean activo) {
+<span class="fc" id="L121">        this.activo = activo;</span>
+<span class="fc" id="L122">    }</span>
+
+    public String getFechaNacimiento() {
+<span class="fc" id="L125">        return fechaNacimiento;</span>
+    }
+
+    public void setFechaNacimiento(String fechaNacimiento) {
+<span class="fc" id="L129">        this.fechaNacimiento = fechaNacimiento;</span>
+<span class="fc" id="L130">    }</span>
+
+    public String getEspecialidad() {
+<span class="nc" id="L133">        return especialidad;</span>
+    }
+
+    public void setEspecialidad(String especialidad) {
+<span class="nc" id="L137">        this.especialidad = especialidad;</span>
+<span class="nc" id="L138">    }</span>
+
+    public String getTenantId() {
+<span class="fc" id="L141">        return tenantId;</span>
+    }
+
+    public void setTenantId(String tenantId) {
+<span class="fc" id="L145">        this.tenantId = tenantId;</span>
+<span class="fc" id="L146">    }</span>
+
+    public String getUsername() {
+<span class="nc" id="L149">        return username;</span>
+    }
+
+    public void setUsername(String username) {
+<span class="nc" id="L153">        this.username = username;</span>
+<span class="nc" id="L154">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

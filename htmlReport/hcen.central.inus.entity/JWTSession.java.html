@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JWTSession.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.entity</a> &gt; <span class="el_source">JWTSession.java</span></div><h1>JWTSession.java</h1><pre class="source lang-java linenums">package hcen.central.inus.entity;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.Objects;
+
+/**
+ * Entidad que representa una sesión JWT activa para clientes (componente-periferico)
+ * Almacena el JWT generado para evitar validaciones repetidas
+ */
+@Entity
+@Table(name = &quot;jwt_sessions&quot;, indexes = {
+    @Index(name = &quot;idx_jwt_token&quot;, columnList = &quot;jwt_token&quot;),
+    @Index(name = &quot;idx_client_id&quot;, columnList = &quot;client_id&quot;),
+    @Index(name = &quot;idx_expires_at&quot;, columnList = &quot;expires_at&quot;)
+})
+public class JWTSession {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(name = &quot;client_id&quot;, nullable = false, length = 100)
+    private String clientId;
+    
+    @Column(name = &quot;jwt_token&quot;, nullable = false, length = 2048)
+    private String jwtToken;
+    
+    @Column(name = &quot;issued_at&quot;, nullable = false, columnDefinition = &quot;TIMESTAMP&quot;)
+    private LocalDateTime issuedAt;
+    
+    @Column(name = &quot;expires_at&quot;, nullable = false, columnDefinition = &quot;TIMESTAMP&quot;)
+    private LocalDateTime expiresAt;
+    
+    @Column(name = &quot;last_used_at&quot;, columnDefinition = &quot;TIMESTAMP&quot;)
+    private LocalDateTime lastUsedAt;
+    
+<span class="nc" id="L38">    @Column(nullable = false)</span>
+<span class="nc" id="L39">    private Boolean active = true;</span>
+    
+    @PrePersist
+    protected void onCreate() {
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        if (issuedAt == null) {</span>
+<span class="nc" id="L44">            issuedAt = LocalDateTime.now();</span>
+        }
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (lastUsedAt == null) {</span>
+<span class="nc" id="L47">            lastUsedAt = LocalDateTime.now();</span>
+        }
+<span class="nc" id="L49">    }</span>
+    
+<span class="nc" id="L51">    public JWTSession() {}</span>
+    
+<span class="nc" id="L53">    public JWTSession(String clientId, String jwtToken, LocalDateTime expiresAt) {</span>
+<span class="nc" id="L54">        this.clientId = clientId;</span>
+<span class="nc" id="L55">        this.jwtToken = jwtToken;</span>
+<span class="nc" id="L56">        this.expiresAt = expiresAt;</span>
+<span class="nc" id="L57">    }</span>
+    
+    // Getters and Setters
+    public Long getId() {
+<span class="nc" id="L61">        return id;</span>
+    }
+    
+    public void setId(Long id) {
+<span class="nc" id="L65">        this.id = id;</span>
+<span class="nc" id="L66">    }</span>
+    
+    public String getClientId() {
+<span class="nc" id="L69">        return clientId;</span>
+    }
+    
+    public void setClientId(String clientId) {
+<span class="nc" id="L73">        this.clientId = clientId;</span>
+<span class="nc" id="L74">    }</span>
+    
+    public String getJwtToken() {
+<span class="nc" id="L77">        return jwtToken;</span>
+    }
+    
+    public void setJwtToken(String jwtToken) {
+<span class="nc" id="L81">        this.jwtToken = jwtToken;</span>
+<span class="nc" id="L82">    }</span>
+    
+    public LocalDateTime getIssuedAt() {
+<span class="nc" id="L85">        return issuedAt;</span>
+    }
+    
+    public void setIssuedAt(LocalDateTime issuedAt) {
+<span class="nc" id="L89">        this.issuedAt = issuedAt;</span>
+<span class="nc" id="L90">    }</span>
+    
+    public LocalDateTime getExpiresAt() {
+<span class="nc" id="L93">        return expiresAt;</span>
+    }
+    
+    public void setExpiresAt(LocalDateTime expiresAt) {
+<span class="nc" id="L97">        this.expiresAt = expiresAt;</span>
+<span class="nc" id="L98">    }</span>
+    
+    public LocalDateTime getLastUsedAt() {
+<span class="nc" id="L101">        return lastUsedAt;</span>
+    }
+    
+    public void setLastUsedAt(LocalDateTime lastUsedAt) {
+<span class="nc" id="L105">        this.lastUsedAt = lastUsedAt;</span>
+<span class="nc" id="L106">    }</span>
+    
+    public Boolean getActive() {
+<span class="nc" id="L109">        return active;</span>
+    }
+    
+    public void setActive(Boolean active) {
+<span class="nc" id="L113">        this.active = active;</span>
+<span class="nc" id="L114">    }</span>
+    
+    public boolean isExpired() {
+<span class="nc" id="L117">        return LocalDateTime.now().isAfter(expiresAt);</span>
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L123" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L124">        JWTSession that = (JWTSession) o;</span>
+<span class="nc bnc" id="L125" title="All 4 branches missed.">        return Objects.equals(id, that.id) &amp;&amp; Objects.equals(jwtToken, that.jwtToken);</span>
+    }
+    
+    @Override
+    public int hashCode() {
+<span class="nc" id="L130">        return Objects.hash(id, jwtToken);</span>
+    }
+    
+    @Override
+    public String toString() {
+<span class="nc" id="L135">        return &quot;JWTSession{&quot; +</span>
+                &quot;id=&quot; + id +
+                &quot;, clientId='&quot; + clientId + '\'' +
+                &quot;, issuedAt=&quot; + issuedAt +
+                &quot;, expiresAt=&quot; + expiresAt +
+                &quot;, active=&quot; + active +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OIDCConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.security.config</a> &gt; <span class="el_source">OIDCConfiguration.java</span></div><h1>OIDCConfiguration.java</h1><pre class="source lang-java linenums">package hcen.central.inus.security.config;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+import java.util.logging.Logger;
+
+
+@Singleton
+@Startup
+<span class="nc" id="L14">public class OIDCConfiguration {</span>
+
+<span class="nc" id="L16">    private static final Logger logger = Logger.getLogger(OIDCConfiguration.class.getName());</span>
+    private static final String CONFIG_FILE = &quot;/META-INF/oidc-config.properties&quot;;
+
+    private String issuer;
+    private String clientId;
+    private String clientSecret;
+    private String redirectUri;
+    private String authorizationEndpoint;
+    private String tokenEndpoint;
+    private String userInfoEndpoint;
+    private String jwksUri;
+    private String scope;
+
+    // Configuración JWT propia (para tokens de sesión nuestros)
+    private String jwtSecret;
+    private long jwtExpirationMs;
+    private long refreshTokenExpirationMs;
+
+    @PostConstruct
+    public void init() {
+<span class="nc" id="L36">        logger.info(&quot;Inicializando configuración OIDC...&quot;);</span>
+<span class="nc" id="L37">        loadConfiguration();</span>
+<span class="nc" id="L38">        validateConfiguration();</span>
+<span class="nc" id="L39">        logger.info(&quot;Configuración OIDC cargada exitosamente&quot;);</span>
+<span class="nc" id="L40">    }</span>
+
+    private void loadConfiguration() {
+<span class="nc" id="L43">        Properties props = new Properties();</span>
+
+<span class="nc" id="L45">        try (InputStream input = getClass().getResourceAsStream(CONFIG_FILE)) {</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">            if (input == null) {</span>
+<span class="nc" id="L47">                throw new RuntimeException(&quot;No se encontró el archivo: &quot; + CONFIG_FILE);</span>
+            }
+
+<span class="nc" id="L50">            props.load(input);</span>
+
+            // OIDC Properties
+<span class="nc" id="L53">            this.issuer = getRequiredProperty(props, &quot;oidc.issuer&quot;);</span>
+<span class="nc" id="L54">            this.clientId = getRequiredProperty(props, &quot;oidc.client.id&quot;);</span>
+<span class="nc" id="L55">            this.clientSecret = getRequiredProperty(props, &quot;oidc.client.secret&quot;);</span>
+<span class="nc" id="L56">            this.redirectUri = getRequiredProperty(props, &quot;oidc.redirect.uri&quot;);</span>
+<span class="nc" id="L57">            this.authorizationEndpoint = getRequiredProperty(props, &quot;oidc.authorization.endpoint&quot;);</span>
+<span class="nc" id="L58">            this.tokenEndpoint = getRequiredProperty(props, &quot;oidc.token.endpoint&quot;);</span>
+<span class="nc" id="L59">            this.userInfoEndpoint = getRequiredProperty(props, &quot;oidc.userinfo.endpoint&quot;);</span>
+<span class="nc" id="L60">            this.jwksUri = getRequiredProperty(props, &quot;oidc.jwks.uri&quot;);</span>
+<span class="nc" id="L61">            this.scope = props.getProperty(&quot;oidc.scope&quot;, &quot;openid profile email document&quot;);</span>
+
+            // JWT Properties
+<span class="nc" id="L64">            this.jwtSecret = getRequiredProperty(props, &quot;jwt.secret&quot;);</span>
+<span class="nc" id="L65">            this.jwtExpirationMs = Long.parseLong(</span>
+<span class="nc" id="L66">                    props.getProperty(&quot;jwt.access.token.expiration&quot;, &quot;3600000&quot;) // 1 hora default</span>
+            );
+<span class="nc" id="L68">            this.refreshTokenExpirationMs = Long.parseLong(</span>
+<span class="nc" id="L69">                    props.getProperty(&quot;jwt.refresh.token.expiration&quot;, &quot;86400000&quot;) // 24 horas default</span>
+            );
+
+<span class="nc" id="L72">        } catch (IOException e) {</span>
+<span class="nc" id="L73">            throw new RuntimeException(&quot;Error al cargar configuración OIDC&quot;, e);</span>
+<span class="nc" id="L74">        }</span>
+<span class="nc" id="L75">    }</span>
+
+    private String getRequiredProperty(Properties props, String key) {
+<span class="nc" id="L78">        String value = props.getProperty(key);</span>
+<span class="nc bnc" id="L79" title="All 4 branches missed.">        if (value == null || value.trim().isEmpty()) {</span>
+<span class="nc" id="L80">            throw new RuntimeException(&quot;Propiedad requerida no encontrada: &quot; + key);</span>
+        }
+<span class="nc" id="L82">        return value.trim();</span>
+    }
+
+    private void validateConfiguration() {
+<span class="nc" id="L86">        logger.info(&quot;Validando configuración OIDC...&quot;);</span>
+        
+        // Validar URLs
+<span class="nc" id="L89">        validateUrl(issuer, &quot;issuer&quot;);</span>
+<span class="nc" id="L90">        validateUrl(authorizationEndpoint, &quot;authorization endpoint&quot;);</span>
+<span class="nc" id="L91">        validateUrl(tokenEndpoint, &quot;token endpoint&quot;);</span>
+<span class="nc" id="L92">        validateUrl(userInfoEndpoint, &quot;userinfo endpoint&quot;);</span>
+<span class="nc" id="L93">        validateUrl(jwksUri, &quot;JWKS URI&quot;);</span>
+<span class="nc" id="L94">        validateUrl(redirectUri, &quot;redirect URI&quot;);</span>
+        
+<span class="nc" id="L96">        logger.info(&quot;Configuración OIDC válida&quot;);</span>
+<span class="nc" id="L97">    }</span>
+    
+    private void validateUrl(String url, String fieldName) {
+<span class="nc bnc" id="L100" title="All 4 branches missed.">        if (!url.startsWith(&quot;http://&quot;) &amp;&amp; !url.startsWith(&quot;https://&quot;)) {</span>
+<span class="nc" id="L101">            throw new RuntimeException(fieldName + &quot; debe ser una URL válida (http:// o https://): &quot; + url);</span>
+        }
+<span class="nc" id="L103">    }</span>
+
+    // Getters
+<span class="nc" id="L106">    public String getIssuer() { return issuer; }</span>
+<span class="nc" id="L107">    public String getClientId() { return clientId; }</span>
+<span class="nc" id="L108">    public String getClientSecret() { return clientSecret; }</span>
+<span class="nc" id="L109">    public String getRedirectUri() { return redirectUri; }</span>
+<span class="nc" id="L110">    public String getAuthorizationEndpoint() { return authorizationEndpoint; }</span>
+<span class="nc" id="L111">    public String getTokenEndpoint() { return tokenEndpoint; }</span>
+<span class="nc" id="L112">    public String getUserInfoEndpoint() { return userInfoEndpoint; }</span>
+<span class="nc" id="L113">    public String getUserinfoEndpoint() { return userInfoEndpoint; } // Alias</span>
+<span class="nc" id="L114">    public String getJwksUri() { return jwksUri; }</span>
+<span class="nc" id="L115">    public String getScope() { return scope; }</span>
+<span class="nc" id="L116">    public String getJwtSecret() { return jwtSecret; }</span>
+<span class="nc" id="L117">    public long getJwtExpirationMs() { return jwtExpirationMs; }</span>
+<span class="nc" id="L118">    public long getRefreshTokenExpirationMs() { return refreshTokenExpirationMs; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>fcm_resource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.notifications.api</a> &gt; <span class="el_source">fcm_resource.java</span></div><h1>fcm_resource.java</h1><pre class="source lang-java linenums">package hcen.central.notifications.api;
+
+import hcen.central.notifications.dto.ApiResponse;
+import hcen.central.notifications.dto.FCMTokenRequest;
+import hcen.central.notifications.dto.FCMUnregisterRequest;
+import hcen.central.notifications.entity.FCMToken;
+import hcen.central.notifications.service.fcm_token_service;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
+import java.util.logging.Logger;
+
+/**
+ * Recurso REST para gestión de tokens FCM
+ * Implementa los endpoints definidos en openapi-mobile.yaml
+ *
+ * Endpoints:
+ * - POST /api/fcm/register - Registrar token FCM
+ * - POST /api/fcm/unregister - Eliminar token FCM
+ */
+@Stateless
+@Path(&quot;/fcm&quot;)
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+<span class="nc" id="L29">public class fcm_resource {</span>
+
+<span class="nc" id="L31">    private static final Logger logger = Logger.getLogger(fcm_resource.class.getName());</span>
+
+    @EJB
+    private fcm_token_service fcmTokenService;
+
+    /**
+     * POST /api/fcm/register
+     * Registrar o actualizar token FCM del dispositivo
+     *
+     * NOTA: Este endpoint requiere autenticación JWT.
+     * El usuarioId debe extraerse del token JWT en producción.
+     * Por ahora se usa un ID hardcodeado para desarrollo.
+     */
+    @POST
+    @Path(&quot;/register&quot;)
+    public Response registerToken(FCMTokenRequest request, @Context SecurityContext securityContext) {
+        try {
+            // Validar request
+<span class="nc bnc" id="L49" title="All 2 branches missed.">            if (request == null) {</span>
+<span class="nc" id="L50">                return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L51">                        .entity(ApiResponse.error(&quot;El cuerpo de la solicitud es requerido&quot;))</span>
+<span class="nc" id="L52">                        .build();</span>
+            }
+
+<span class="nc bnc" id="L55" title="All 4 branches missed.">            if (request.getToken() == null || request.getToken().trim().isEmpty()) {</span>
+<span class="nc" id="L56">                return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L57">                        .entity(ApiResponse.error(&quot;El token FCM es requerido&quot;))</span>
+<span class="nc" id="L58">                        .build();</span>
+            }
+
+<span class="nc bnc" id="L61" title="All 4 branches missed.">            if (request.getDeviceId() == null || request.getDeviceId().trim().isEmpty()) {</span>
+<span class="nc" id="L62">                return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L63">                        .entity(ApiResponse.error(&quot;El deviceId es requerido&quot;))</span>
+<span class="nc" id="L64">                        .build();</span>
+            }
+
+            // TODO: Extraer usuarioId del JWT token
+            // Por ahora usamos un ID hardcodeado para desarrollo
+            // En producción, esto debe obtenerse del SecurityContext o del JWT
+            // Ejemplo: Long usuarioId = extractUserIdFromJWT(securityContext);
+<span class="nc" id="L71">            Long usuarioId = 1L; // TEMPORAL - Reemplazar con extracción del JWT</span>
+
+<span class="nc" id="L73">            logger.info(&quot;Registrando token FCM para usuario &quot; + usuarioId +</span>
+<span class="nc" id="L74">                       &quot; desde dispositivo &quot; + request.getDeviceId());</span>
+
+            // Registrar el token
+<span class="nc" id="L77">            FCMToken savedToken = fcmTokenService.registerToken(</span>
+                    usuarioId,
+<span class="nc" id="L79">                    request.getToken(),</span>
+<span class="nc" id="L80">                    request.getDeviceId(),</span>
+<span class="nc" id="L81">                    request.getDeviceModel(),</span>
+<span class="nc" id="L82">                    request.getOsVersion()</span>
+            );
+
+<span class="nc" id="L85">            logger.info(&quot;Token FCM registrado exitosamente: &quot; + savedToken.getId());</span>
+
+            // Retornar respuesta exitosa
+<span class="nc" id="L88">            return Response.ok(</span>
+<span class="nc" id="L89">                    ApiResponse.success(null, &quot;Token FCM registrado exitosamente&quot;)</span>
+<span class="nc" id="L90">            ).build();</span>
+
+<span class="nc" id="L92">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L93">            logger.warning(&quot;Error de validación al registrar token FCM: &quot; + e.getMessage());</span>
+<span class="nc" id="L94">            return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L95">                    .entity(ApiResponse.error(e.getMessage()))</span>
+<span class="nc" id="L96">                    .build();</span>
+
+<span class="nc" id="L98">        } catch (Exception e) {</span>
+<span class="nc" id="L99">            logger.severe(&quot;Error interno al registrar token FCM: &quot; + e.getMessage());</span>
+<span class="nc" id="L100">            e.printStackTrace();</span>
+<span class="nc" id="L101">            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L102">                    .entity(ApiResponse.error(&quot;Error interno del servidor&quot;))</span>
+<span class="nc" id="L103">                    .build();</span>
+        }
+    }
+
+    /**
+     * POST /api/fcm/unregister
+     * Eliminar token FCM cuando el usuario cierra sesión o desinstala la app
+     */
+    @POST
+    @Path(&quot;/unregister&quot;)
+    public Response unregisterToken(FCMUnregisterRequest request) {
+        try {
+            // Validar request
+<span class="nc bnc" id="L116" title="All 6 branches missed.">            if (request == null || request.getToken() == null || request.getToken().trim().isEmpty()) {</span>
+<span class="nc" id="L117">                return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L118">                        .entity(ApiResponse.error(&quot;El token FCM es requerido&quot;))</span>
+<span class="nc" id="L119">                        .build();</span>
+            }
+
+<span class="nc" id="L122">            logger.info(&quot;Eliminando token FCM&quot;);</span>
+
+            // Eliminar el token
+<span class="nc" id="L125">            boolean deleted = fcmTokenService.unregisterToken(request.getToken());</span>
+
+<span class="nc bnc" id="L127" title="All 2 branches missed.">            if (deleted) {</span>
+<span class="nc" id="L128">                logger.info(&quot;Token FCM eliminado exitosamente&quot;);</span>
+<span class="nc" id="L129">                return Response.ok(</span>
+<span class="nc" id="L130">                        ApiResponse.success(null, &quot;Token FCM eliminado exitosamente&quot;)</span>
+<span class="nc" id="L131">                ).build();</span>
+            } else {
+<span class="nc" id="L133">                logger.warning(&quot;Token FCM no encontrado para eliminar&quot;);</span>
+                // Según el contrato OpenAPI, aún retornamos 200 OK
+<span class="nc" id="L135">                return Response.ok(</span>
+<span class="nc" id="L136">                        ApiResponse.success(null, &quot;Token FCM procesado&quot;)</span>
+<span class="nc" id="L137">                ).build();</span>
+            }
+
+<span class="nc" id="L140">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L141">            logger.warning(&quot;Error de validación al eliminar token FCM: &quot; + e.getMessage());</span>
+<span class="nc" id="L142">            return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L143">                    .entity(ApiResponse.error(e.getMessage()))</span>
+<span class="nc" id="L144">                    .build();</span>
+
+<span class="nc" id="L146">        } catch (Exception e) {</span>
+<span class="nc" id="L147">            logger.severe(&quot;Error interno al eliminar token FCM: &quot; + e.getMessage());</span>
+<span class="nc" id="L148">            e.printStackTrace();</span>
+<span class="nc" id="L149">            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L150">                    .entity(ApiResponse.error(&quot;Error interno del servidor&quot;))</span>
+<span class="nc" id="L151">                    .build();</span>
+        }
+    }
+
+    /**
+     * Método helper para extraer el usuario ID del JWT
+     * TODO: Implementar extracción real del JWT
+     */
+    private Long extractUserIdFromJWT(SecurityContext securityContext) {
+        // Implementación pendiente - debe extraer el ID del usuario del JWT
+        // Por ejemplo, usando JWTTokenProvider o similar
+<span class="nc" id="L162">        throw new UnsupportedOperationException(&quot;Extracción de usuario del JWT no implementada aún&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

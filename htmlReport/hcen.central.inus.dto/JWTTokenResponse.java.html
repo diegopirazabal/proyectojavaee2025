@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JWTTokenResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.dto</a> &gt; <span class="el_source">JWTTokenResponse.java</span></div><h1>JWTTokenResponse.java</h1><pre class="source lang-java linenums">package hcen.central.inus.dto;
+
+import java.util.List;
+
+/**
+ * DTO para respuesta de tokens JWT propios del sistema
+ * Se retorna después de autenticación exitosa con gub.uy
+ */
+public class JWTTokenResponse {
+    
+    private String accessToken;
+    private String refreshToken;
+<span class="nc" id="L13">    private String tokenType = &quot;Bearer&quot;;</span>
+    private long expiresIn; // segundos
+    private String userSub;
+    private List&lt;String&gt; roles;
+    private String warningMessage;
+    
+<span class="nc" id="L19">    public JWTTokenResponse() {}</span>
+    
+<span class="nc" id="L21">    public JWTTokenResponse(String accessToken, String refreshToken, long expiresIn, String userSub, List&lt;String&gt; roles) {</span>
+<span class="nc" id="L22">        this.accessToken = accessToken;</span>
+<span class="nc" id="L23">        this.refreshToken = refreshToken;</span>
+<span class="nc" id="L24">        this.expiresIn = expiresIn;</span>
+<span class="nc" id="L25">        this.userSub = userSub;</span>
+<span class="nc" id="L26">        this.roles = roles;</span>
+<span class="nc" id="L27">    }</span>
+    
+<span class="nc" id="L29">    public JWTTokenResponse(String accessToken, String refreshToken, String tokenType, long expiresIn, String userSub, List&lt;String&gt; roles) {</span>
+<span class="nc" id="L30">        this.accessToken = accessToken;</span>
+<span class="nc" id="L31">        this.refreshToken = refreshToken;</span>
+<span class="nc" id="L32">        this.tokenType = tokenType;</span>
+<span class="nc" id="L33">        this.expiresIn = expiresIn;</span>
+<span class="nc" id="L34">        this.userSub = userSub;</span>
+<span class="nc" id="L35">        this.roles = roles;</span>
+<span class="nc" id="L36">    }</span>
+    
+    // Getters/Setters
+<span class="nc" id="L39">    public String getAccessToken() { return accessToken; }</span>
+<span class="nc" id="L40">    public void setAccessToken(String accessToken) { this.accessToken = accessToken; }</span>
+    
+<span class="nc" id="L42">    public String getRefreshToken() { return refreshToken; }</span>
+<span class="nc" id="L43">    public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }</span>
+    
+<span class="nc" id="L45">    public String getTokenType() { return tokenType; }</span>
+<span class="nc" id="L46">    public void setTokenType(String tokenType) { this.tokenType = tokenType; }</span>
+    
+<span class="nc" id="L48">    public long getExpiresIn() { return expiresIn; }</span>
+<span class="nc" id="L49">    public void setExpiresIn(long expiresIn) { this.expiresIn = expiresIn; }</span>
+    
+<span class="nc" id="L51">    public String getUserSub() { return userSub; }</span>
+<span class="nc" id="L52">    public void setUserSub(String userSub) { this.userSub = userSub; }</span>
+    
+<span class="nc" id="L54">    public List&lt;String&gt; getRoles() { return roles; }</span>
+<span class="nc" id="L55">    public void setRoles(List&lt;String&gt; roles) { this.roles = roles; }</span>
+
+<span class="nc" id="L57">    public String getWarningMessage() { return warningMessage; }</span>
+<span class="nc" id="L58">    public void setWarningMessage(String warningMessage) { this.warningMessage = warningMessage; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

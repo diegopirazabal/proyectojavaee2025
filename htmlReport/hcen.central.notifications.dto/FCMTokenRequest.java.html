@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FCMTokenRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.notifications.dto</a> &gt; <span class="el_source">FCMTokenRequest.java</span></div><h1>FCMTokenRequest.java</h1><pre class="source lang-java linenums">package hcen.central.notifications.dto;
+
+import java.io.Serializable;
+
+/**
+ * DTO para solicitud de registro de token FCM
+ * Corresponde al schema FCMTokenRequest del OpenAPI
+ */
+public class FCMTokenRequest implements Serializable {
+
+    private String token;
+    private String deviceId;
+    private String deviceModel;
+    private String osVersion;
+
+<span class="nc" id="L16">    public FCMTokenRequest() {}</span>
+
+<span class="nc" id="L18">    public FCMTokenRequest(String token, String deviceId) {</span>
+<span class="nc" id="L19">        this.token = token;</span>
+<span class="nc" id="L20">        this.deviceId = deviceId;</span>
+<span class="nc" id="L21">    }</span>
+
+    // Getters y Setters
+
+    public String getToken() {
+<span class="nc" id="L26">        return token;</span>
+    }
+
+    public void setToken(String token) {
+<span class="nc" id="L30">        this.token = token;</span>
+<span class="nc" id="L31">    }</span>
+
+    public String getDeviceId() {
+<span class="nc" id="L34">        return deviceId;</span>
+    }
+
+    public void setDeviceId(String deviceId) {
+<span class="nc" id="L38">        this.deviceId = deviceId;</span>
+<span class="nc" id="L39">    }</span>
+
+    public String getDeviceModel() {
+<span class="nc" id="L42">        return deviceModel;</span>
+    }
+
+    public void setDeviceModel(String deviceModel) {
+<span class="nc" id="L46">        this.deviceModel = deviceModel;</span>
+<span class="nc" id="L47">    }</span>
+
+    public String getOsVersion() {
+<span class="nc" id="L50">        return osVersion;</span>
+    }
+
+    public void setOsVersion(String osVersion) {
+<span class="nc" id="L54">        this.osVersion = osVersion;</span>
+<span class="nc" id="L55">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L59">        return &quot;FCMTokenRequest{&quot; +</span>
+                &quot;deviceId='&quot; + deviceId + '\'' +
+                &quot;, deviceModel='&quot; + deviceModel + '\'' +
+                &quot;, osVersion='&quot; + osVersion + '\'' +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

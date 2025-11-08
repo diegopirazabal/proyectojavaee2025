@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioSistemaServiceTest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.service</a> &gt; <span class="el_source">UsuarioSistemaServiceTest.java</span></div><h1>UsuarioSistemaServiceTest.java</h1><pre class="source lang-java linenums">package hcen.central.inus.service;
+
+import hcen.central.inus.dao.UsuarioSaludDAO;
+import hcen.central.inus.dto.UsuarioSistemaResponse;
+import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.enums.TipoDocumento;
+import hcen.central.inus.enums.UsuarioSistemaTipo;
+import java.lang.reflect.Field;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
+<span class="fc" id="L20">public class UsuarioSistemaServiceTest {</span>
+
+    private UsuarioSistemaService service;
+    private StubUsuarioSaludDAO usuarioSaludDAO;
+    private StubPerifericoUsuariosClient perifericoClient;
+
+    @Before
+    public void setUp() {
+<span class="fc" id="L28">        service = new UsuarioSistemaService();</span>
+<span class="fc" id="L29">        usuarioSaludDAO = new StubUsuarioSaludDAO();</span>
+<span class="fc" id="L30">        perifericoClient = new StubPerifericoUsuariosClient();</span>
+
+<span class="fc" id="L32">        inject(service, &quot;usuarioSaludDAO&quot;, usuarioSaludDAO);</span>
+<span class="fc" id="L33">        inject(service, &quot;perifericoUsuariosClient&quot;, perifericoClient);</span>
+<span class="fc" id="L34">        inject(service, &quot;executorService&quot;, null); // fuerza el fallback Runnable::run</span>
+<span class="fc" id="L35">    }</span>
+
+    @Test
+    public void combinaResultadosDeFuentes() {
+<span class="fc" id="L39">        UsuarioSalud local = buildUsuarioSalud();</span>
+<span class="fc" id="L40">        usuarioSaludDAO.setResponse(List.of(local));</span>
+
+<span class="fc" id="L42">        UsuarioSistemaResponse profesional = new UsuarioSistemaResponse();</span>
+<span class="fc" id="L43">        profesional.setTipo(UsuarioSistemaTipo.PROFESIONAL_SALUD);</span>
+<span class="fc" id="L44">        profesional.setOrigen(&quot;PERIFERICO&quot;);</span>
+<span class="fc" id="L45">        profesional.setNumeroDocumento(&quot;9876543&quot;);</span>
+<span class="fc" id="L46">        profesional.setNombreCompleto(&quot;Dr. Gregory House&quot;);</span>
+<span class="fc" id="L47">        perifericoClient.setProfesionales(List.of(profesional));</span>
+
+<span class="fc" id="L49">        UsuarioSistemaResponse admin = new UsuarioSistemaResponse();</span>
+<span class="fc" id="L50">        admin.setTipo(UsuarioSistemaTipo.ADMINISTRADOR_CLINICA);</span>
+<span class="fc" id="L51">        admin.setOrigen(&quot;PERIFERICO&quot;);</span>
+<span class="fc" id="L52">        admin.setNombreCompleto(&quot;Carla Admin&quot;);</span>
+<span class="fc" id="L53">        perifericoClient.setAdministradores(List.of(admin));</span>
+
+<span class="fc" id="L55">        List&lt;UsuarioSistemaResponse&gt; resultado = service.obtenerCatalogo(null, null, &quot;Lucia&quot;, &quot;Suarez&quot;, null);</span>
+
+<span class="fc" id="L57">        assertEquals(3, resultado.size());</span>
+
+<span class="fc" id="L59">        UsuarioSistemaResponse primero = resultado.get(0);</span>
+<span class="fc" id="L60">        assertEquals(UsuarioSistemaTipo.USUARIO_SALUD, primero.getTipo());</span>
+<span class="fc" id="L61">        assertEquals(&quot;CENTRAL&quot;, primero.getOrigen());</span>
+<span class="fc" id="L62">        assertEquals(&quot;12345678&quot;, primero.getNumeroDocumento());</span>
+<span class="fc" id="L63">        assertEquals(&quot;Lucia Maria Suarez&quot;, primero.getNombreCompleto());</span>
+<span class="fc" id="L64">        assertEquals(&quot;lucia@example.com&quot;, primero.getEmail());</span>
+<span class="fc" id="L65">        assertEquals(Boolean.TRUE, primero.getActivo());</span>
+<span class="fc" id="L66">        assertEquals(&quot;1990-05-01&quot;, primero.getFechaNacimiento());</span>
+<span class="fc" id="L67">        assertEquals(UUID.fromString(&quot;123e4567-e89b-12d3-a456-426614174000&quot;).toString(), primero.getTenantId());</span>
+
+<span class="fc" id="L69">        assertEquals(&quot;Lucia&quot;, usuarioSaludDAO.lastNombre);</span>
+<span class="fc" id="L70">        assertEquals(&quot;Suarez&quot;, usuarioSaludDAO.lastApellido);</span>
+<span class="fc" id="L71">        assertEquals(0, usuarioSaludDAO.lastPage);</span>
+<span class="fc" id="L72">        assertEquals(150, usuarioSaludDAO.lastSize); // límite por defecto</span>
+
+<span class="fc" id="L74">        assertEquals(1, perifericoClient.profesionalesCalls);</span>
+<span class="fc" id="L75">        assertEquals(1, perifericoClient.administradoresCalls);</span>
+<span class="fc" id="L76">        assertEquals(150, perifericoClient.lastProfesionalesLimit);</span>
+<span class="fc" id="L77">        assertEquals(150, perifericoClient.lastAdministradoresLimit);</span>
+<span class="fc" id="L78">        assertEquals(&quot;Lucia&quot;, perifericoClient.lastProfesionalesNombre);</span>
+<span class="fc" id="L79">        assertEquals(&quot;Suarez&quot;, perifericoClient.lastProfesionalesApellido);</span>
+<span class="fc" id="L80">        assertEquals(&quot;Lucia&quot;, perifericoClient.lastAdministradoresNombre);</span>
+<span class="fc" id="L81">        assertEquals(&quot;Suarez&quot;, perifericoClient.lastAdministradoresApellido);</span>
+<span class="fc" id="L82">    }</span>
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rechazaTipoDocumentoDesconocido() {
+<span class="nc" id="L86">        service.obtenerCatalogo(&quot;dni-extranjero&quot;, &quot;123&quot;, null, null, null);</span>
+<span class="nc" id="L87">    }</span>
+
+    @Test
+    public void omiteConsultasRemotasCuandoTipoDocumentoNoPermiteBusquedaPorCI() {
+<span class="fc" id="L91">        UsuarioSalud local = buildUsuarioSalud();</span>
+<span class="fc" id="L92">        usuarioSaludDAO.setResponse(List.of(local));</span>
+
+<span class="fc" id="L94">        List&lt;UsuarioSistemaResponse&gt; resultado = service.obtenerCatalogo(&quot;PA&quot;, &quot;1234&quot;, null, null, 25);</span>
+
+<span class="fc" id="L96">        assertEquals(1, resultado.size());</span>
+
+<span class="fc" id="L98">        assertEquals(1, usuarioSaludDAO.callCount);</span>
+<span class="fc" id="L99">        assertEquals(TipoDocumento.PA, usuarioSaludDAO.lastTipoDocumento);</span>
+<span class="fc" id="L100">        assertEquals(&quot;1234&quot;, usuarioSaludDAO.lastNumeroDocumento);</span>
+
+<span class="fc" id="L102">        assertEquals(0, perifericoClient.profesionalesCalls);</span>
+<span class="fc" id="L103">        assertEquals(0, perifericoClient.administradoresCalls);</span>
+<span class="fc" id="L104">    }</span>
+
+    @Test
+    public void respetaLimiteMaximoYPropagaValorNormalizado() {
+<span class="fc" id="L108">        UsuarioSalud local = buildUsuarioSalud();</span>
+<span class="fc" id="L109">        usuarioSaludDAO.setResponse(List.of(local));</span>
+
+<span class="fc" id="L111">        UsuarioSistemaResponse profesional = new UsuarioSistemaResponse();</span>
+<span class="fc" id="L112">        profesional.setTipo(UsuarioSistemaTipo.PROFESIONAL_SALUD);</span>
+<span class="fc" id="L113">        perifericoClient.setProfesionales(List.of(profesional));</span>
+
+<span class="fc" id="L115">        List&lt;UsuarioSistemaResponse&gt; resultado = service.obtenerCatalogo(&quot;DO&quot;, &quot;4567&quot;, null, null, 900);</span>
+
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">        assertTrue(resultado.size() &gt;= 1);</span>
+
+<span class="fc" id="L119">        assertEquals(500, usuarioSaludDAO.lastSize);</span>
+<span class="fc" id="L120">        assertEquals(500, perifericoClient.lastProfesionalesLimit);</span>
+<span class="fc" id="L121">        assertSame(TipoDocumento.DO, perifericoClient.lastProfesionalesTipoDocumento);</span>
+<span class="fc" id="L122">        assertEquals(&quot;4567&quot;, perifericoClient.lastProfesionalesNumeroDocumento);</span>
+<span class="fc" id="L123">    }</span>
+
+    private static UsuarioSalud buildUsuarioSalud() {
+<span class="fc" id="L126">        UsuarioSalud usuario = new UsuarioSalud();</span>
+<span class="fc" id="L127">        usuario.setId(42L);</span>
+<span class="fc" id="L128">        usuario.setCedula(&quot;12345678&quot;);</span>
+<span class="fc" id="L129">        usuario.setTipoDeDocumento(TipoDocumento.DO);</span>
+<span class="fc" id="L130">        usuario.setPrimerNombre(&quot;Lucia&quot;);</span>
+<span class="fc" id="L131">        usuario.setSegundoNombre(&quot;Maria&quot;);</span>
+<span class="fc" id="L132">        usuario.setPrimerApellido(&quot;Suarez&quot;);</span>
+<span class="fc" id="L133">        usuario.setEmail(&quot;lucia@example.com&quot;);</span>
+<span class="fc" id="L134">        usuario.setActive(true);</span>
+<span class="fc" id="L135">        usuario.setFechaNacimiento(LocalDate.of(1990, 5, 1));</span>
+<span class="fc" id="L136">        usuario.setTenantId(UUID.fromString(&quot;123e4567-e89b-12d3-a456-426614174000&quot;));</span>
+<span class="fc" id="L137">        return usuario;</span>
+    }
+
+    private static void inject(Object target, String fieldName, Object value) {
+        try {
+<span class="fc" id="L142">            Field field = UsuarioSistemaService.class.getDeclaredField(fieldName);</span>
+<span class="fc" id="L143">            field.setAccessible(true);</span>
+<span class="fc" id="L144">            field.set(target, value);</span>
+<span class="nc" id="L145">        } catch (ReflectiveOperationException e) {</span>
+<span class="nc" id="L146">            throw new RuntimeException(&quot;No se pudo inyectar dependencia: &quot; + fieldName, e);</span>
+<span class="fc" id="L147">        }</span>
+<span class="fc" id="L148">    }</span>
+
+<span class="fc" id="L150">    private static class StubUsuarioSaludDAO extends UsuarioSaludDAO {</span>
+<span class="fc" id="L151">        private List&lt;UsuarioSalud&gt; response = new ArrayList&lt;&gt;();</span>
+        private TipoDocumento lastTipoDocumento;
+        private String lastNumeroDocumento;
+        private String lastNombre;
+        private String lastApellido;
+        private int lastPage;
+        private int lastSize;
+        private int callCount;
+
+        void setResponse(List&lt;UsuarioSalud&gt; response) {
+<span class="fc" id="L161">            this.response = new ArrayList&lt;&gt;(response);</span>
+<span class="fc" id="L162">        }</span>
+
+        @Override
+        public List&lt;UsuarioSalud&gt; findByFilters(TipoDocumento tipoDocumento,
+                                                String numeroDocumento,
+                                                String nombre,
+                                                String apellido,
+                                                int page,
+                                                int size) {
+<span class="fc" id="L171">            this.lastTipoDocumento = tipoDocumento;</span>
+<span class="fc" id="L172">            this.lastNumeroDocumento = numeroDocumento;</span>
+<span class="fc" id="L173">            this.lastNombre = nombre;</span>
+<span class="fc" id="L174">            this.lastApellido = apellido;</span>
+<span class="fc" id="L175">            this.lastPage = page;</span>
+<span class="fc" id="L176">            this.lastSize = size;</span>
+<span class="fc" id="L177">            this.callCount++;</span>
+<span class="fc" id="L178">            return new ArrayList&lt;&gt;(response);</span>
+        }
+    }
+
+<span class="fc" id="L182">    private static class StubPerifericoUsuariosClient extends PerifericoUsuariosClient {</span>
+<span class="fc" id="L183">        private List&lt;UsuarioSistemaResponse&gt; profesionales = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L184">        private List&lt;UsuarioSistemaResponse&gt; administradores = new ArrayList&lt;&gt;();</span>
+        private int profesionalesCalls;
+        private int administradoresCalls;
+        private int lastProfesionalesLimit;
+        private int lastAdministradoresLimit;
+        private TipoDocumento lastProfesionalesTipoDocumento;
+        private String lastProfesionalesNumeroDocumento;
+        private String lastProfesionalesNombre;
+        private String lastProfesionalesApellido;
+        private String lastAdministradoresNombre;
+        private String lastAdministradoresApellido;
+
+        void setProfesionales(List&lt;UsuarioSistemaResponse&gt; profesionales) {
+<span class="fc" id="L197">            this.profesionales = new ArrayList&lt;&gt;(profesionales);</span>
+<span class="fc" id="L198">        }</span>
+
+        void setAdministradores(List&lt;UsuarioSistemaResponse&gt; administradores) {
+<span class="fc" id="L201">            this.administradores = new ArrayList&lt;&gt;(administradores);</span>
+<span class="fc" id="L202">        }</span>
+
+        @Override
+        public List&lt;UsuarioSistemaResponse&gt; listarProfesionales(String numeroDocumento,
+                                                                 TipoDocumento tipoDocumento,
+                                                                 String nombre,
+                                                                 String apellido,
+                                                                 int limit) {
+<span class="fc" id="L210">            this.profesionalesCalls++;</span>
+<span class="fc" id="L211">            this.lastProfesionalesNumeroDocumento = numeroDocumento;</span>
+<span class="fc" id="L212">            this.lastProfesionalesTipoDocumento = tipoDocumento;</span>
+<span class="fc" id="L213">            this.lastProfesionalesNombre = nombre;</span>
+<span class="fc" id="L214">            this.lastProfesionalesApellido = apellido;</span>
+<span class="fc" id="L215">            this.lastProfesionalesLimit = limit;</span>
+<span class="fc" id="L216">            return new ArrayList&lt;&gt;(profesionales);</span>
+        }
+
+        @Override
+        public List&lt;UsuarioSistemaResponse&gt; listarAdministradores(String nombre,
+                                                                  String apellido,
+                                                                  int limit) {
+<span class="fc" id="L223">            this.administradoresCalls++;</span>
+<span class="fc" id="L224">            this.lastAdministradoresNombre = nombre;</span>
+<span class="fc" id="L225">            this.lastAdministradoresApellido = apellido;</span>
+<span class="fc" id="L226">            this.lastAdministradoresLimit = limit;</span>
+<span class="fc" id="L227">            return new ArrayList&lt;&gt;(administradores);</span>
+        }
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TipoDocumentoDeserializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.dto.deserializer</a> &gt; <span class="el_source">TipoDocumentoDeserializer.java</span></div><h1>TipoDocumentoDeserializer.java</h1><pre class="source lang-java linenums">package hcen.central.inus.dto.deserializer;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import hcen.central.inus.enums.TipoDocumento;
+import hcen.central.inus.util.TipoDocumentoMapper;
+import java.io.IOException;
+import java.util.logging.Logger;
+
+/**
+ * Deserializador personalizado para tipo_documento de gub.uy
+ * gub.uy puede enviar tipo_documento como:
+ * - String simple: &quot;CI&quot;
+ * - Objeto: {&quot;codigo&quot;: &quot;1&quot;, &quot;descripcion&quot;: &quot;CI&quot;}
+ */
+<span class="nc" id="L18">public class TipoDocumentoDeserializer extends JsonDeserializer&lt;String&gt; {</span>
+
+<span class="nc" id="L20">    private static final Logger LOGGER = Logger.getLogger(TipoDocumentoDeserializer.class.getName());</span>
+    
+    @Override
+    public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+<span class="nc" id="L24">        JsonNode node = p.getCodec().readTree(p);</span>
+<span class="nc" id="L25">        final String nodeDebug = node.toString();</span>
+        
+<span class="nc" id="L27">        String rawValue = null;</span>
+
+        // Si es un string simple, lo retorna directamente
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        if (node.isTextual()) {</span>
+<span class="nc" id="L31">            rawValue = node.asText();</span>
+        }
+
+        // Si es un objeto, intenta extraer el campo &quot;descripcion&quot; o &quot;codigo&quot;
+<span class="nc bnc" id="L35" title="All 4 branches missed.">        if (rawValue == null &amp;&amp; node.isObject()) {</span>
+<span class="nc" id="L36">            LOGGER.info(() -&gt; &quot;tipo_documento recibido como objeto: &quot; + nodeDebug);</span>
+            // Primero intenta obtener &quot;descripcion&quot;
+<span class="nc bnc" id="L38" title="All 2 branches missed.">            if (node.has(&quot;descripcion&quot;)) {</span>
+<span class="nc" id="L39">                rawValue = node.get(&quot;descripcion&quot;).asText();</span>
+            }
+            // Si no, intenta &quot;codigo&quot;
+<span class="nc bnc" id="L42" title="All 2 branches missed.">            if (node.has(&quot;codigo&quot;)) {</span>
+<span class="nc" id="L43">                String codigo = node.get(&quot;codigo&quot;).asText();</span>
+<span class="nc" id="L44">                LOGGER.info(() -&gt; &quot;tipo_documento codigo recibido: '&quot; + codigo + &quot;'&quot;);</span>
+                // Mapeo de códigos comunes a descripciones
+<span class="nc bnc" id="L46" title="All 4 branches missed.">                switch (codigo) {</span>
+                    case &quot;1&quot;:
+<span class="nc" id="L48">                        rawValue = &quot;CI&quot;;</span>
+<span class="nc" id="L49">                        break;</span>
+                    case &quot;2&quot;:
+<span class="nc" id="L51">                        rawValue = &quot;PASAPORTE&quot;;</span>
+<span class="nc" id="L52">                        break;</span>
+                    case &quot;3&quot;:
+<span class="nc" id="L54">                        rawValue = &quot;DNI&quot;;</span>
+<span class="nc" id="L55">                        break;</span>
+                    default:
+<span class="nc" id="L57">                        rawValue = codigo;</span>
+                        break;
+                }
+            }
+        }
+
+<span class="nc bnc" id="L63" title="All 4 branches missed.">        if (rawValue == null || rawValue.isBlank()) {</span>
+<span class="nc" id="L64">            rawValue = &quot;CI&quot;; // Default si no llega nada útil</span>
+        }
+
+<span class="nc" id="L67">        final String rawValueLog = rawValue;</span>
+<span class="nc" id="L68">        final TipoDocumento tipoDocumento = TipoDocumentoMapper.toEnum(rawValueLog);</span>
+<span class="nc bnc" id="L69" title="All 4 branches missed.">        if (tipoDocumento == TipoDocumento.OTRO &amp;&amp; rawValueLog.matches(&quot;\\d+&quot;)) {</span>
+<span class="nc" id="L70">            LOGGER.warning(() -&gt; &quot;tipo_documento con código no mapeado: '&quot; + rawValueLog + &quot;' payload: &quot; + nodeDebug);</span>
+        } else {
+<span class="nc" id="L72">            LOGGER.fine(() -&gt; &quot;tipo_documento mapeado a '&quot; + tipoDocumento.name() + &quot;' desde '&quot; + rawValueLog + &quot;'&quot;);</span>
+        }
+<span class="nc" id="L74">        return tipoDocumento.name();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

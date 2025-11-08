@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioSaludResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.dto</a> &gt; <span class="el_source">UsuarioSaludResponse.java</span></div><h1>UsuarioSaludResponse.java</h1><pre class="source lang-java linenums">package hcen.central.inus.dto;
+
+import hcen.central.inus.entity.UsuarioSalud;
+
+import java.time.Instant;
+
+/**
+ * DTO para exponer información resumida de los usuarios de salud
+ * hacia el frontend administrativo.
+ */
+<span class="nc" id="L11">public class UsuarioSaludResponse {</span>
+
+    private Long id;
+    private String cedula;
+    private String nombreCompleto;
+    private String primerNombre;
+    private String primerApellido;
+    private String email;
+    private Boolean active;
+    private Instant createdAt;
+    private Instant lastLogin;
+
+    public static UsuarioSaludResponse fromEntity(UsuarioSalud entity) {
+<span class="nc" id="L24">        UsuarioSaludResponse dto = new UsuarioSaludResponse();</span>
+<span class="nc" id="L25">        dto.setId(entity.getId());</span>
+<span class="nc" id="L26">        dto.setCedula(entity.getCedula());</span>
+<span class="nc" id="L27">        dto.setNombreCompleto(resolveNombreCompleto(entity));</span>
+<span class="nc" id="L28">        dto.setPrimerNombre(entity.getPrimerNombre());</span>
+<span class="nc" id="L29">        dto.setPrimerApellido(entity.getPrimerApellido());</span>
+<span class="nc" id="L30">        dto.setEmail(entity.getEmail());</span>
+<span class="nc" id="L31">        dto.setActive(entity.getActive());</span>
+<span class="nc" id="L32">        dto.setCreatedAt(entity.getCreatedAt());</span>
+<span class="nc" id="L33">        dto.setLastLogin(entity.getLastLogin());</span>
+<span class="nc" id="L34">        return dto;</span>
+    }
+
+    private static String resolveNombreCompleto(UsuarioSalud entity) {
+<span class="nc bnc" id="L38" title="All 4 branches missed.">        if (entity.getNombreCompleto() != null &amp;&amp; !entity.getNombreCompleto().isBlank()) {</span>
+<span class="nc" id="L39">            return entity.getNombreCompleto();</span>
+        }
+<span class="nc" id="L41">        StringBuilder builder = new StringBuilder();</span>
+<span class="nc bnc" id="L42" title="All 2 branches missed.">        if (entity.getPrimerNombre() != null) {</span>
+<span class="nc" id="L43">            builder.append(entity.getPrimerNombre());</span>
+        }
+<span class="nc bnc" id="L45" title="All 4 branches missed.">        if (entity.getSegundoNombre() != null &amp;&amp; !entity.getSegundoNombre().isBlank()) {</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">            if (builder.length() &gt; 0) {</span>
+<span class="nc" id="L47">                builder.append(' ');</span>
+            }
+<span class="nc" id="L49">            builder.append(entity.getSegundoNombre());</span>
+        }
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        if (entity.getPrimerApellido() != null) {</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">            if (builder.length() &gt; 0) {</span>
+<span class="nc" id="L53">                builder.append(' ');</span>
+            }
+<span class="nc" id="L55">            builder.append(entity.getPrimerApellido());</span>
+        }
+<span class="nc bnc" id="L57" title="All 4 branches missed.">        if (entity.getSegundoApellido() != null &amp;&amp; !entity.getSegundoApellido().isBlank()) {</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">            if (builder.length() &gt; 0) {</span>
+<span class="nc" id="L59">                builder.append(' ');</span>
+            }
+<span class="nc" id="L61">            builder.append(entity.getSegundoApellido());</span>
+        }
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        return builder.length() == 0 ? null : builder.toString();</span>
+    }
+
+    public Long getId() {
+<span class="nc" id="L67">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="nc" id="L71">        this.id = id;</span>
+<span class="nc" id="L72">    }</span>
+
+    public String getCedula() {
+<span class="nc" id="L75">        return cedula;</span>
+    }
+
+    public void setCedula(String cedula) {
+<span class="nc" id="L79">        this.cedula = cedula;</span>
+<span class="nc" id="L80">    }</span>
+
+    public String getNombreCompleto() {
+<span class="nc" id="L83">        return nombreCompleto;</span>
+    }
+
+    public void setNombreCompleto(String nombreCompleto) {
+<span class="nc" id="L87">        this.nombreCompleto = nombreCompleto;</span>
+<span class="nc" id="L88">    }</span>
+
+    public String getPrimerNombre() {
+<span class="nc" id="L91">        return primerNombre;</span>
+    }
+
+    public void setPrimerNombre(String primerNombre) {
+<span class="nc" id="L95">        this.primerNombre = primerNombre;</span>
+<span class="nc" id="L96">    }</span>
+
+    public String getPrimerApellido() {
+<span class="nc" id="L99">        return primerApellido;</span>
+    }
+
+    public void setPrimerApellido(String primerApellido) {
+<span class="nc" id="L103">        this.primerApellido = primerApellido;</span>
+<span class="nc" id="L104">    }</span>
+
+    public String getEmail() {
+<span class="nc" id="L107">        return email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="nc" id="L111">        this.email = email;</span>
+<span class="nc" id="L112">    }</span>
+
+    public Boolean getActive() {
+<span class="nc" id="L115">        return active;</span>
+    }
+
+    public void setActive(Boolean active) {
+<span class="nc" id="L119">        this.active = active;</span>
+<span class="nc" id="L120">    }</span>
+
+    public Instant getCreatedAt() {
+<span class="nc" id="L123">        return createdAt;</span>
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+<span class="nc" id="L127">        this.createdAt = createdAt;</span>
+<span class="nc" id="L128">    }</span>
+
+    public Instant getLastLogin() {
+<span class="nc" id="L131">        return lastLogin;</span>
+    }
+
+    public void setLastLogin(Instant lastLogin) {
+<span class="nc" id="L135">        this.lastLogin = lastLogin;</span>
+<span class="nc" id="L136">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

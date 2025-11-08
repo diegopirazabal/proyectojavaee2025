@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OIDCTokenValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.security.oidc</a> &gt; <span class="el_source">OIDCTokenValidator.java</span></div><h1>OIDCTokenValidator.java</h1><pre class="source lang-java linenums">package hcen.central.inus.security.oidc;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import hcen.central.inus.security.config.OIDCConfiguration;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.io.Decoders;
+import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+
+import java.math.BigInteger;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.RSAPublicKeySpec;
+import java.util.Base64;
+import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.security.Signature;
+
+/**
+ * Validador de tokens ID Token y Access Token
+ * Verifica firma con JWKS, claims (iss, aud, exp, nonce)
+ */
+@Stateless
+<span class="nc" id="L32">public class OIDCTokenValidator {</span>
+
+<span class="nc" id="L34">    private static final Logger LOGGER = Logger.getLogger(OIDCTokenValidator.class.getName());</span>
+
+    @Inject
+    private OIDCConfiguration oidcConfig;
+
+    /**
+     * Valida un ID Token de gub.uy
+     *
+     * @param idToken       El ID Token JWT recibido del proveedor OIDC
+     * @param expectedNonce El nonce esperado para validar
+     * @return Claims del token si es válido
+     * @throws JwtException si la validación falla
+     */
+    public Claims validateIdToken(String idToken, String expectedNonce) throws JwtException {
+        try {
+<span class="nc" id="L49">            LOGGER.info(&quot;Iniciando validación de ID Token&quot;);</span>
+
+            // Parsear el header sin validar para obtener el kid (Key ID)
+<span class="nc" id="L52">            String[] parts = idToken.split(&quot;\\.&quot;);</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">            if (parts.length != 3) {</span>
+<span class="nc" id="L54">                throw new JwtException(&quot;ID Token no tiene formato JWT válido&quot;);</span>
+            }
+
+<span class="nc" id="L57">            String headerJson = new String(Base64.getUrlDecoder().decode(parts[0]));</span>
+<span class="nc" id="L58">            LOGGER.fine(&quot;Header JWT: &quot; + headerJson);</span>
+
+            // Extraer kid del header (simplificado - en producción usar JSON parser)
+<span class="nc" id="L61">            String kid = extractKidFromHeader(headerJson);</span>
+<span class="nc" id="L62">            LOGGER.info(&quot;Kid extraído del token: &quot; + kid);</span>
+
+            // Obtener la clave pública correspondiente del JWKS
+<span class="nc" id="L65">            PublicKey publicKey = getPublicKeyFromJWKS(kid);</span>
+
+            // Validar el token con la clave pública
+            // NOTA: gub.uy usa claves RSA de 1024 bits, así que deshabilitamos la validación de tamaño
+<span class="nc" id="L69">            JwtParser parser = Jwts.parserBuilder()</span>
+<span class="nc" id="L70">                    .setSigningKey(publicKey)</span>
+<span class="nc" id="L71">                    .build();</span>
+
+            // Parsear sin validación estricta de tamaño de clave
+            Jws&lt;Claims&gt; jws;
+            try {
+<span class="nc" id="L76">                jws = parser.parseClaimsJws(idToken);</span>
+<span class="nc" id="L77">            } catch (io.jsonwebtoken.security.WeakKeyException e) {</span>
+                // gub.uy usa claves de 1024 bits que son rechazadas por JJWT
+                // Usamos parser sin validación de tamaño de clave
+<span class="nc" id="L80">                LOGGER.warning(&quot;Clave RSA de gub.uy es de 1024 bits (menor a 2048). Validando sin restricción de tamaño.&quot;);</span>
+<span class="nc" id="L81">                parser = Jwts.parserBuilder()</span>
+<span class="nc" id="L82">                        .setSigningKey(publicKey)</span>
+<span class="nc" id="L83">                        .build();</span>
+                
+                // Parsear manualmente el JWT para obtener los claims
+<span class="nc" id="L86">                String[] tokenParts = idToken.split(&quot;\\.&quot;);</span>
+<span class="nc" id="L87">                String claimsJson = new String(Base64.getUrlDecoder().decode(tokenParts[1]));</span>
+<span class="nc" id="L88">                ObjectMapper mapper = new ObjectMapper();</span>
+                @SuppressWarnings(&quot;unchecked&quot;)
+<span class="nc" id="L90">                java.util.Map&lt;String, Object&gt; claimsMap = mapper.readValue(claimsJson, java.util.Map.class);</span>
+                
+                // Crear Claims manualmente
+<span class="nc" id="L93">                Claims claims = Jwts.claims(claimsMap);</span>
+                
+                // Verificar la firma manualmente usando la biblioteca estándar de Java
+<span class="nc" id="L96">                verifySignatureManually(idToken, publicKey);</span>
+                
+<span class="nc" id="L98">                return claims;</span>
+<span class="nc" id="L99">            }</span>
+<span class="nc" id="L100">            Claims claims = jws.getBody();</span>
+
+            // Validar claims estándar
+<span class="nc" id="L103">            validateClaims(claims, expectedNonce);</span>
+
+<span class="nc" id="L105">            LOGGER.info(&quot;ID Token validado exitosamente para subject: &quot; + claims.getSubject());</span>
+<span class="nc" id="L106">            return claims;</span>
+
+<span class="nc" id="L108">        } catch (JwtException e) {</span>
+<span class="nc" id="L109">            LOGGER.log(Level.SEVERE, &quot;Error validando ID Token: &quot; + e.getMessage(), e);</span>
+<span class="nc" id="L110">            throw e;</span>
+<span class="nc" id="L111">        } catch (Exception e) {</span>
+<span class="nc" id="L112">            LOGGER.log(Level.SEVERE, &quot;Error inesperado validando ID Token&quot;, e);</span>
+<span class="nc" id="L113">            throw new JwtException(&quot;Error validando ID Token: &quot; + e.getMessage(), e);</span>
+        }
+    }
+
+    /**
+     * Valida los claims del ID Token
+     */
+    private void validateClaims(Claims claims, String expectedNonce) throws JwtException {
+        // Validar issuer
+<span class="nc" id="L122">        String issuer = claims.getIssuer();</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        if (!oidcConfig.getIssuer().equals(issuer)) {</span>
+<span class="nc" id="L124">            throw new JwtException(&quot;Issuer inválido. Esperado: &quot; + oidcConfig.getIssuer() + &quot;, Recibido: &quot; + issuer);</span>
+        }
+
+        // Validar audience
+<span class="nc" id="L128">        String audience = claims.getAudience();</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        if (!oidcConfig.getClientId().equals(audience)) {</span>
+<span class="nc" id="L130">            throw new JwtException(&quot;Audience inválido. Esperado: &quot; + oidcConfig.getClientId() + &quot;, Recibido: &quot; + audience);</span>
+        }
+
+        // Validar expiración
+<span class="nc" id="L134">        Date expiration = claims.getExpiration();</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        if (expiration.before(new Date())) {</span>
+<span class="nc" id="L136">            throw new JwtException(&quot;ID Token expirado&quot;);</span>
+        }
+
+        // Validar nonce si se proporcionó
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (expectedNonce != null) {</span>
+<span class="nc" id="L141">            String nonce = claims.get(&quot;nonce&quot;, String.class);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">            if (!expectedNonce.equals(nonce)) {</span>
+<span class="nc" id="L143">                throw new JwtException(&quot;Nonce inválido&quot;);</span>
+            }
+        }
+
+<span class="nc" id="L147">        LOGGER.info(&quot;Claims validados correctamente&quot;);</span>
+<span class="nc" id="L148">    }</span>
+
+    /**
+     * Extrae el kid del header JWT
+     */
+    private String extractKidFromHeader(String headerJson) {
+        // Implementación simplificada
+        // En producción, usar Jackson o Jakarta JSON Binding
+<span class="nc" id="L156">        int kidIndex = headerJson.indexOf(&quot;\&quot;kid\&quot;&quot;);</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        if (kidIndex == -1) {</span>
+<span class="nc" id="L158">            throw new JwtException(&quot;Header JWT no contiene kid&quot;);</span>
+        }
+<span class="nc" id="L160">        int colonIndex = headerJson.indexOf(&quot;:&quot;, kidIndex);</span>
+<span class="nc" id="L161">        int quoteStart = headerJson.indexOf(&quot;\&quot;&quot;, colonIndex) + 1;</span>
+<span class="nc" id="L162">        int quoteEnd = headerJson.indexOf(&quot;\&quot;&quot;, quoteStart);</span>
+<span class="nc" id="L163">        return headerJson.substring(quoteStart, quoteEnd);</span>
+    }
+
+    /**
+     * Verifica la firma del JWT manualmente usando la clave pública RSA
+     * Este método se usa cuando JJWT rechaza claves de 1024 bits
+     */
+    private void verifySignatureManually(String jwt, PublicKey publicKey) throws Exception {
+<span class="nc" id="L171">        String[] parts = jwt.split(&quot;\\.&quot;);</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (parts.length != 3) {</span>
+<span class="nc" id="L173">            throw new JwtException(&quot;JWT inválido: formato incorrecto&quot;);</span>
+        }
+        
+<span class="nc" id="L176">        String headerAndPayload = parts[0] + &quot;.&quot; + parts[1];</span>
+<span class="nc" id="L177">        byte[] signatureBytes = Base64.getUrlDecoder().decode(parts[2]);</span>
+        
+<span class="nc" id="L179">        Signature signature = Signature.getInstance(&quot;SHA256withRSA&quot;);</span>
+<span class="nc" id="L180">        signature.initVerify(publicKey);</span>
+<span class="nc" id="L181">        signature.update(headerAndPayload.getBytes(&quot;UTF-8&quot;));</span>
+        
+<span class="nc bnc" id="L183" title="All 2 branches missed.">        if (!signature.verify(signatureBytes)) {</span>
+<span class="nc" id="L184">            throw new JwtException(&quot;Firma del JWT inválida&quot;);</span>
+        }
+        
+<span class="nc" id="L187">        LOGGER.info(&quot;Firma del JWT verificada manualmente con éxito&quot;);</span>
+<span class="nc" id="L188">    }</span>
+
+    /**
+     * Obtiene la clave pública del JWKS endpoint usando el kid
+     *
+     * @param kid Key ID del token
+     * @return PublicKey para validar la firma
+     */
+    private PublicKey getPublicKeyFromJWKS(String kid) throws Exception {
+<span class="nc" id="L197">        String jwksUri = oidcConfig.getJwksUri();</span>
+<span class="nc" id="L198">        LOGGER.info(&quot;Obteniendo clave pública del JWKS endpoint: &quot; + jwksUri + &quot; para kid: &quot; + kid);</span>
+
+<span class="nc" id="L200">        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {</span>
+<span class="nc" id="L201">            HttpGet httpGet = new HttpGet(jwksUri);</span>
+<span class="nc" id="L202">            httpGet.setHeader(&quot;Accept&quot;, &quot;application/json&quot;);</span>
+
+<span class="nc" id="L204">            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {</span>
+<span class="nc" id="L205">                int statusCode = response.getCode();</span>
+<span class="nc" id="L206">                String responseBody = EntityUtils.toString(response.getEntity());</span>
+
+<span class="nc bnc" id="L208" title="All 2 branches missed.">                if (statusCode != 200) {</span>
+<span class="nc" id="L209">                    throw new RuntimeException(&quot;Error al obtener JWKS. Status: &quot; + statusCode + &quot;, Body: &quot; + responseBody);</span>
+                }
+
+<span class="nc" id="L212">                LOGGER.fine(&quot;JWKS response: &quot; + responseBody);</span>
+
+                // Parsear JSON del JWKS
+<span class="nc" id="L215">                ObjectMapper objectMapper = new ObjectMapper();</span>
+<span class="nc" id="L216">                JsonNode jwks = objectMapper.readTree(responseBody);</span>
+<span class="nc" id="L217">                JsonNode keys = jwks.get(&quot;keys&quot;);</span>
+
+<span class="nc bnc" id="L219" title="All 4 branches missed.">                if (keys == null || !keys.isArray()) {</span>
+<span class="nc" id="L220">                    throw new RuntimeException(&quot;JWKS no contiene array 'keys'&quot;);</span>
+                }
+
+                // Buscar la clave con el kid correspondiente
+<span class="nc bnc" id="L224" title="All 2 branches missed.">                for (JsonNode key : keys) {</span>
+<span class="nc" id="L225">                    String keyId = key.get(&quot;kid&quot;).asText();</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">                    if (kid.equals(keyId)) {</span>
+<span class="nc" id="L227">                        String kty = key.get(&quot;kty&quot;).asText();</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">                        if (!&quot;RSA&quot;.equals(kty)) {</span>
+<span class="nc" id="L229">                            throw new RuntimeException(&quot;Solo se soportan claves RSA, recibido: &quot; + kty);</span>
+                        }
+
+                        // Extraer modulus (n) y exponent (e)
+<span class="nc" id="L233">                        String modulusBase64 = key.get(&quot;n&quot;).asText();</span>
+<span class="nc" id="L234">                        String exponentBase64 = key.get(&quot;e&quot;).asText();</span>
+
+                        // Decodificar Base64URL
+<span class="nc" id="L237">                        byte[] modulusBytes = Base64.getUrlDecoder().decode(modulusBase64);</span>
+<span class="nc" id="L238">                        byte[] exponentBytes = Base64.getUrlDecoder().decode(exponentBase64);</span>
+
+                        // Crear BigIntegers
+<span class="nc" id="L241">                        BigInteger modulus = new BigInteger(1, modulusBytes);</span>
+<span class="nc" id="L242">                        BigInteger exponent = new BigInteger(1, exponentBytes);</span>
+
+                        // Construir la clave pública RSA
+<span class="nc" id="L245">                        RSAPublicKeySpec spec = new RSAPublicKeySpec(modulus, exponent);</span>
+<span class="nc" id="L246">                        KeyFactory factory = KeyFactory.getInstance(&quot;RSA&quot;);</span>
+<span class="nc" id="L247">                        PublicKey publicKey = factory.generatePublic(spec);</span>
+
+<span class="nc" id="L249">                        LOGGER.info(&quot;Clave pública obtenida exitosamente para kid: &quot; + kid);</span>
+<span class="nc" id="L250">                        return publicKey;</span>
+                    }
+<span class="nc" id="L252">                }</span>
+
+<span class="nc" id="L254">                throw new RuntimeException(&quot;No se encontró clave con kid: &quot; + kid + &quot; en JWKS&quot;);</span>
+            }
+<span class="nc" id="L256">        } catch (Exception e) {</span>
+<span class="nc" id="L257">            LOGGER.log(Level.SEVERE, &quot;Error obteniendo clave pública del JWKS&quot;, e);</span>
+<span class="nc" id="L258">            throw new RuntimeException(&quot;Error obteniendo clave pública: &quot; + e.getMessage(), e);</span>
+        }
+    }
+
+    /**
+     * Valida un Access Token (validación básica)
+     * Para gub.uy, el access token puede ser opaco o JWT
+     */
+    public boolean validateAccessToken(String accessToken) {
+<span class="nc bnc" id="L267" title="All 4 branches missed.">        if (accessToken == null || accessToken.isEmpty()) {</span>
+<span class="nc" id="L268">            return false;</span>
+        }
+
+        // Si es un JWT, podemos validarlo
+<span class="nc bnc" id="L272" title="All 2 branches missed.">        if (accessToken.split(&quot;\\.&quot;).length == 3) {</span>
+            try {
+<span class="nc" id="L274">                validateIdToken(accessToken, null);</span>
+<span class="nc" id="L275">                return true;</span>
+<span class="nc" id="L276">            } catch (JwtException e) {</span>
+<span class="nc" id="L277">                LOGGER.log(Level.WARNING, &quot;Access token JWT inválido&quot;, e);</span>
+<span class="nc" id="L278">                return false;</span>
+            }
+        }
+
+        // Si es opaco, solo verificamos que no esté vacío
+        // La validación real se hace en el proveedor OIDC
+<span class="nc" id="L284">        return true;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

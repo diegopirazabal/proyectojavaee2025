@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JWTAuthenticationFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.security.filter</a> &gt; <span class="el_source">JWTAuthenticationFilter.java</span></div><h1>JWTAuthenticationFilter.java</h1><pre class="source lang-java linenums">package hcen.central.inus.security.filter;
+
+import hcen.central.inus.security.jwt.JWTTokenProvider;
+import hcen.central.inus.service.ClientAuthenticationService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import jakarta.inject.Inject;
+import jakarta.servlet.*;
+import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Filtro para validar JWT propios del sistema en requests
+ * Se ejecuta ANTES de los recursos REST protegidos
+ * 
+ * Flujo:
+ * 1. Extrae token del header Authorization: Bearer &lt;token&gt; o de cookie HttpOnly
+ * 2. Valida token usando JWTTokenProvider
+ * 3. Si válido: permite acceso y setea contexto de seguridad
+ * 4. Si inválido: retorna 401 Unauthorized
+ */
+@WebFilter(urlPatterns = {&quot;/api/*&quot;})
+<span class="nc" id="L30">public class JWTAuthenticationFilter implements Filter {</span>
+
+<span class="nc" id="L32">    private static final Logger LOGGER = Logger.getLogger(JWTAuthenticationFilter.class.getName());</span>
+
+    @Inject
+    private JWTTokenProvider jwtTokenProvider;
+    
+    @Inject
+    private ClientAuthenticationService clientAuthService;
+
+    // Rutas públicas que NO requieren autenticación
+<span class="nc" id="L41">    private static final List&lt;String&gt; PUBLIC_PATHS = Arrays.asList(</span>
+            &quot;/api/auth/login&quot;,
+            &quot;/api/auth/callback&quot;,
+            &quot;/api/auth/refresh&quot;,
+            &quot;/api/auth/token&quot;,                // Autenticación de clientes
+            &quot;/api/fcm/register&quot;,              // Registro de token FCM desde mobile
+            &quot;/api/fcm/unregister&quot;,            // Eliminación de token FCM
+            &quot;/api/notifications/broadcast-test&quot;,  // Envío de notificación de prueba desde AdminHCEN
+            &quot;/api/usuarios-salud&quot;,            // Listado de usuarios (usado por AdminHCEN)
+            &quot;/api/usuarios/registrar&quot;,        // Registro de usuario desde clínicas periféricas
+            &quot;/api/usuarios/verificar&quot;         // Verificación de existencia de usuario (se usa /verificar/{cedula})
+    );
+
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+<span class="nc" id="L56">        LOGGER.info(&quot;JWTAuthenticationFilter inicializado&quot;);</span>
+<span class="nc" id="L57">    }</span>
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+
+<span class="nc" id="L63">        HttpServletRequest httpRequest = (HttpServletRequest) request;</span>
+<span class="nc" id="L64">        HttpServletResponse httpResponse = (HttpServletResponse) response;</span>
+
+<span class="nc" id="L66">        String requestURI = httpRequest.getRequestURI();</span>
+<span class="nc" id="L67">        String method = httpRequest.getMethod();</span>
+
+<span class="nc" id="L69">        LOGGER.fine(&quot;Procesando request: &quot; + method + &quot; &quot; + requestURI);</span>
+
+        // Permitir acceso a rutas públicas sin autenticación
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if (isPublicPath(requestURI)) {</span>
+<span class="nc" id="L73">            LOGGER.fine(&quot;Ruta pública, permitiendo acceso sin autenticación: &quot; + requestURI);</span>
+<span class="nc" id="L74">            chain.doFilter(request, response);</span>
+<span class="nc" id="L75">            return;</span>
+        }
+
+        // Permitir solicitudes OPTIONS (CORS preflight)
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        if (&quot;OPTIONS&quot;.equalsIgnoreCase(method)) {</span>
+<span class="nc" id="L80">            LOGGER.fine(&quot;Request OPTIONS (CORS preflight), permitiendo acceso&quot;);</span>
+<span class="nc" id="L81">            chain.doFilter(request, response);</span>
+<span class="nc" id="L82">            return;</span>
+        }
+
+        try {
+            // Extraer token del header Authorization o cookie HttpOnly
+<span class="nc" id="L87">            String token = extractTokenFromRequest(httpRequest);</span>
+
+<span class="nc bnc" id="L89" title="All 4 branches missed.">            if (token == null || token.isEmpty()) {</span>
+<span class="nc" id="L90">                LOGGER.warning(&quot;Token no proporcionado en header Authorization ni cookie para: &quot; + requestURI);</span>
+<span class="nc" id="L91">                sendUnauthorizedResponse(httpResponse, &quot;Token no proporcionado&quot;);</span>
+<span class="nc" id="L92">                return;</span>
+            }
+
+            // Validar token JWT (firma y expiración)
+<span class="nc" id="L96">            Claims claims = jwtTokenProvider.validateAccessToken(token);</span>
+            
+            // Extraer información del token
+<span class="nc" id="L99">            String userSub = claims.getSubject();</span>
+            @SuppressWarnings(&quot;unchecked&quot;)
+<span class="nc" id="L101">            List&lt;String&gt; roles = claims.get(&quot;roles&quot;, List.class);</span>
+            
+            // Verificar si es un token de cliente (componente-periferico)
+<span class="nc bnc" id="L104" title="All 4 branches missed.">            boolean isClientToken = roles != null &amp;&amp; roles.contains(&quot;ROLE_CLIENT&quot;);</span>
+            
+<span class="nc bnc" id="L106" title="All 2 branches missed.">            if (isClientToken) {</span>
+                // Validar token de cliente en BD
+<span class="nc bnc" id="L108" title="All 2 branches missed.">                if (!clientAuthService.validateToken(token)) {</span>
+<span class="nc" id="L109">                    LOGGER.warning(&quot;Token de cliente no válido o expirado en BD&quot;);</span>
+<span class="nc" id="L110">                    sendUnauthorizedResponse(httpResponse, &quot;Token Expired&quot;);</span>
+<span class="nc" id="L111">                    return;</span>
+                }
+<span class="nc" id="L113">                LOGGER.info(&quot;Token de cliente válido: &quot; + userSub);</span>
+            } else {
+<span class="nc" id="L115">                LOGGER.info(&quot;Token válido para usuario: &quot; + userSub + &quot;, roles: &quot; + roles);</span>
+            }
+
+            // Setear atributos en el request para uso posterior
+<span class="nc" id="L119">            httpRequest.setAttribute(&quot;userSub&quot;, userSub);</span>
+<span class="nc" id="L120">            httpRequest.setAttribute(&quot;userRoles&quot;, roles);</span>
+<span class="nc" id="L121">            httpRequest.setAttribute(&quot;jwtClaims&quot;, claims);</span>
+
+            // Continuar con la cadena de filtros
+<span class="nc" id="L124">            chain.doFilter(request, response);</span>
+
+<span class="nc" id="L126">        } catch (JwtException e) {</span>
+<span class="nc" id="L127">            LOGGER.log(Level.WARNING, &quot;Token JWT inválido: &quot; + e.getMessage(), e);</span>
+<span class="nc" id="L128">            sendUnauthorizedResponse(httpResponse, &quot;Token inválido: &quot; + e.getMessage());</span>
+<span class="nc" id="L129">        } catch (Exception e) {</span>
+<span class="nc" id="L130">            LOGGER.log(Level.SEVERE, &quot;Error en filtro JWT&quot;, e);</span>
+<span class="nc" id="L131">            sendUnauthorizedResponse(httpResponse, &quot;Error de autenticación&quot;);</span>
+<span class="nc" id="L132">        }</span>
+<span class="nc" id="L133">    }</span>
+
+    @Override
+    public void destroy() {
+<span class="nc" id="L137">        LOGGER.info(&quot;JWTAuthenticationFilter destruido&quot;);</span>
+<span class="nc" id="L138">    }</span>
+
+    /**
+     * Extrae el token JWT del header Authorization o de la cookie HttpOnly
+     * Prioridad: 1) Header Authorization, 2) Cookie
+     *
+     * @param request HttpServletRequest
+     * @return Token JWT o null si no está presente
+     */
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        // 1. Intentar extraer del header Authorization (prioridad para APIs REST)
+<span class="nc" id="L149">        String authHeader = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="nc bnc" id="L150" title="All 4 branches missed.">        if (authHeader != null &amp;&amp; authHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="nc" id="L151">            return authHeader.substring(7); // Remover &quot;Bearer &quot; prefix</span>
+        }
+
+        // 2. Intentar extraer de la cookie HttpOnly (para frontend JSF)
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        if (request.getCookies() != null) {</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">                if (&quot;jwt_token&quot;.equals(cookie.getName())) {</span>
+<span class="nc" id="L158">                    return cookie.getValue();</span>
+                }
+            }
+        }
+
+<span class="nc" id="L163">        return null;</span>
+    }
+
+    /**
+     * Verifica si la ruta es pública (no requiere autenticación)
+     *
+     * @param requestURI URI del request
+     * @return true si es ruta pública
+     */
+    private boolean isPublicPath(String requestURI) {
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        for (String publicPath : PUBLIC_PATHS) {</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">            if (requestURI.endsWith(publicPath)) {</span>
+<span class="nc" id="L175">                return true;</span>
+            }
+<span class="nc" id="L177">        }</span>
+
+        // Verificar rutas con parámetros dinámicos
+        // Permitir GET /api/usuarios/{cedula} y DELETE /api/usuarios/{cedula}/clinica/{rut}
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        if (requestURI.matches(&quot;.*/api/usuarios/[^/]+$&quot;) ||</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            requestURI.matches(&quot;.*/api/usuarios/[^/]+/clinica/[^/]+$&quot;)) {</span>
+<span class="nc" id="L183">            return true;</span>
+        }
+
+        // Permitir /api/usuarios/verificar/{cedula}
+<span class="nc bnc" id="L187" title="All 2 branches missed.">        if (requestURI.matches(&quot;.*/api/usuarios/verificar/[^/]+$&quot;)) {</span>
+<span class="nc" id="L188">            return true;</span>
+        }
+
+        // Permitir GET /api/usuarios (con query parameters ?tenantId=... y ?search=...)
+        // Usado por clínicas periféricas para listar/buscar usuarios
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (requestURI.matches(&quot;.*/api/usuarios$&quot;)) {</span>
+<span class="nc" id="L194">            return true;</span>
+        }
+
+<span class="nc" id="L197">        return false;</span>
+    }
+
+    /**
+     * Envía respuesta 401 Unauthorized
+     *
+     * @param response HttpServletResponse
+     * @param message  Mensaje de error
+     */
+    private void sendUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
+<span class="nc" id="L207">        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span>
+<span class="nc" id="L208">        response.setContentType(&quot;application/json&quot;);</span>
+<span class="nc" id="L209">        response.setCharacterEncoding(&quot;UTF-8&quot;);</span>
+
+<span class="nc" id="L211">        String jsonResponse = String.format(</span>
+                &quot;{\&quot;error\&quot;: true, \&quot;message\&quot;: \&quot;%s\&quot;}&quot;,
+<span class="nc" id="L213">                message.replace(&quot;\&quot;&quot;, &quot;\\\&quot;&quot;)</span>
+        );
+
+<span class="nc" id="L216">        response.getWriter().write(jsonResponse);</span>
+<span class="nc" id="L217">        response.getWriter().flush();</span>
+<span class="nc" id="L218">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

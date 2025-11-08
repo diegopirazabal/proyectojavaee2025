@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>fcm_token_service.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.notifications.service</a> &gt; <span class="el_source">fcm_token_service.java</span></div><h1>fcm_token_service.java</h1><pre class="source lang-java linenums">package hcen.central.notifications.service;
+
+import hcen.central.notifications.dao.fcm_token_dao;
+import hcen.central.notifications.entity.FCMToken;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Logger;
+
+/**
+ * Servicio de lógica de negocio para gestión de tokens FCM
+ */
+@Stateless
+<span class="nc" id="L15">public class fcm_token_service {</span>
+
+<span class="nc" id="L17">    private static final Logger logger = Logger.getLogger(fcm_token_service.class.getName());</span>
+
+    @EJB
+    private fcm_token_dao dao;
+
+    /**
+     * Registrar o actualizar un token FCM para un usuario
+     * Si el token ya existe, se actualiza
+     * Si existe un token para ese usuario y dispositivo, se actualiza
+     */
+    public FCMToken registerToken(Long usuarioId, String fcmToken, String deviceId,
+                                   String deviceModel, String osVersion) {
+
+<span class="nc bnc" id="L30" title="All 6 branches missed.">        if (usuarioId == null || fcmToken == null || fcmToken.trim().isEmpty()) {</span>
+<span class="nc" id="L31">            throw new IllegalArgumentException(&quot;usuarioId y fcmToken son requeridos&quot;);</span>
+        }
+
+<span class="nc bnc" id="L34" title="All 4 branches missed.">        if (deviceId == null || deviceId.trim().isEmpty()) {</span>
+<span class="nc" id="L35">            throw new IllegalArgumentException(&quot;deviceId es requerido&quot;);</span>
+        }
+
+        // Verificar si ya existe un token exacto
+<span class="nc" id="L39">        Optional&lt;FCMToken&gt; existingToken = dao.findByFcmToken(fcmToken);</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        if (existingToken.isPresent()) {</span>
+<span class="nc" id="L41">            FCMToken token = existingToken.get();</span>
+            // Actualizar información del dispositivo
+<span class="nc" id="L43">            token.setDeviceModel(deviceModel);</span>
+<span class="nc" id="L44">            token.setOsVersion(osVersion);</span>
+<span class="nc" id="L45">            token.setActive(true);</span>
+<span class="nc" id="L46">            logger.info(&quot;Actualizando token FCM existente para usuario &quot; + usuarioId);</span>
+<span class="nc" id="L47">            return dao.update(token);</span>
+        }
+
+        // Verificar si existe un token para este usuario y dispositivo
+<span class="nc" id="L51">        Optional&lt;FCMToken&gt; deviceToken = dao.findByUsuarioAndDevice(usuarioId, deviceId);</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        if (deviceToken.isPresent()) {</span>
+<span class="nc" id="L53">            FCMToken token = deviceToken.get();</span>
+            // Actualizar con el nuevo token
+<span class="nc" id="L55">            token.setFcmToken(fcmToken);</span>
+<span class="nc" id="L56">            token.setDeviceModel(deviceModel);</span>
+<span class="nc" id="L57">            token.setOsVersion(osVersion);</span>
+<span class="nc" id="L58">            token.setActive(true);</span>
+<span class="nc" id="L59">            logger.info(&quot;Actualizando token FCM para dispositivo &quot; + deviceId + &quot; del usuario &quot; + usuarioId);</span>
+<span class="nc" id="L60">            return dao.update(token);</span>
+        }
+
+        // Crear nuevo registro
+<span class="nc" id="L64">        FCMToken newToken = new FCMToken(usuarioId, fcmToken, deviceId);</span>
+<span class="nc" id="L65">        newToken.setDeviceModel(deviceModel);</span>
+<span class="nc" id="L66">        newToken.setOsVersion(osVersion);</span>
+<span class="nc" id="L67">        newToken.setActive(true);</span>
+
+<span class="nc" id="L69">        logger.info(&quot;Registrando nuevo token FCM para usuario &quot; + usuarioId);</span>
+<span class="nc" id="L70">        return dao.save(newToken);</span>
+    }
+
+    /**
+     * Eliminar un token FCM
+     */
+    public boolean unregisterToken(String fcmToken) {
+<span class="nc bnc" id="L77" title="All 4 branches missed.">        if (fcmToken == null || fcmToken.trim().isEmpty()) {</span>
+<span class="nc" id="L78">            throw new IllegalArgumentException(&quot;fcmToken es requerido&quot;);</span>
+        }
+
+<span class="nc" id="L81">        boolean deleted = dao.deleteByFcmToken(fcmToken);</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (deleted) {</span>
+<span class="nc" id="L83">            logger.info(&quot;Token FCM eliminado exitosamente&quot;);</span>
+        } else {
+<span class="nc" id="L85">            logger.warning(&quot;Token FCM no encontrado para eliminar: &quot; + fcmToken);</span>
+        }
+<span class="nc" id="L87">        return deleted;</span>
+    }
+
+    /**
+     * Desactivar un token (soft delete)
+     */
+    public boolean deactivateToken(String fcmToken) {
+<span class="nc bnc" id="L94" title="All 4 branches missed.">        if (fcmToken == null || fcmToken.trim().isEmpty()) {</span>
+<span class="nc" id="L95">            throw new IllegalArgumentException(&quot;fcmToken es requerido&quot;);</span>
+        }
+
+<span class="nc" id="L98">        boolean deactivated = dao.deactivateByFcmToken(fcmToken);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        if (deactivated) {</span>
+<span class="nc" id="L100">            logger.info(&quot;Token FCM desactivado exitosamente&quot;);</span>
+        } else {
+<span class="nc" id="L102">            logger.warning(&quot;Token FCM no encontrado para desactivar: &quot; + fcmToken);</span>
+        }
+<span class="nc" id="L104">        return deactivated;</span>
+    }
+
+    /**
+     * Obtener todos los tokens activos de un usuario
+     */
+    public List&lt;FCMToken&gt; getActiveTokensForUser(Long usuarioId) {
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (usuarioId == null) {</span>
+<span class="nc" id="L112">            throw new IllegalArgumentException(&quot;usuarioId es requerido&quot;);</span>
+        }
+<span class="nc" id="L114">        return dao.findActiveTokensByUsuarioId(usuarioId);</span>
+    }
+
+    /**
+     * Desactivar todos los tokens de un usuario (útil para logout global)
+     */
+    public int deactivateAllTokensForUser(Long usuarioId) {
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (usuarioId == null) {</span>
+<span class="nc" id="L122">            throw new IllegalArgumentException(&quot;usuarioId es requerido&quot;);</span>
+        }
+
+<span class="nc" id="L125">        int count = dao.deactivateAllByUsuarioId(usuarioId);</span>
+<span class="nc" id="L126">        logger.info(&quot;Desactivados &quot; + count + &quot; tokens para usuario &quot; + usuarioId);</span>
+<span class="nc" id="L127">        return count;</span>
+    }
+
+    /**
+     * Verificar si un token existe y está activo
+     */
+    public boolean isTokenActive(String fcmToken) {
+<span class="nc" id="L134">        Optional&lt;FCMToken&gt; token = dao.findByFcmToken(fcmToken);</span>
+<span class="nc bnc" id="L135" title="All 4 branches missed.">        return token.isPresent() &amp;&amp; token.get().isActive();</span>
+    }
+
+    /**
+     * Contar tokens activos de un usuario
+     */
+    public long countActiveTokensForUser(Long usuarioId) {
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (usuarioId == null) {</span>
+<span class="nc" id="L143">            return 0;</span>
+        }
+<span class="nc" id="L145">        return dao.countActiveTokensByUsuarioId(usuarioId);</span>
+    }
+
+    /**
+     * Obtener todos los tokens activos del sistema
+     * Usado para notificaciones broadcast a todos los usuarios
+     */
+    public List&lt;FCMToken&gt; getAllActiveTokens() {
+<span class="nc" id="L153">        List&lt;FCMToken&gt; tokens = dao.findAllActiveTokens();</span>
+<span class="nc" id="L154">        logger.info(&quot;Obtenidos &quot; + tokens.size() + &quot; tokens activos del sistema&quot;);</span>
+<span class="nc" id="L155">        return tokens;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

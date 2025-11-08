@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultAdminInitializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.config</a> &gt; <span class="el_source">DefaultAdminInitializer.java</span></div><h1>DefaultAdminInitializer.java</h1><pre class="source lang-java linenums">package hcen.central.inus.config;
+
+import hcen.central.inus.dao.admin_hcen_dao;
+import hcen.central.inus.entity.admin_hcen;
+import hcen.central.inus.service.authentication_service;
+import jakarta.annotation.PostConstruct;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
+
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Ensures that the platform always has at least one HCEN administrator.
+ * Creates the default admin user on startup when it does not exist.
+ */
+@Singleton
+@Startup
+<span class="nc" id="L21">public class DefaultAdminInitializer {</span>
+
+<span class="nc" id="L23">    private static final Logger LOGGER = Logger.getLogger(DefaultAdminInitializer.class.getName());</span>
+
+    private static final String DEFAULT_USERNAME = &quot;admin&quot;;
+    private static final String DEFAULT_PASSWORD = &quot;admin&quot;;
+    private static final String DEFAULT_FIRST_NAME = &quot;Administrador&quot;;
+    private static final String DEFAULT_LAST_NAME = &quot;HCEN&quot;;
+    private static final String DEFAULT_EMAIL = &quot;admin@hcen.local&quot;;
+
+    @EJB
+    private admin_hcen_dao adminDao;
+
+    @EJB
+    private authentication_service authenticationService;
+
+    @PostConstruct
+    public void ensureDefaultAdmin() {
+        try {
+<span class="nc" id="L40">            Optional&lt;admin_hcen&gt; existingAdminOpt = adminDao.findByUsernameIncludingInactive(DEFAULT_USERNAME);</span>
+
+<span class="nc bnc" id="L42" title="All 2 branches missed.">            if (existingAdminOpt.isPresent()) {</span>
+<span class="nc" id="L43">                admin_hcen existingAdmin = existingAdminOpt.get();</span>
+<span class="nc" id="L44">                boolean reactivated = false;</span>
+<span class="nc" id="L45">                boolean passwordRepaired = false;</span>
+
+<span class="nc bnc" id="L47" title="All 2 branches missed.">                if (!Boolean.TRUE.equals(existingAdmin.getActive())) {</span>
+<span class="nc" id="L48">                    existingAdmin.setActive(true);</span>
+<span class="nc" id="L49">                    adminDao.save(existingAdmin);</span>
+<span class="nc" id="L50">                    reactivated = true;</span>
+                }
+
+<span class="nc bnc" id="L53" title="All 2 branches missed.">                if (needsPasswordRepair(existingAdmin.getPasswordHash())) {</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">                    if (existingAdmin.getId() == null) {</span>
+<span class="nc" id="L55">                        adminDao.save(existingAdmin);</span>
+                    }
+<span class="nc" id="L57">                    authenticationService.resetPassword(existingAdmin.getId(), DEFAULT_PASSWORD);</span>
+<span class="nc" id="L58">                    passwordRepaired = true;</span>
+                }
+
+<span class="nc bnc" id="L61" title="All 4 branches missed.">                if (reactivated || passwordRepaired) {</span>
+<span class="nc" id="L62">                    LOGGER.info(String.format(</span>
+                            &quot;Default HCEN admin normalized (reactivated=%s, passwordReset=%s).&quot;,
+<span class="nc" id="L64">                            reactivated, passwordRepaired));</span>
+                } else {
+<span class="nc" id="L66">                    LOGGER.fine(() -&gt; &quot;Default HCEN admin already present.&quot;);</span>
+                }
+<span class="nc" id="L68">                return;</span>
+            }
+
+<span class="nc" id="L71">            LOGGER.info(() -&gt; &quot;Creating default HCEN admin account.&quot;);</span>
+<span class="nc" id="L72">            admin_hcen admin = authenticationService.createAdmin(</span>
+                    DEFAULT_USERNAME,
+                    DEFAULT_PASSWORD,
+                    DEFAULT_FIRST_NAME,
+                    DEFAULT_LAST_NAME,
+                    DEFAULT_EMAIL
+            );
+
+<span class="nc" id="L80">            LOGGER.info(() -&gt; &quot;Default HCEN admin created with id=&quot; + admin.getId());</span>
+<span class="nc" id="L81">        } catch (Exception e) {</span>
+<span class="nc" id="L82">            LOGGER.log(Level.SEVERE, &quot;Failed to provision default HCEN admin user.&quot;, e);</span>
+<span class="nc" id="L83">        }</span>
+<span class="nc" id="L84">    }</span>
+
+    private boolean needsPasswordRepair(String passwordHash) {
+<span class="nc bnc" id="L87" title="All 4 branches missed.">        if (passwordHash == null || passwordHash.isBlank()) {</span>
+<span class="nc" id="L88">            return true;</span>
+        }
+
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        return !(passwordHash.startsWith(&quot;$2a$&quot;)</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">                || passwordHash.startsWith(&quot;$2b$&quot;)</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">                || passwordHash.startsWith(&quot;$2y$&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

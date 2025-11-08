@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegistrarUsuarioRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.dto</a> &gt; <span class="el_source">RegistrarUsuarioRequest.java</span></div><h1>RegistrarUsuarioRequest.java</h1><pre class="source lang-java linenums">package hcen.central.inus.dto;
+
+import hcen.central.inus.enums.TipoDocumento;
+import java.io.Serializable;
+import java.time.LocalDate;
+
+/**
+ * DTO para solicitud de registro de usuario en una clínica
+ */
+public class RegistrarUsuarioRequest implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private String cedula;
+    private TipoDocumento tipoDocumento;
+    private String primerNombre;
+    private String segundoNombre;
+    private String primerApellido;
+    private String segundoApellido;
+    private String email;
+    private LocalDate fechaNacimiento;
+    private java.util.UUID tenantId;
+
+    // Constructores
+<span class="nc" id="L25">    public RegistrarUsuarioRequest() {}</span>
+
+    public RegistrarUsuarioRequest(String cedula, TipoDocumento tipoDocumento,
+                                   String primerNombre, String primerApellido,
+<span class="nc" id="L29">                                   String email, LocalDate fechaNacimiento, java.util.UUID tenantId) {</span>
+<span class="nc" id="L30">        this.cedula = cedula;</span>
+<span class="nc" id="L31">        this.tipoDocumento = tipoDocumento;</span>
+<span class="nc" id="L32">        this.primerNombre = primerNombre;</span>
+<span class="nc" id="L33">        this.primerApellido = primerApellido;</span>
+<span class="nc" id="L34">        this.email = email;</span>
+<span class="nc" id="L35">        this.fechaNacimiento = fechaNacimiento;</span>
+<span class="nc" id="L36">        this.tenantId = tenantId;</span>
+<span class="nc" id="L37">    }</span>
+
+    // Getters y Setters
+    public String getCedula() {
+<span class="nc" id="L41">        return cedula;</span>
+    }
+
+    public void setCedula(String cedula) {
+<span class="nc" id="L45">        this.cedula = cedula;</span>
+<span class="nc" id="L46">    }</span>
+
+    public TipoDocumento getTipoDocumento() {
+<span class="nc" id="L49">        return tipoDocumento;</span>
+    }
+
+    public void setTipoDocumento(TipoDocumento tipoDocumento) {
+<span class="nc" id="L53">        this.tipoDocumento = tipoDocumento;</span>
+<span class="nc" id="L54">    }</span>
+
+    public String getPrimerNombre() {
+<span class="nc" id="L57">        return primerNombre;</span>
+    }
+
+    public void setPrimerNombre(String primerNombre) {
+<span class="nc" id="L61">        this.primerNombre = primerNombre;</span>
+<span class="nc" id="L62">    }</span>
+
+    public String getSegundoNombre() {
+<span class="nc" id="L65">        return segundoNombre;</span>
+    }
+
+    public void setSegundoNombre(String segundoNombre) {
+<span class="nc" id="L69">        this.segundoNombre = segundoNombre;</span>
+<span class="nc" id="L70">    }</span>
+
+    public String getPrimerApellido() {
+<span class="nc" id="L73">        return primerApellido;</span>
+    }
+
+    public void setPrimerApellido(String primerApellido) {
+<span class="nc" id="L77">        this.primerApellido = primerApellido;</span>
+<span class="nc" id="L78">    }</span>
+
+    public String getSegundoApellido() {
+<span class="nc" id="L81">        return segundoApellido;</span>
+    }
+
+    public void setSegundoApellido(String segundoApellido) {
+<span class="nc" id="L85">        this.segundoApellido = segundoApellido;</span>
+<span class="nc" id="L86">    }</span>
+
+    public String getEmail() {
+<span class="nc" id="L89">        return email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="nc" id="L93">        this.email = email;</span>
+<span class="nc" id="L94">    }</span>
+
+    public LocalDate getFechaNacimiento() {
+<span class="nc" id="L97">        return fechaNacimiento;</span>
+    }
+
+    public void setFechaNacimiento(LocalDate fechaNacimiento) {
+<span class="nc" id="L101">        this.fechaNacimiento = fechaNacimiento;</span>
+<span class="nc" id="L102">    }</span>
+
+    public java.util.UUID getTenantId() {
+<span class="nc" id="L105">        return tenantId;</span>
+    }
+
+    public void setTenantId(java.util.UUID tenantId) {
+<span class="nc" id="L109">        this.tenantId = tenantId;</span>
+<span class="nc" id="L110">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L114">        return &quot;RegistrarUsuarioRequest{&quot; +</span>
+                &quot;cedula='&quot; + cedula + '\'' +
+                &quot;, tipoDocumento=&quot; + tipoDocumento +
+                &quot;, primerNombre='&quot; + primerNombre + '\'' +
+                &quot;, primerApellido='&quot; + primerApellido + '\'' +
+                &quot;, email='&quot; + email + '\'' +
+                &quot;, tenantId=&quot; + tenantId +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

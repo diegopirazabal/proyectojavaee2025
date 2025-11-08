@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminAuthResource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.rest</a> &gt; <span class="el_source">AdminAuthResource.java</span></div><h1>AdminAuthResource.java</h1><pre class="source lang-java linenums">package hcen.central.inus.rest;
+
+import hcen.central.inus.dto.AdminLoginRequest;
+import hcen.central.inus.entity.admin_hcen;
+import hcen.central.inus.service.authentication_service;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+import jakarta.json.Json;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
+import java.time.format.DateTimeFormatter;
+import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+@Stateless
+@Path(&quot;/auth&quot;)
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
+<span class="nc" id="L26">public class AdminAuthResource {</span>
+
+<span class="nc" id="L28">    private static final Logger LOGGER = Logger.getLogger(AdminAuthResource.class.getName());</span>
+<span class="nc" id="L29">    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;</span>
+
+    @EJB
+    private authentication_service authenticationService;
+
+    @POST
+    @Path(&quot;/login&quot;)
+    public Response login(AdminLoginRequest request) {
+<span class="nc bnc" id="L37" title="All 6 branches missed.">        if (request == null || isBlank(request.getUsername()) || isBlank(request.getPassword())) {</span>
+<span class="nc" id="L38">            return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L39">                    .entity(Json.createObjectBuilder()</span>
+<span class="nc" id="L40">                            .add(&quot;error&quot;, true)</span>
+<span class="nc" id="L41">                            .add(&quot;message&quot;, &quot;username y password son requeridos&quot;)</span>
+<span class="nc" id="L42">                            .build())</span>
+<span class="nc" id="L43">                    .build();</span>
+        }
+
+        try {
+<span class="nc" id="L47">            admin_hcen admin = authenticationService.authenticate(</span>
+<span class="nc" id="L48">                    request.getUsername().trim(),</span>
+<span class="nc" id="L49">                    request.getPassword()</span>
+            );
+
+<span class="nc bnc" id="L52" title="All 2 branches missed.">            if (admin == null) {</span>
+<span class="nc" id="L53">                return Response.status(Response.Status.UNAUTHORIZED)</span>
+<span class="nc" id="L54">                        .entity(Json.createObjectBuilder()</span>
+<span class="nc" id="L55">                                .add(&quot;error&quot;, true)</span>
+<span class="nc" id="L56">                                .add(&quot;message&quot;, &quot;Credenciales inválidas&quot;)</span>
+<span class="nc" id="L57">                                .build())</span>
+<span class="nc" id="L58">                        .build();</span>
+            }
+
+<span class="nc" id="L61">            JsonObjectBuilder builder = Json.createObjectBuilder()</span>
+<span class="nc" id="L62">                    .add(&quot;username&quot;, admin.getUsername())</span>
+<span class="nc" id="L63">                    .add(&quot;firstName&quot;, admin.getFirstName())</span>
+<span class="nc" id="L64">                    .add(&quot;lastName&quot;, admin.getLastName())</span>
+<span class="nc" id="L65">                    .add(&quot;email&quot;, admin.getEmail())</span>
+<span class="nc" id="L66">                    .add(&quot;active&quot;, Boolean.TRUE.equals(admin.getActive()));</span>
+
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            if (admin.getId() != null) {</span>
+<span class="nc" id="L69">                builder.add(&quot;id&quot;, admin.getId());</span>
+            } else {
+<span class="nc" id="L71">                builder.addNull(&quot;id&quot;);</span>
+            }
+
+<span class="nc bnc" id="L74" title="All 2 branches missed.">            if (admin.getCreatedAt() != null) {</span>
+<span class="nc" id="L75">                builder.add(&quot;createdAt&quot;, ISO_FORMATTER.format(admin.getCreatedAt()));</span>
+            } else {
+<span class="nc" id="L77">                builder.addNull(&quot;createdAt&quot;);</span>
+            }
+
+<span class="nc bnc" id="L80" title="All 2 branches missed.">            if (admin.getLastLogin() != null) {</span>
+<span class="nc" id="L81">                builder.add(&quot;lastLogin&quot;, ISO_FORMATTER.format(admin.getLastLogin()));</span>
+            } else {
+<span class="nc" id="L83">                builder.addNull(&quot;lastLogin&quot;);</span>
+            }
+
+<span class="nc" id="L86">            return Response.ok(builder.build()).build();</span>
+<span class="nc" id="L87">        } catch (Exception e) {</span>
+<span class="nc" id="L88">            LOGGER.log(Level.SEVERE, &quot;Authentication failed due to server error.&quot;, e);</span>
+<span class="nc" id="L89">            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L90">                    .entity(Json.createObjectBuilder()</span>
+<span class="nc" id="L91">                            .add(&quot;error&quot;, true)</span>
+<span class="nc" id="L92">                            .add(&quot;message&quot;, &quot;Error interno al autenticar&quot;)</span>
+<span class="nc" id="L93">                            .build())</span>
+<span class="nc" id="L94">                    .build();</span>
+        }
+    }
+
+    private boolean isBlank(String value) {
+<span class="nc bnc" id="L99" title="All 4 branches missed.">        return value == null || value.trim().isEmpty();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

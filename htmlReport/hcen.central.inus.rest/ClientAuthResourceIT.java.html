@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientAuthResourceIT.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.rest</a> &gt; <span class="el_source">ClientAuthResourceIT.java</span></div><h1>ClientAuthResourceIT.java</h1><pre class="source lang-java linenums">package hcen.central.inus.rest;
+
+import hcen.central.inus.dao.JWTSessionDAO;
+import hcen.central.inus.dto.ClientAuthRequest;
+import hcen.central.inus.dto.ClientAuthResponse;
+import hcen.central.inus.entity.JWTSession;
+import hcen.central.inus.security.exceptions.InvalidTokenException;
+import hcen.central.inus.security.jwt.JWTConfiguration;
+import hcen.central.inus.security.jwt.JWTTokenProvider;
+import hcen.central.inus.service.ClientAuthenticationService;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.EmptyAsset;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import jakarta.ejb.EJB;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.Response;
+
+import java.io.File;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+/**
+ * Pruebas de integración para {@link ClientAuthResource} validando el flujo
+ * completo de autenticación de clientes y persistencia de sesiones JWT.
+ */
+
+@RunWith(Arquillian.class)
+<span class="fc" id="L38">public class ClientAuthResourceIT {</span>
+
+    private static final String CLIENT_ID = &quot;componente-periferico&quot;;
+
+    @Deployment
+    public static WebArchive createDeployment() {
+<span class="fc" id="L44">        return ShrinkWrap.create(WebArchive.class, &quot;client-auth-resource-it.war&quot;)</span>
+<span class="fc" id="L45">                .addClasses(</span>
+                        ClientAuthResource.class,
+                        ClientAuthenticationService.class,
+                        ClientAuthRequest.class,
+                        ClientAuthResponse.class,
+                        JWTSessionDAO.class,
+                        JWTSession.class,
+                        JWTTokenProvider.class,
+                        JWTConfiguration.class,
+                        InvalidTokenException.class,
+                        hcen.central.inus.testsupport.converter.TestInstantAttributeConverter.class,
+                        hcen.central.inus.testsupport.converter.TestUUIDAttributeConverter.class
+                )
+<span class="fc" id="L58">                .addAsResource(&quot;META-INF/persistence.xml&quot;, &quot;META-INF/persistence.xml&quot;)</span>
+<span class="fc" id="L59">                .addAsResource(&quot;META-INF/oidc-config.properties&quot;, &quot;META-INF/oidc-config.properties&quot;)</span>
+<span class="fc" id="L60">                .addAsWebInfResource(&quot;test-ds/resources.xml&quot;, &quot;resources.xml&quot;)</span>
+<span class="fc" id="L61">                .addAsWebInfResource(EmptyAsset.INSTANCE, &quot;beans.xml&quot;);</span>
+    }
+
+    @Inject
+    private ClientAuthResource clientAuthResource;
+
+    @EJB
+    private JWTSessionDAO jwtSessionDAO;
+
+    @Before
+    public void cleanSessions() {
+<span class="fc" id="L72">        List&lt;JWTSession&gt; sessions = jwtSessionDAO.findAllActive();</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">        for (JWTSession session : sessions) {</span>
+<span class="nc" id="L74">            jwtSessionDAO.invalidateByToken(session.getJwtToken());</span>
+<span class="nc" id="L75">        }</span>
+<span class="fc" id="L76">    }</span>
+
+    @Test
+    public void credencialesValidasGeneranTokenYSession() {
+<span class="fc" id="L80">        ClientAuthRequest request = new ClientAuthRequest();</span>
+<span class="fc" id="L81">        request.setClientId(CLIENT_ID);</span>
+<span class="fc" id="L82">        request.setClientSecret(&quot;hcen2025_periferico_secret_key&quot;);</span>
+
+<span class="fc" id="L84">        Response response = clientAuthResource.getToken(request);</span>
+
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        if (response.getStatus() != Response.Status.OK.getStatusCode()) {</span>
+<span class="nc" id="L87">            fail(&quot;Respuesta inesperada (&quot; + response.getStatus() + &quot;): &quot; + response.getEntity());</span>
+        }
+<span class="fc" id="L89">        ClientAuthResponse body = (ClientAuthResponse) response.getEntity();</span>
+<span class="fc" id="L90">        assertNotNull(&quot;El token generado no debe ser nulo&quot;, body.getAccessToken());</span>
+<span class="fc" id="L91">        assertTrue(&quot;Debe existir al menos una sesión activa almacenada&quot;,</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">                jwtSessionDAO.findActiveByClientId(CLIENT_ID).size() &gt;= 1);</span>
+<span class="fc" id="L93">    }</span>
+
+    @Test
+    public void credencialesInvalidasDevuelvenUnauthorized() {
+<span class="fc" id="L97">        ClientAuthRequest request = new ClientAuthRequest();</span>
+<span class="fc" id="L98">        request.setClientId(CLIENT_ID);</span>
+<span class="fc" id="L99">        request.setClientSecret(&quot;clave_incorrecta&quot;);</span>
+
+<span class="fc" id="L101">        Response response = clientAuthResource.getToken(request);</span>
+
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">        if (response.getStatus() != Response.Status.UNAUTHORIZED.getStatusCode()) {</span>
+<span class="nc" id="L104">            fail(&quot;Respuesta inesperada (&quot; + response.getStatus() + &quot;): &quot; + response.getEntity());</span>
+        }
+<span class="fc" id="L106">        assertTrue(&quot;No deben crearse sesiones para credenciales inválidas&quot;,</span>
+<span class="fc" id="L107">                jwtSessionDAO.findActiveByClientId(CLIENT_ID).isEmpty());</span>
+<span class="fc" id="L108">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

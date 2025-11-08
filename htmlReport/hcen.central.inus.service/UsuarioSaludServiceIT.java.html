@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioSaludServiceIT.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.service</a> &gt; <span class="el_source">UsuarioSaludServiceIT.java</span></div><h1>UsuarioSaludServiceIT.java</h1><pre class="source lang-java linenums">package hcen.central.inus.service;
+
+import java.io.File;
+import java.time.LocalDate;
+import java.util.UUID;
+
+import hcen.central.inus.testsupport.ArquillianMavenResolver;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.EmptyAsset;
+import org.jboss.shrinkwrap.api.exporter.ZipExporter;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import jakarta.ejb.EJB;
+import hcen.central.inus.dao.UsuarioClinicaDAO;
+import hcen.central.inus.dao.UsuarioSaludDAO;
+import hcen.central.inus.dto.ActualizarUsuarioSaludRequest;
+import hcen.central.inus.dto.RegistrarUsuarioRequest;
+import hcen.central.inus.dto.UsuarioSaludDTO;
+import hcen.central.inus.entity.UsuarioClinica;
+import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.enums.TipoDocumento;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
+/**
+ * Prueba de integración de {@link UsuarioSaludService} sobre un contenedor embebido TomEE.
+ * Se utiliza H2 como base de datos en memoria para validar la lógica de registro y validaciones.
+ */
+@RunWith(Arquillian.class)
+<span class="fc" id="L36">public class UsuarioSaludServiceIT {</span>
+
+    @Deployment
+    public static WebArchive createDeployment() {
+<span class="fc" id="L40">        File[] libs = ArquillianMavenResolver.resolve(&quot;com.h2database:h2&quot;);</span>
+
+<span class="fc" id="L42">        System.out.println(&quot;&gt;&gt;&gt; UsuarioSalud class location: &quot; + UsuarioSalud.class.getProtectionDomain().getCodeSource());</span>
+
+<span class="fc" id="L44">        WebArchive war = ShrinkWrap.create(WebArchive.class, &quot;usuario-salud-service-it.war&quot;)</span>
+<span class="fc" id="L45">                .addClasses(</span>
+                        UsuarioSaludService.class,
+                        UsuarioSaludDAO.class,
+                        UsuarioClinicaDAO.class,
+                        RegistrarUsuarioRequest.class,
+                        UsuarioSaludDTO.class,
+                        UsuarioSalud.class,
+                        UsuarioClinica.class,
+                        hcen.central.inus.testsupport.converter.TestInstantAttributeConverter.class,
+                        hcen.central.inus.testsupport.converter.TestUUIDAttributeConverter.class,
+                        ActualizarUsuarioSaludRequest.class,
+                        TipoDocumento.class
+                )
+<span class="fc" id="L58">                .addAsLibraries(libs)</span>
+<span class="fc" id="L59">                .addAsResource(&quot;META-INF/persistence.xml&quot;, &quot;META-INF/persistence.xml&quot;)</span>
+<span class="fc" id="L60">                .addAsWebInfResource(&quot;test-ds/resources.xml&quot;, &quot;resources.xml&quot;)</span>
+<span class="fc" id="L61">                .addAsWebInfResource(EmptyAsset.INSTANCE, &quot;beans.xml&quot;);</span>
+
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (Boolean.getBoolean(&quot;shrinkwrap.export&quot;)) {</span>
+<span class="nc" id="L64">            war.as(ZipExporter.class).exportTo(new File(&quot;tests/target/usuario-salud-service-it.war&quot;), true);</span>
+        }
+
+<span class="fc" id="L67">        return war;</span>
+    }
+
+    @EJB
+    private UsuarioSaludService usuarioSaludService;
+
+    @EJB
+    private UsuarioSaludDAO usuarioSaludDAO;
+
+    @Test
+    public void registraUsuarioNuevoYLoPersiste() {
+<span class="fc" id="L78">        UUID tenantId = UUID.randomUUID();</span>
+<span class="fc" id="L79">        String cedula = &quot;12345670&quot;;</span>
+
+<span class="fc" id="L81">        RegistrarUsuarioRequest request = buildRequest(cedula, tenantId);</span>
+<span class="fc" id="L82">        UsuarioSaludDTO dto = usuarioSaludService.registrarUsuarioEnClinica(request);</span>
+
+<span class="fc" id="L84">        assertEquals(cedula, dto.getCedula());</span>
+<span class="fc" id="L85">        assertEquals(&quot;Ana Test&quot;, dto.getNombreCompleto());</span>
+<span class="fc" id="L86">        assertTrue(usuarioSaludDAO.existsByCedula(cedula));</span>
+<span class="fc" id="L87">        assertTrue(usuarioSaludDAO.existsByCedulaAndTenantId(cedula, tenantId));</span>
+<span class="fc" id="L88">    }</span>
+
+    @Test
+    public void rechazaRegistroDuplicadoMismaClinica() {
+<span class="fc" id="L92">        UUID tenantId = UUID.randomUUID();</span>
+<span class="fc" id="L93">        String cedula = &quot;45678901&quot;;</span>
+
+<span class="fc" id="L95">        usuarioSaludService.registrarUsuarioEnClinica(buildRequest(cedula, tenantId));</span>
+
+        try {
+<span class="nc" id="L98">            usuarioSaludService.registrarUsuarioEnClinica(buildRequest(cedula, tenantId));</span>
+<span class="nc" id="L99">            throw new AssertionError(&quot;Se esperaba IllegalArgumentException envuelta en EJBException&quot;);</span>
+<span class="fc" id="L100">        } catch (jakarta.ejb.EJBException ex) {</span>
+<span class="fc" id="L101">            Throwable cause = ex.getCause();</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">            if (!(cause instanceof IllegalArgumentException)) {</span>
+<span class="nc" id="L103">                throw ex;</span>
+            }
+        }
+<span class="fc" id="L106">    }</span>
+
+    private RegistrarUsuarioRequest buildRequest(String cedula, UUID tenantId) {
+<span class="fc" id="L109">        RegistrarUsuarioRequest request = new RegistrarUsuarioRequest();</span>
+<span class="fc" id="L110">        request.setCedula(cedula);</span>
+<span class="fc" id="L111">        request.setTipoDocumento(TipoDocumento.DO);</span>
+<span class="fc" id="L112">        request.setPrimerNombre(&quot;Ana&quot;);</span>
+<span class="fc" id="L113">        request.setSegundoNombre(null);</span>
+<span class="fc" id="L114">        request.setPrimerApellido(&quot;Test&quot;);</span>
+<span class="fc" id="L115">        request.setSegundoApellido(null);</span>
+<span class="fc" id="L116">        request.setEmail(&quot;ana.test@example.com&quot;);</span>
+<span class="fc" id="L117">        request.setFechaNacimiento(LocalDate.of(1990, 1, 15));</span>
+<span class="fc" id="L118">        request.setTenantId(tenantId);</span>
+<span class="fc" id="L119">        return request;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

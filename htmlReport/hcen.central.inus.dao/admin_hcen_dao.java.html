@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>admin_hcen_dao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.dao</a> &gt; <span class="el_source">admin_hcen_dao.java</span></div><h1>admin_hcen_dao.java</h1><pre class="source lang-java linenums">package hcen.central.inus.dao;
+
+import hcen.central.inus.entity.admin_hcen;
+import jakarta.ejb.Stateless;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Stateless
+<span class="nc" id="L14">public class admin_hcen_dao {</span>
+    
+    @PersistenceContext(unitName = &quot;hcen-central-pu&quot;)
+    private EntityManager em;
+    
+    public admin_hcen save(admin_hcen admin) {
+<span class="nc bnc" id="L20" title="All 2 branches missed.">        if (admin.getId() == null) {</span>
+<span class="nc" id="L21">            em.persist(admin);</span>
+<span class="nc" id="L22">            return admin;</span>
+        } else {
+<span class="nc" id="L24">            return em.merge(admin);</span>
+        }
+    }
+    
+    public Optional&lt;admin_hcen&gt; findById(Long id) {
+<span class="nc" id="L29">        admin_hcen admin = em.find(admin_hcen.class, id);</span>
+<span class="nc" id="L30">        return Optional.ofNullable(admin);</span>
+    }
+    
+    public Optional&lt;admin_hcen&gt; findByUsername(String username) {
+        try {
+<span class="nc" id="L35">            TypedQuery&lt;admin_hcen&gt; query = em.createQuery(</span>
+                &quot;SELECT a FROM admin_hcen a WHERE a.username = :username AND a.active = true&quot;, 
+                admin_hcen.class
+            );
+<span class="nc" id="L39">            query.setParameter(&quot;username&quot;, username);</span>
+<span class="nc" id="L40">            admin_hcen admin = query.getSingleResult();</span>
+<span class="nc" id="L41">            return Optional.of(admin);</span>
+<span class="nc" id="L42">        } catch (NoResultException e) {</span>
+<span class="nc" id="L43">            return Optional.empty();</span>
+        }
+    }
+    
+    public Optional&lt;admin_hcen&gt; findByEmail(String email) {
+        try {
+<span class="nc" id="L49">            TypedQuery&lt;admin_hcen&gt; query = em.createQuery(</span>
+                &quot;SELECT a FROM admin_hcen a WHERE a.email = :email AND a.active = true&quot;, 
+                admin_hcen.class
+            );
+<span class="nc" id="L53">            query.setParameter(&quot;email&quot;, email);</span>
+<span class="nc" id="L54">            admin_hcen admin = query.getSingleResult();</span>
+<span class="nc" id="L55">            return Optional.of(admin);</span>
+<span class="nc" id="L56">        } catch (NoResultException e) {</span>
+<span class="nc" id="L57">            return Optional.empty();</span>
+        }
+    }
+
+    public Optional&lt;admin_hcen&gt; findByUsernameIncludingInactive(String username) {
+        try {
+<span class="nc" id="L63">            TypedQuery&lt;admin_hcen&gt; query = em.createQuery(</span>
+                &quot;SELECT a FROM admin_hcen a WHERE a.username = :username&quot;, 
+                admin_hcen.class
+            );
+<span class="nc" id="L67">            query.setParameter(&quot;username&quot;, username);</span>
+<span class="nc" id="L68">            admin_hcen admin = query.getSingleResult();</span>
+<span class="nc" id="L69">            return Optional.of(admin);</span>
+<span class="nc" id="L70">        } catch (NoResultException e) {</span>
+<span class="nc" id="L71">            return Optional.empty();</span>
+        }
+    }
+    
+    public List&lt;admin_hcen&gt; findAll() {
+<span class="nc" id="L76">        TypedQuery&lt;admin_hcen&gt; query = em.createQuery(</span>
+            &quot;SELECT a FROM admin_hcen a WHERE a.active = true ORDER BY a.createdAt DESC&quot;, 
+            admin_hcen.class
+        );
+<span class="nc" id="L80">        return query.getResultList();</span>
+    }
+    
+    public List&lt;admin_hcen&gt; findAllIncludingInactive() {
+<span class="nc" id="L84">        TypedQuery&lt;admin_hcen&gt; query = em.createQuery(</span>
+            &quot;SELECT a FROM admin_hcen a ORDER BY a.createdAt DESC&quot;, 
+            admin_hcen.class
+        );
+<span class="nc" id="L88">        return query.getResultList();</span>
+    }
+    
+    public void updateLastLogin(Long adminId) {
+<span class="nc" id="L92">        admin_hcen admin = em.find(admin_hcen.class, adminId);</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (admin != null) {</span>
+<span class="nc" id="L94">            admin.setLastLogin(LocalDateTime.now());</span>
+<span class="nc" id="L95">            em.merge(admin);</span>
+        }
+<span class="nc" id="L97">    }</span>
+    
+    public void deactivate(Long adminId) {
+<span class="nc" id="L100">        admin_hcen admin = em.find(admin_hcen.class, adminId);</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (admin != null) {</span>
+<span class="nc" id="L102">            admin.setActive(false);</span>
+<span class="nc" id="L103">            em.merge(admin);</span>
+        }
+<span class="nc" id="L105">    }</span>
+    
+    public void activate(Long adminId) {
+<span class="nc" id="L108">        admin_hcen admin = em.find(admin_hcen.class, adminId);</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (admin != null) {</span>
+<span class="nc" id="L110">            admin.setActive(true);</span>
+<span class="nc" id="L111">            em.merge(admin);</span>
+        }
+<span class="nc" id="L113">    }</span>
+    
+    public boolean existsByUsername(String username) {
+<span class="nc" id="L116">        TypedQuery&lt;Long&gt; query = em.createQuery(</span>
+            &quot;SELECT COUNT(a) FROM admin_hcen a WHERE a.username = :username&quot;, 
+            Long.class
+        );
+<span class="nc" id="L120">        query.setParameter(&quot;username&quot;, username);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        return query.getSingleResult() &gt; 0;</span>
+    }
+    
+    public boolean existsByEmail(String email) {
+<span class="nc" id="L125">        TypedQuery&lt;Long&gt; query = em.createQuery(</span>
+            &quot;SELECT COUNT(a) FROM admin_hcen a WHERE a.email = :email&quot;, 
+            Long.class
+        );
+<span class="nc" id="L129">        query.setParameter(&quot;email&quot;, email);</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        return query.getSingleResult() &gt; 0;</span>
+    }
+    
+    public void delete(Long adminId) {
+<span class="nc" id="L134">        admin_hcen admin = em.find(admin_hcen.class, adminId);</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        if (admin != null) {</span>
+<span class="nc" id="L136">            em.remove(admin);</span>
+        }
+<span class="nc" id="L138">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

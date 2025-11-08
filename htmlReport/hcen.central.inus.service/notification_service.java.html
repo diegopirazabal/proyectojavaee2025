@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>notification_service.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.service</a> &gt; <span class="el_source">notification_service.java</span></div><h1>notification_service.java</h1><pre class="source lang-java linenums">package hcen.central.inus.service;
+
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.Notification;
+import hcen.central.inus.config.FirebaseInitializer;
+import hcen.central.notifications.entity.FCMToken;
+import hcen.central.notifications.service.fcm_token_service;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+@Stateless
+<span class="nc" id="L19">public class notification_service {</span>
+
+<span class="nc" id="L21">    private static final Logger LOGGER = Logger.getLogger(notification_service.class.getName());</span>
+    private static final String DEFAULT_TOPIC = &quot;all-users&quot;;
+    private static final String USER_TOPIC_PREFIX = &quot;user-&quot;;
+
+    @Inject
+    private FirebaseInitializer firebaseInitializer;
+
+    @EJB
+    private fcm_token_service fcmTokenService;
+
+    public void sendBroadcastTestNotification() {
+<span class="nc bnc" id="L32" title="All 2 branches missed.">        if (!firebaseInitializer.isReady()) {</span>
+<span class="nc" id="L33">            LOGGER.warning(&quot;Firebase not initialized; skipping broadcast test notification.&quot;);</span>
+<span class="nc" id="L34">            return;</span>
+        }
+
+        // Obtener todos los tokens activos del sistema
+<span class="nc" id="L38">        List&lt;FCMToken&gt; activeTokens = fcmTokenService.getAllActiveTokens();</span>
+
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        if (activeTokens.isEmpty()) {</span>
+<span class="nc" id="L41">            LOGGER.warning(&quot;No hay tokens FCM activos registrados. No se enviarán notificaciones.&quot;);</span>
+<span class="nc" id="L42">            return;</span>
+        }
+
+<span class="nc" id="L45">        LOGGER.info(&quot;Enviando notificación broadcast a &quot; + activeTokens.size() + &quot; dispositivos&quot;);</span>
+
+        // Crear notificación
+<span class="nc" id="L48">        Notification notification = Notification.builder()</span>
+<span class="nc" id="L49">                .setTitle(&quot;HCEN - Notificación de Prueba&quot;)</span>
+<span class="nc" id="L50">                .setBody(&quot;Esta es una notificación de prueba enviada a todos los usuarios desde el Admin HCEN&quot;)</span>
+<span class="nc" id="L51">                .build();</span>
+
+<span class="nc" id="L53">        FirebaseMessaging messaging = firebaseInitializer.getMessaging();</span>
+<span class="nc" id="L54">        int successCount = 0;</span>
+<span class="nc" id="L55">        int failureCount = 0;</span>
+
+        // Enviar notificación a cada token individualmente
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        for (FCMToken token : activeTokens) {</span>
+            try {
+<span class="nc" id="L60">                Message message = Message.builder()</span>
+<span class="nc" id="L61">                        .setToken(token.getFcmToken())</span>
+<span class="nc" id="L62">                        .setNotification(notification)</span>
+<span class="nc" id="L63">                        .putData(&quot;tipo&quot;, &quot;SISTEMA&quot;)</span>
+<span class="nc" id="L64">                        .putData(&quot;mensaje&quot;, &quot;Notificación de prueba&quot;)</span>
+<span class="nc" id="L65">                        .putData(&quot;timestamp&quot;, Instant.now().toString())</span>
+<span class="nc" id="L66">                        .putData(&quot;usuarioId&quot;, String.valueOf(token.getUsuarioId()))</span>
+<span class="nc" id="L67">                        .build();</span>
+
+<span class="nc" id="L69">                String messageId = messaging.send(message);</span>
+<span class="nc" id="L70">                successCount++;</span>
+<span class="nc" id="L71">                LOGGER.fine(&quot;Notificación enviada a token ID &quot; + token.getId() + &quot;. Message ID: &quot; + messageId);</span>
+
+<span class="nc" id="L73">            } catch (Exception e) {</span>
+<span class="nc" id="L74">                failureCount++;</span>
+<span class="nc" id="L75">                LOGGER.log(Level.WARNING,</span>
+<span class="nc" id="L76">                    &quot;Error al enviar notificación a token ID &quot; + token.getId() +</span>
+<span class="nc" id="L77">                    &quot; (usuario &quot; + token.getUsuarioId() + &quot;): &quot; + e.getMessage(), e);</span>
+<span class="nc" id="L78">            }</span>
+<span class="nc" id="L79">        }</span>
+
+<span class="nc" id="L81">        LOGGER.info(String.format(</span>
+            &quot;Notificación broadcast completada. Éxitos: %d, Fallos: %d, Total: %d&quot;,
+<span class="nc" id="L83">            successCount, failureCount, activeTokens.size()</span>
+        ));
+<span class="nc" id="L85">    }</span>
+
+    public boolean sendDirectNotificationToUser(String cedula, String body) {
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (!firebaseInitializer.isReady()) {</span>
+<span class="nc" id="L89">            LOGGER.warning(&quot;Firebase not initialized; skipping direct notification.&quot;);</span>
+<span class="nc" id="L90">            return false;</span>
+        }
+
+<span class="nc" id="L93">        String sanitizedCedula = sanitizeTopicSegment(cedula);</span>
+<span class="nc" id="L94">        String topic = USER_TOPIC_PREFIX + sanitizedCedula;</span>
+<span class="nc bnc" id="L95" title="All 4 branches missed.">        String messageBody = (body == null || body.isBlank()) ? &quot;mensaje de prueba&quot; : body;</span>
+
+<span class="nc" id="L97">        Message message = Message.builder()</span>
+<span class="nc" id="L98">                .setTopic(topic)</span>
+<span class="nc" id="L99">                .setNotification(Notification.builder()</span>
+<span class="nc" id="L100">                        .setTitle(&quot;HCEN&quot;)</span>
+<span class="nc" id="L101">                        .setBody(messageBody)</span>
+<span class="nc" id="L102">                        .build())</span>
+<span class="nc" id="L103">                .putData(&quot;cedula&quot;, sanitizedCedula)</span>
+<span class="nc" id="L104">                .build();</span>
+
+        try {
+<span class="nc" id="L107">            FirebaseMessaging messaging = firebaseInitializer.getMessaging();</span>
+<span class="nc" id="L108">            String messageId = messaging.send(message);</span>
+<span class="nc" id="L109">            LOGGER.info(() -&gt; &quot;Direct notification sent to topic &quot; + topic + &quot;. Message ID: &quot; + messageId);</span>
+<span class="nc" id="L110">            return true;</span>
+<span class="nc" id="L111">        } catch (Exception e) {</span>
+<span class="nc" id="L112">            LOGGER.log(Level.SEVERE, &quot;Failed to send direct notification to user topic &quot; + topic, e);</span>
+<span class="nc" id="L113">            return false;</span>
+        }
+    }
+
+    private String sanitizeTopicSegment(String value) {
+<span class="nc bnc" id="L118" title="All 4 branches missed.">        if (value == null || value.isBlank()) {</span>
+<span class="nc" id="L119">            return &quot;desconocido&quot;;</span>
+        }
+<span class="nc" id="L121">        return value.replaceAll(&quot;[^A-Za-z0-9-_.~]&quot;, &quot;-&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

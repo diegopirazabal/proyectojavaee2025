@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OIDCUserInfoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.security.oidc</a> &gt; <span class="el_source">OIDCUserInfoService.java</span></div><h1>OIDCUserInfoService.java</h1><pre class="source lang-java linenums">package hcen.central.inus.security.oidc;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import hcen.central.inus.dto.OIDCUserInfo;
+import hcen.central.inus.security.config.OIDCConfiguration;
+import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Servicio para obtener información del usuario desde el endpoint UserInfo de gub.uy
+ */
+@Stateless
+<span class="nc" id="L21">public class OIDCUserInfoService {</span>
+
+<span class="nc" id="L23">    private static final Logger LOGGER = Logger.getLogger(OIDCUserInfoService.class.getName());</span>
+
+    @Inject
+    private OIDCConfiguration oidcConfig;
+
+<span class="nc" id="L28">    private final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+    /**
+     * Obtiene la información del usuario desde el endpoint UserInfo
+     *
+     * @param accessToken Access token recibido del proveedor OIDC
+     * @return OIDCUserInfo con los datos del usuario
+     * @throws Exception si ocurre un error en la llamada HTTP o parsing
+     */
+    public OIDCUserInfo getUserInfo(String accessToken) throws Exception {
+<span class="nc bnc" id="L38" title="All 4 branches missed.">        if (accessToken == null || accessToken.isEmpty()) {</span>
+<span class="nc" id="L39">            throw new IllegalArgumentException(&quot;Access token no puede ser nulo o vacío&quot;);</span>
+        }
+
+<span class="nc" id="L42">        String userInfoEndpoint = oidcConfig.getUserinfoEndpoint();</span>
+<span class="nc" id="L43">        LOGGER.info(&quot;Llamando al endpoint UserInfo: &quot; + userInfoEndpoint);</span>
+
+<span class="nc" id="L45">        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {</span>
+<span class="nc" id="L46">            HttpGet httpGet = new HttpGet(userInfoEndpoint);</span>
+            
+            // Agregar el access token en el header Authorization
+<span class="nc" id="L49">            httpGet.setHeader(&quot;Authorization&quot;, &quot;Bearer &quot; + accessToken);</span>
+<span class="nc" id="L50">            httpGet.setHeader(&quot;Accept&quot;, &quot;application/json&quot;);</span>
+
+<span class="nc" id="L52">            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {</span>
+<span class="nc" id="L53">                int statusCode = response.getCode();</span>
+<span class="nc" id="L54">                String responseBody = EntityUtils.toString(response.getEntity());</span>
+
+<span class="nc bnc" id="L56" title="All 2 branches missed.">                if (statusCode != 200) {</span>
+<span class="nc" id="L57">                    LOGGER.log(Level.SEVERE, &quot;Error en UserInfo endpoint. Status: &quot; + statusCode + &quot;, Body: &quot; + responseBody);</span>
+<span class="nc" id="L58">                    throw new RuntimeException(&quot;Error obteniendo UserInfo. Status: &quot; + statusCode);</span>
+                }
+
+<span class="nc" id="L61">                LOGGER.info(&quot;UserInfo obtenido exitosamente&quot;);</span>
+<span class="nc" id="L62">                LOGGER.fine(&quot;UserInfo response: &quot; + responseBody);</span>
+
+                // Parsear JSON a DTO
+<span class="nc" id="L65">                OIDCUserInfo userInfo = objectMapper.readValue(responseBody, OIDCUserInfo.class);</span>
+
+                // Validar que los campos esenciales estén presentes
+<span class="nc" id="L68">                validateUserInfo(userInfo);</span>
+
+<span class="nc" id="L70">                return userInfo;</span>
+            }
+<span class="nc" id="L72">        } catch (Exception e) {</span>
+<span class="nc" id="L73">            LOGGER.log(Level.SEVERE, &quot;Error obteniendo UserInfo&quot;, e);</span>
+<span class="nc" id="L74">            throw new RuntimeException(&quot;Error obteniendo UserInfo: &quot; + e.getMessage(), e);</span>
+        }
+    }
+
+    /**
+     * Valida que el UserInfo contenga los campos esenciales
+     */
+    private void validateUserInfo(OIDCUserInfo userInfo) throws Exception {
+<span class="nc bnc" id="L82" title="All 4 branches missed.">        if (userInfo.getSub() == null || userInfo.getSub().isEmpty()) {</span>
+<span class="nc" id="L83">            throw new IllegalStateException(&quot;UserInfo no contiene el campo 'sub' (subject)&quot;);</span>
+        }
+
+<span class="nc" id="L86">        LOGGER.info(&quot;UserInfo validado para subject: &quot; + userInfo.getSub());</span>
+<span class="nc" id="L87">    }</span>
+
+    /**
+     * Obtiene el subject (sub) del usuario de forma rápida
+     *
+     * @param accessToken Access token del usuario
+     * @return El subject (identificador único) del usuario
+     * @throws Exception si ocurre un error
+     */
+    public String getUserSubject(String accessToken) throws Exception {
+<span class="nc" id="L97">        OIDCUserInfo userInfo = getUserInfo(accessToken);</span>
+<span class="nc" id="L98">        return userInfo.getSub();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

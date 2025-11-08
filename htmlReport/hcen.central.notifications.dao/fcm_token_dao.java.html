@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>fcm_token_dao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.notifications.dao</a> &gt; <span class="el_source">fcm_token_dao.java</span></div><h1>fcm_token_dao.java</h1><pre class="source lang-java linenums">package hcen.central.notifications.dao;
+
+import hcen.central.notifications.entity.FCMToken;
+import jakarta.ejb.Stateless;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.TypedQuery;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * DAO para gestionar tokens FCM en la base de datos
+ */
+@Stateless
+<span class="nc" id="L16">public class fcm_token_dao {</span>
+
+    @PersistenceContext(unitName = &quot;hcen-central-pu&quot;)
+    private EntityManager em;
+
+    /**
+     * Guardar un nuevo token FCM
+     */
+    public FCMToken save(FCMToken token) {
+<span class="nc" id="L25">        em.persist(token);</span>
+<span class="nc" id="L26">        em.flush();</span>
+<span class="nc" id="L27">        return token;</span>
+    }
+
+    /**
+     * Actualizar un token FCM existente
+     */
+    public FCMToken update(FCMToken token) {
+<span class="nc" id="L34">        return em.merge(token);</span>
+    }
+
+    /**
+     * Buscar token por ID
+     */
+    public Optional&lt;FCMToken&gt; findById(Long id) {
+<span class="nc" id="L41">        FCMToken token = em.find(FCMToken.class, id);</span>
+<span class="nc" id="L42">        return Optional.ofNullable(token);</span>
+    }
+
+    /**
+     * Buscar token por el FCM token string
+     */
+    public Optional&lt;FCMToken&gt; findByFcmToken(String fcmToken) {
+        try {
+<span class="nc" id="L50">            TypedQuery&lt;FCMToken&gt; query = em.createQuery(</span>
+                &quot;SELECT t FROM FCMToken t WHERE t.fcmToken = :fcmToken&quot;,
+                FCMToken.class
+            );
+<span class="nc" id="L54">            query.setParameter(&quot;fcmToken&quot;, fcmToken);</span>
+<span class="nc" id="L55">            return Optional.of(query.getSingleResult());</span>
+<span class="nc" id="L56">        } catch (NoResultException e) {</span>
+<span class="nc" id="L57">            return Optional.empty();</span>
+        }
+    }
+
+    /**
+     * Buscar token por usuario y deviceId
+     */
+    public Optional&lt;FCMToken&gt; findByUsuarioAndDevice(Long usuarioId, String deviceId) {
+        try {
+<span class="nc" id="L66">            TypedQuery&lt;FCMToken&gt; query = em.createQuery(</span>
+                &quot;SELECT t FROM FCMToken t WHERE t.usuarioId = :usuarioId AND t.deviceId = :deviceId&quot;,
+                FCMToken.class
+            );
+<span class="nc" id="L70">            query.setParameter(&quot;usuarioId&quot;, usuarioId);</span>
+<span class="nc" id="L71">            query.setParameter(&quot;deviceId&quot;, deviceId);</span>
+<span class="nc" id="L72">            return Optional.of(query.getSingleResult());</span>
+<span class="nc" id="L73">        } catch (NoResultException e) {</span>
+<span class="nc" id="L74">            return Optional.empty();</span>
+        }
+    }
+
+    /**
+     * Obtener todos los tokens activos de un usuario
+     */
+    public List&lt;FCMToken&gt; findActiveTokensByUsuarioId(Long usuarioId) {
+<span class="nc" id="L82">        TypedQuery&lt;FCMToken&gt; query = em.createQuery(</span>
+            &quot;SELECT t FROM FCMToken t WHERE t.usuarioId = :usuarioId AND t.active = true&quot;,
+            FCMToken.class
+        );
+<span class="nc" id="L86">        query.setParameter(&quot;usuarioId&quot;, usuarioId);</span>
+<span class="nc" id="L87">        return query.getResultList();</span>
+    }
+
+    /**
+     * Obtener todos los tokens de un usuario (activos e inactivos)
+     */
+    public List&lt;FCMToken&gt; findAllTokensByUsuarioId(Long usuarioId) {
+<span class="nc" id="L94">        TypedQuery&lt;FCMToken&gt; query = em.createQuery(</span>
+            &quot;SELECT t FROM FCMToken t WHERE t.usuarioId = :usuarioId&quot;,
+            FCMToken.class
+        );
+<span class="nc" id="L98">        query.setParameter(&quot;usuarioId&quot;, usuarioId);</span>
+<span class="nc" id="L99">        return query.getResultList();</span>
+    }
+
+    /**
+     * Desactivar un token (soft delete)
+     */
+    public void deactivate(FCMToken token) {
+<span class="nc" id="L106">        token.setActive(false);</span>
+<span class="nc" id="L107">        em.merge(token);</span>
+<span class="nc" id="L108">    }</span>
+
+    /**
+     * Desactivar token por FCM token string
+     */
+    public boolean deactivateByFcmToken(String fcmToken) {
+<span class="nc" id="L114">        Optional&lt;FCMToken&gt; tokenOpt = findByFcmToken(fcmToken);</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        if (tokenOpt.isPresent()) {</span>
+<span class="nc" id="L116">            deactivate(tokenOpt.get());</span>
+<span class="nc" id="L117">            return true;</span>
+        }
+<span class="nc" id="L119">        return false;</span>
+    }
+
+    /**
+     * Eliminar token permanentemente
+     */
+    public void delete(FCMToken token) {
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        if (!em.contains(token)) {</span>
+<span class="nc" id="L127">            token = em.merge(token);</span>
+        }
+<span class="nc" id="L129">        em.remove(token);</span>
+<span class="nc" id="L130">    }</span>
+
+    /**
+     * Eliminar token por FCM token string
+     */
+    public boolean deleteByFcmToken(String fcmToken) {
+<span class="nc" id="L136">        Optional&lt;FCMToken&gt; tokenOpt = findByFcmToken(fcmToken);</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        if (tokenOpt.isPresent()) {</span>
+<span class="nc" id="L138">            delete(tokenOpt.get());</span>
+<span class="nc" id="L139">            return true;</span>
+        }
+<span class="nc" id="L141">        return false;</span>
+    }
+
+    /**
+     * Desactivar todos los tokens de un usuario
+     */
+    public int deactivateAllByUsuarioId(Long usuarioId) {
+<span class="nc" id="L148">        return em.createQuery(</span>
+            &quot;UPDATE FCMToken t SET t.active = false WHERE t.usuarioId = :usuarioId&quot;
+        )
+<span class="nc" id="L151">        .setParameter(&quot;usuarioId&quot;, usuarioId)</span>
+<span class="nc" id="L152">        .executeUpdate();</span>
+    }
+
+    /**
+     * Contar tokens activos de un usuario
+     */
+    public long countActiveTokensByUsuarioId(Long usuarioId) {
+<span class="nc" id="L159">        TypedQuery&lt;Long&gt; query = em.createQuery(</span>
+            &quot;SELECT COUNT(t) FROM FCMToken t WHERE t.usuarioId = :usuarioId AND t.active = true&quot;,
+            Long.class
+        );
+<span class="nc" id="L163">        query.setParameter(&quot;usuarioId&quot;, usuarioId);</span>
+<span class="nc" id="L164">        return query.getSingleResult();</span>
+    }
+
+    /**
+     * Obtener todos los tokens activos del sistema (para notificaciones broadcast)
+     */
+    public List&lt;FCMToken&gt; findAllActiveTokens() {
+<span class="nc" id="L171">        TypedQuery&lt;FCMToken&gt; query = em.createQuery(</span>
+            &quot;SELECT t FROM FCMToken t WHERE t.active = true ORDER BY t.createdAt DESC&quot;,
+            FCMToken.class
+        );
+<span class="nc" id="L175">        return query.getResultList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

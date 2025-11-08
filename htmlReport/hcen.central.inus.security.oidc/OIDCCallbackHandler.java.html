@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OIDCCallbackHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.security.oidc</a> &gt; <span class="el_source">OIDCCallbackHandler.java</span></div><h1>OIDCCallbackHandler.java</h1><pre class="source lang-java linenums">package hcen.central.inus.security.oidc;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import hcen.central.inus.dto.OIDCTokenResponse;
+import hcen.central.inus.security.config.OIDCConfiguration;
+import hcen.central.inus.security.pkce.PKCEValidator;
+import jakarta.ejb.Stateless;
+import jakarta.inject.Inject;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.NameValuePair;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.message.BasicNameValuePair;
+
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Maneja el callback de gub.uy después de la autenticación
+ * Procesa el authorization code y obtiene tokens usando PKCE
+ */
+@Stateless
+<span class="nc" id="L29">public class OIDCCallbackHandler {</span>
+
+<span class="nc" id="L31">    private static final Logger LOGGER = Logger.getLogger(OIDCCallbackHandler.class.getName());</span>
+
+    @Inject
+    private OIDCConfiguration oidcConfig;
+
+    @Inject
+    private PKCEValidator pkceValidator;
+
+<span class="nc" id="L39">    private final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+    /**
+     * Procesa el callback de autenticación OIDC (sin PKCE)
+     * Intercambia el authorization code por tokens
+     *
+     * @param code          Authorization code recibido del proveedor
+     * @param state         State parameter para validación CSRF
+     * @param codeVerifier  Code verifier PKCE (no usado, puede ser null)
+     * @param redirectUri   URI de redirección usada en la petición original
+     * @return OIDCTokenResponse con los tokens recibidos
+     * @throws Exception si ocurre un error en el intercambio
+     */
+    public OIDCTokenResponse handleCallback(String code, String state, String codeVerifier, String redirectUri) throws Exception {
+<span class="nc bnc" id="L53" title="All 4 branches missed.">        if (code == null || code.isEmpty()) {</span>
+<span class="nc" id="L54">            throw new IllegalArgumentException(&quot;Authorization code no puede ser nulo o vacío&quot;);</span>
+        }
+
+<span class="nc" id="L57">        LOGGER.info(&quot;Procesando callback OIDC con code: &quot; + code.substring(0, Math.min(10, code.length())) + &quot;...&quot;);</span>
+
+        // Intercambiar code por tokens (sin PKCE)
+<span class="nc" id="L60">        OIDCTokenResponse tokenResponse = exchangeCodeForTokens(code, redirectUri);</span>
+
+<span class="nc" id="L62">        LOGGER.info(&quot;Éxito al intercambiar code por tokens&quot;);</span>
+<span class="nc" id="L63">        return tokenResponse;</span>
+    }
+
+    /**
+     * Intercambia el authorization code por tokens mediante POST al token endpoint (sin PKCE)
+     *
+     * @param code         Authorization code
+     * @param redirectUri  Redirect URI
+     * @return OIDCTokenResponse con access_token, id_token, refresh_token
+     * @throws Exception si falla el intercambio
+     */
+    private OIDCTokenResponse exchangeCodeForTokens(String code, String redirectUri) throws Exception {
+<span class="nc" id="L75">        String tokenEndpoint = oidcConfig.getTokenEndpoint();</span>
+<span class="nc" id="L76">        LOGGER.info(&quot;Intercambiando code por tokens en: &quot; + tokenEndpoint);</span>
+
+<span class="nc" id="L78">        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {</span>
+<span class="nc" id="L79">            HttpPost httpPost = new HttpPost(tokenEndpoint);</span>
+
+            // Preparar header de autenticación Basic (client_id:client_secret)
+<span class="nc" id="L82">            String clientAuth = oidcConfig.getClientId() + &quot;:&quot; + oidcConfig.getClientSecret();</span>
+<span class="nc" id="L83">            String encodedAuth = Base64.getEncoder().encodeToString(clientAuth.getBytes());</span>
+<span class="nc" id="L84">            httpPost.setHeader(&quot;Authorization&quot;, &quot;Basic &quot; + encodedAuth);</span>
+<span class="nc" id="L85">            httpPost.setHeader(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;);</span>
+
+            // Preparar parámetros del POST (sin code_verifier)
+<span class="nc" id="L88">            List&lt;NameValuePair&gt; params = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L89">            params.add(new BasicNameValuePair(&quot;grant_type&quot;, &quot;authorization_code&quot;));</span>
+<span class="nc" id="L90">            params.add(new BasicNameValuePair(&quot;code&quot;, code));</span>
+<span class="nc" id="L91">            params.add(new BasicNameValuePair(&quot;redirect_uri&quot;, redirectUri));</span>
+<span class="nc" id="L92">            params.add(new BasicNameValuePair(&quot;client_id&quot;, oidcConfig.getClientId()));</span>
+
+<span class="nc" id="L94">            httpPost.setEntity(new UrlEncodedFormEntity(params));</span>
+
+<span class="nc" id="L96">            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {</span>
+<span class="nc" id="L97">                int statusCode = response.getCode();</span>
+<span class="nc" id="L98">                String responseBody = EntityUtils.toString(response.getEntity());</span>
+
+<span class="nc" id="L100">                LOGGER.fine(&quot;Token endpoint response status: &quot; + statusCode);</span>
+<span class="nc" id="L101">                LOGGER.fine(&quot;Token endpoint response body: &quot; + responseBody);</span>
+
+<span class="nc bnc" id="L103" title="All 2 branches missed.">                if (statusCode != 200) {</span>
+<span class="nc" id="L104">                    LOGGER.log(Level.SEVERE, &quot;Error en token endpoint. Status: &quot; + statusCode + &quot;, Body: &quot; + responseBody);</span>
+<span class="nc" id="L105">                    throw new RuntimeException(&quot;Error intercambiando code por tokens. Status: &quot; + statusCode);</span>
+                }
+
+                // Parsear respuesta JSON a DTO
+<span class="nc" id="L109">                OIDCTokenResponse tokenResponse = objectMapper.readValue(responseBody, OIDCTokenResponse.class);</span>
+
+                // Validar que los tokens esenciales estén presentes
+<span class="nc" id="L112">                validateTokenResponse(tokenResponse);</span>
+
+<span class="nc" id="L114">                return tokenResponse;</span>
+            }
+<span class="nc" id="L116">        } catch (Exception e) {</span>
+<span class="nc" id="L117">            LOGGER.log(Level.SEVERE, &quot;Error intercambiando code por tokens&quot;, e);</span>
+<span class="nc" id="L118">            throw new RuntimeException(&quot;Error intercambiando code por tokens: &quot; + e.getMessage(), e);</span>
+        }
+    }
+
+    /**
+     * Valida que la respuesta de tokens contenga los campos necesarios
+     */
+    private void validateTokenResponse(OIDCTokenResponse tokenResponse) throws Exception {
+<span class="nc bnc" id="L126" title="All 4 branches missed.">        if (tokenResponse.getAccessToken() == null || tokenResponse.getAccessToken().isEmpty()) {</span>
+<span class="nc" id="L127">            throw new IllegalStateException(&quot;Token response no contiene access_token&quot;);</span>
+        }
+
+<span class="nc bnc" id="L130" title="All 4 branches missed.">        if (tokenResponse.getIdToken() == null || tokenResponse.getIdToken().isEmpty()) {</span>
+<span class="nc" id="L131">            throw new IllegalStateException(&quot;Token response no contiene id_token&quot;);</span>
+        }
+
+<span class="nc" id="L134">        LOGGER.info(&quot;Token response validado exitosamente&quot;);</span>
+<span class="nc" id="L135">    }</span>
+
+    /**
+     * Maneja errores en el callback (cuando gub.uy retorna error en lugar de code)
+     *
+     * @param error            Código de error
+     * @param errorDescription Descripción del error
+     * @throws Exception siempre lanza excepción con el error recibido
+     */
+    public void handleError(String error, String errorDescription) throws Exception {
+<span class="nc" id="L145">        String errorMessage = &quot;Error en callback OIDC: &quot; + error;</span>
+<span class="nc bnc" id="L146" title="All 4 branches missed.">        if (errorDescription != null &amp;&amp; !errorDescription.isEmpty()) {</span>
+<span class="nc" id="L147">            errorMessage += &quot; - &quot; + errorDescription;</span>
+        }
+
+<span class="nc" id="L150">        LOGGER.log(Level.SEVERE, errorMessage);</span>
+<span class="nc" id="L151">        throw new RuntimeException(errorMessage);</span>
+    }
+
+    /**
+     * Valida el state parameter para prevenir CSRF
+     *
+     * @param receivedState State recibido en el callback
+     * @param expectedState State esperado (guardado en sesión)
+     * @return true si el state es válido
+     */
+    public boolean validateState(String receivedState, String expectedState) {
+<span class="nc bnc" id="L162" title="All 4 branches missed.">        if (receivedState == null || expectedState == null) {</span>
+<span class="nc" id="L163">            LOGGER.warning(&quot;State parameter nulo en validación&quot;);</span>
+<span class="nc" id="L164">            return false;</span>
+        }
+
+<span class="nc" id="L167">        boolean isValid = receivedState.equals(expectedState);</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">        if (!isValid) {</span>
+<span class="nc" id="L169">            LOGGER.log(Level.SEVERE, &quot;State parameter inválido. Posible ataque CSRF.&quot;);</span>
+        }
+
+<span class="nc" id="L172">        return isValid;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

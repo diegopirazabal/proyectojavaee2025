@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TipoDocumentoMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.util</a> &gt; <span class="el_source">TipoDocumentoMapper.java</span></div><h1>TipoDocumentoMapper.java</h1><pre class="source lang-java linenums">package hcen.central.inus.util;
+
+import hcen.central.inus.enums.TipoDocumento;
+import java.text.Normalizer;
+import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Utilidad para normalizar códigos de tipo de documento provenientes de gub.uy
+ * y de la base de datos hacia los valores internos DO/PA/OTRO.
+ */
+public final class TipoDocumentoMapper {
+
+<span class="nc" id="L15">    private static final Logger LOGGER = Logger.getLogger(TipoDocumentoMapper.class.getName());</span>
+
+    private TipoDocumentoMapper() {
+        // Utility class
+    }
+
+    /**
+     * Normaliza cadenas provenientes de gub.uy o la base de datos y las convierte
+     * al enum interno {@link TipoDocumento}. Soporta valores crudos como CI, Pasaporte,
+     * DNI, OTRO, así como sus variantes con acentos o puntuación.
+     *
+     * @param rawValue cadena de tipo de documento (puede ser nula)
+     * @return enum interno normalizado (DO/PA/OTRO)
+     */
+    public static TipoDocumento toEnum(String rawValue) {
+<span class="nc bnc" id="L30" title="All 4 branches missed.">        if (rawValue == null || rawValue.isBlank()) {</span>
+<span class="nc" id="L31">            LOGGER.warning(&quot;tipo_documento vacío, usando DO por defecto&quot;);</span>
+<span class="nc" id="L32">            return TipoDocumento.DO;</span>
+        }
+
+<span class="nc" id="L35">        LOGGER.fine(() -&gt; &quot;Normalizando tipo_documento recibido: '&quot; + rawValue + &quot;'&quot;);</span>
+
+<span class="nc" id="L37">        String tipoNormalizado = Normalizer.normalize(rawValue.trim(), Normalizer.Form.NFD)</span>
+<span class="nc" id="L38">                .replaceAll(&quot;\\p{M}&quot;, &quot;&quot;)</span>
+<span class="nc" id="L39">                .toUpperCase(Locale.ROOT);</span>
+<span class="nc" id="L40">        String tipoSanitizado = tipoNormalizado.replaceAll(&quot;[^A-Z0-9]&quot;, &quot;&quot;);</span>
+
+<span class="nc" id="L42">        LOGGER.fine(() -&gt; &quot;tipo_documento sanitizado: '&quot; + tipoSanitizado + &quot;'&quot;);</span>
+
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if (tipoSanitizado.isEmpty()) {</span>
+<span class="nc" id="L45">            LOGGER.warning(&quot;tipo_documento inválido ('&quot; + rawValue + &quot;'), usando OTRO por defecto&quot;);</span>
+<span class="nc" id="L46">            return TipoDocumento.OTRO;</span>
+        }
+
+        try {
+            // gub.uy suele enviar variantes como &quot;CI - Cédula de identidad&quot;; limpiamos el prefijo CI.
+<span class="nc bnc" id="L51" title="All 2 branches missed.">            if (tipoSanitizado.startsWith(&quot;CI&quot;)</span>
+<span class="nc bnc" id="L52" title="All 4 branches missed.">                    &amp;&amp; (tipoSanitizado.contains(&quot;CEDULA&quot;) || tipoSanitizado.contains(&quot;IDENTIDAD&quot;))) {</span>
+<span class="nc" id="L53">                return TipoDocumento.DO;</span>
+            }
+
+<span class="nc bnc" id="L56" title="All 4 branches missed.">            switch (tipoSanitizado) {</span>
+                // Cedula -&gt; Documento (DO)
+                case &quot;DO&quot;:
+                case &quot;CI&quot;:
+                case &quot;C&quot;:
+                case &quot;CEDULA&quot;:
+                case &quot;CEDULAIDENTIDAD&quot;:
+                case &quot;CEDULADEIDENTIDAD&quot;:
+                case &quot;CEDULADEIDENTIDADURUGUAYA&quot;:
+<span class="nc" id="L65">                    return TipoDocumento.DO;</span>
+
+                // Pasaporte -&gt; PA
+                case &quot;PA&quot;:
+                case &quot;PASAPORTE&quot;:
+                case &quot;PASSPORT&quot;:
+                case &quot;P&quot;:
+<span class="nc" id="L72">                    return TipoDocumento.PA;</span>
+
+                // DNI u Otros -&gt; OTRO
+                case &quot;OTRO&quot;:
+                case &quot;OTROS&quot;:
+                case &quot;DNI&quot;:
+                case &quot;DNIOTRO&quot;:
+                case &quot;DOCUMENTONACIONALDEIDENTIDAD&quot;:
+                case &quot;DOCUMENTONACIONALDEIDENTIDADARGENTINA&quot;:
+                case &quot;DOCUMENTONACIONALDEIDENTIDADURUGUAY&quot;:
+<span class="nc" id="L82">                    return TipoDocumento.OTRO;</span>
+
+                default:
+<span class="nc" id="L85">                    LOGGER.warning(&quot;Tipo de documento desconocido '&quot; + rawValue + &quot;', usando OTRO por defecto&quot;);</span>
+<span class="nc" id="L86">                    return TipoDocumento.OTRO;</span>
+            }
+<span class="nc" id="L88">        } catch (Exception e) {</span>
+<span class="nc" id="L89">            LOGGER.log(Level.SEVERE, &quot;Error normalizando tipo de documento: &quot; + rawValue, e);</span>
+<span class="nc" id="L90">            return TipoDocumento.OTRO;</span>
+        }
+    }
+
+    /**
+     * Convierte el enum interno a su representación en base de datos.
+     * Siempre devuelve DO/PA/OTRO.
+     *
+     * @param tipo enum interno
+     * @return representación String a persistir
+     */
+    public static String toDatabaseValue(TipoDocumento tipo) {
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        return tipo != null ? tipo.name() : TipoDocumento.DO.name();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

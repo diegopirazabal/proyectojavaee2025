@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JWTTokenProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.security.jwt</a> &gt; <span class="el_source">JWTTokenProvider.java</span></div><h1>JWTTokenProvider.java</h1><pre class="source lang-java linenums">package hcen.central.inus.security.jwt;
+
+import hcen.central.inus.security.exceptions.InvalidTokenException;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+
+import javax.crypto.SecretKey;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.List;
+import java.util.logging.Logger;
+
+/**
+ * Provider para generación y validación de tokens JWT internos
+ * Usa la biblioteca jjwt (io.jsonwebtoken)
+ * 
+ * IMPORTANTE: Estos son tokens PROPIOS del sistema hcen.uy
+ * NO confundir con los ID tokens de gub.uy (esos se validan en OIDCTokenValidator)
+ * 
+ * Flujo:
+ * 1. Usuario se autentica con gub.uy (OIDC)
+ * 2. Sistema valida ID Token de gub.uy
+ * 3. Sistema genera JWT PROPIO con claims del usuario
+ * 4. Frontend/Móvil usa JWT propio en requests subsecuentes
+ */
+@Stateless
+<span class="nc" id="L29">public class JWTTokenProvider {</span>
+    
+<span class="nc" id="L31">    private static final Logger logger = Logger.getLogger(JWTTokenProvider.class.getName());</span>
+    
+    @EJB
+    private JWTConfiguration jwtConfig;
+    
+    /**
+     * Genera un access token JWT para el usuario (versión simplificada)
+     * @param userSub Subject del usuario (del OIDC)
+     * @param roles Lista de roles del usuario
+     * @return JWT firmado
+     */
+    public String generateAccessToken(String userSub, List&lt;String&gt; roles) {
+<span class="nc" id="L43">        return generateAccessToken(userSub, null, roles);</span>
+    }
+    
+    /**
+     * Genera un access token JWT para el usuario
+     * @param userSub Subject del usuario (del OIDC)
+     * @param email Email del usuario
+     * @param roles Lista de roles del usuario
+     * @return JWT firmado
+     */
+    public String generateAccessToken(String userSub, String email, List&lt;String&gt; roles) {
+<span class="nc" id="L54">        Date now = new Date();</span>
+<span class="nc" id="L55">        Date expiryDate = new Date(now.getTime() + jwtConfig.getJwtAccessTokenExpiration());</span>
+        
+<span class="nc" id="L57">        return Jwts.builder()</span>
+<span class="nc" id="L58">                .setSubject(userSub)</span>
+<span class="nc" id="L59">                .setIssuer(jwtConfig.getJwtIssuer())</span>
+<span class="nc" id="L60">                .setIssuedAt(now)</span>
+<span class="nc" id="L61">                .setExpiration(expiryDate)</span>
+<span class="nc" id="L62">                .claim(&quot;email&quot;, email)</span>
+<span class="nc" id="L63">                .claim(&quot;roles&quot;, roles)</span>
+<span class="nc" id="L64">                .claim(&quot;type&quot;, &quot;access&quot;)</span>
+<span class="nc" id="L65">                .signWith(getSigningKey())</span>
+<span class="nc" id="L66">                .compact();</span>
+    }
+    
+    /**
+     * Genera un refresh token para renovar access tokens
+     * @param userSub Subject del usuario
+     * @return JWT refresh token
+     */
+    public String generateRefreshToken(String userSub) {
+<span class="nc" id="L75">        Date now = new Date();</span>
+<span class="nc" id="L76">        Date expiryDate = new Date(now.getTime() + jwtConfig.getJwtRefreshTokenExpiration());</span>
+        
+<span class="nc" id="L78">        return Jwts.builder()</span>
+<span class="nc" id="L79">                .setSubject(userSub)</span>
+<span class="nc" id="L80">                .setIssuer(jwtConfig.getJwtIssuer())</span>
+<span class="nc" id="L81">                .setIssuedAt(now)</span>
+<span class="nc" id="L82">                .setExpiration(expiryDate)</span>
+<span class="nc" id="L83">                .claim(&quot;type&quot;, &quot;refresh&quot;)</span>
+<span class="nc" id="L84">                .signWith(getSigningKey())</span>
+<span class="nc" id="L85">                .compact();</span>
+    }
+    
+    /**
+     * Valida un access token JWT
+     * @param token Access token a validar
+     * @return Claims del token
+     * @throws InvalidTokenException si el token es inválido
+     */
+    public Claims validateAccessToken(String token) {
+<span class="nc" id="L95">        Claims claims = validateToken(token);</span>
+<span class="nc" id="L96">        String tokenType = (String) claims.get(&quot;type&quot;);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        if (!&quot;access&quot;.equals(tokenType)) {</span>
+<span class="nc" id="L98">            throw new InvalidTokenException(&quot;Token no es de tipo access&quot;);</span>
+        }
+<span class="nc" id="L100">        return claims;</span>
+    }
+    
+    /**
+     * Valida un refresh token JWT
+     * @param token Refresh token a validar
+     * @return Claims del token
+     * @throws InvalidTokenException si el token es inválido
+     */
+    public Claims validateRefreshToken(String token) {
+<span class="nc" id="L110">        Claims claims = validateToken(token);</span>
+<span class="nc" id="L111">        String tokenType = (String) claims.get(&quot;type&quot;);</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        if (!&quot;refresh&quot;.equals(tokenType)) {</span>
+<span class="nc" id="L113">            throw new InvalidTokenException(&quot;Token no es de tipo refresh&quot;);</span>
+        }
+<span class="nc" id="L115">        return claims;</span>
+    }
+    
+    /**
+     * Valida un token JWT y retorna sus claims
+     * @param token JWT a validar
+     * @return Claims del token
+     * @throws InvalidTokenException si el token es inválido
+     */
+    private Claims validateToken(String token) {
+        try {
+<span class="nc" id="L126">            return Jwts.parserBuilder()</span>
+<span class="nc" id="L127">                    .setSigningKey(getSigningKey())</span>
+<span class="nc" id="L128">                    .build()</span>
+<span class="nc" id="L129">                    .parseClaimsJws(token)</span>
+<span class="nc" id="L130">                    .getBody();</span>
+                    
+<span class="nc" id="L132">        } catch (ExpiredJwtException e) {</span>
+<span class="nc" id="L133">            logger.warning(&quot;Token expirado: &quot; + e.getMessage());</span>
+<span class="nc" id="L134">            throw new InvalidTokenException(&quot;Token expirado&quot;, e);</span>
+<span class="nc" id="L135">        } catch (UnsupportedJwtException e) {</span>
+<span class="nc" id="L136">            logger.warning(&quot;Token no soportado: &quot; + e.getMessage());</span>
+<span class="nc" id="L137">            throw new InvalidTokenException(&quot;Token no soportado&quot;, e);</span>
+<span class="nc" id="L138">        } catch (MalformedJwtException e) {</span>
+<span class="nc" id="L139">            logger.warning(&quot;Token malformado: &quot; + e.getMessage());</span>
+<span class="nc" id="L140">            throw new InvalidTokenException(&quot;Token malformado&quot;, e);</span>
+<span class="nc" id="L141">        } catch (SignatureException e) {</span>
+<span class="nc" id="L142">            logger.warning(&quot;Firma inválida: &quot; + e.getMessage());</span>
+<span class="nc" id="L143">            throw new InvalidTokenException(&quot;Firma JWT inválida&quot;, e);</span>
+<span class="nc" id="L144">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L145">            logger.warning(&quot;Token vacío: &quot; + e.getMessage());</span>
+<span class="nc" id="L146">            throw new InvalidTokenException(&quot;Token vacío o nulo&quot;, e);</span>
+        }
+    }
+    
+    /**
+     * Verifica si un token está expirado
+     * @param token JWT
+     * @return true si expirado, false si válido
+     */
+    public boolean isTokenExpired(String token) {
+        try {
+<span class="nc" id="L157">            Claims claims = validateToken(token);</span>
+<span class="nc" id="L158">            return claims.getExpiration().before(new Date());</span>
+<span class="nc" id="L159">        } catch (InvalidTokenException e) {</span>
+<span class="nc" id="L160">            return true;</span>
+        }
+    }
+    
+    /**
+     * Extrae el subject (userSub) del token
+     * @param token JWT
+     * @return subject del usuario
+     */
+    public String getUserSubFromToken(String token) {
+<span class="nc" id="L170">        Claims claims = validateToken(token);</span>
+<span class="nc" id="L171">        return claims.getSubject();</span>
+    }
+    
+    /**
+     * Extrae los roles del token
+     * @param token JWT
+     * @return Lista de roles
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public List&lt;String&gt; getRolesFromToken(String token) {
+<span class="nc" id="L181">        Claims claims = validateToken(token);</span>
+<span class="nc" id="L182">        return (List&lt;String&gt;) claims.get(&quot;roles&quot;);</span>
+    }
+    
+    /**
+     * Extrae el email del token
+     * @param token JWT
+     * @return email del usuario
+     */
+    public String getEmailFromToken(String token) {
+<span class="nc" id="L191">        Claims claims = validateToken(token);</span>
+<span class="nc" id="L192">        return (String) claims.get(&quot;email&quot;);</span>
+    }
+    
+    /**
+     * Renueva un access token usando un refresh token
+     * @param refreshToken Refresh token válido
+     * @param email Email del usuario
+     * @param roles Roles actualizados
+     * @return Nuevo access token
+     */
+    public String refreshAccessToken(String refreshToken, String email, List&lt;String&gt; roles) {
+        // Validar que sea un refresh token
+<span class="nc" id="L204">        Claims claims = validateToken(refreshToken);</span>
+<span class="nc" id="L205">        String tokenType = (String) claims.get(&quot;type&quot;);</span>
+        
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        if (!&quot;refresh&quot;.equals(tokenType)) {</span>
+<span class="nc" id="L208">            throw new InvalidTokenException(&quot;Token no es de tipo refresh&quot;);</span>
+        }
+        
+<span class="nc" id="L211">        String userSub = claims.getSubject();</span>
+<span class="nc" id="L212">        return generateAccessToken(userSub, email, roles);</span>
+    }
+    
+    /**
+     * Obtiene la clave de firma desde la configuración
+     * @return SecretKey para firmar/validar JWT
+     */
+    private SecretKey getSigningKey() {
+<span class="nc" id="L220">        byte[] keyBytes = jwtConfig.getJwtSecret().getBytes(StandardCharsets.UTF_8);</span>
+<span class="nc" id="L221">        return Keys.hmacShaKeyFor(keyBytes);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>historia_clinica.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.entity</a> &gt; <span class="el_source">historia_clinica.java</span></div><h1>historia_clinica.java</h1><pre class="source lang-java linenums">package hcen.central.inus.entity;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Entity
+@Table(name = &quot;HISTORIA_CLINICA&quot;)
+<span class="nc" id="L9">public class historia_clinica {</span>
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = &quot;ID&quot;, columnDefinition = &quot;UUID&quot;)
+    private UUID id;
+
+<span class="nc" id="L16">    @Column(name = &quot;FEC_CREACION&quot;, nullable = false)</span>
+<span class="nc" id="L17">    private LocalDateTime fecCreacion = LocalDateTime.now();</span>
+
+    @Column(name = &quot;FEC_ACTUALIZACION&quot;)
+    private LocalDateTime fecActualizacion;
+
+    // Usuario - Referencia a UsuarioSalud local con composite key
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumns({
+        @JoinColumn(name = &quot;USUARIO_ID&quot;, referencedColumnName = &quot;id&quot;, nullable = false),
+        @JoinColumn(name = &quot;USUARIO_CEDULA&quot;, referencedColumnName = &quot;cedula&quot;, nullable = false)
+    })
+    private UsuarioSalud usuario;
+
+    // NOTA: Documentos clínicos NO se persisten en central
+    // Los documentos están en backend periférico y se obtienen vía API REST
+    // Ver HistoriaClinicaService para consultar documentos remotamente
+
+<span class="nc" id="L34">    public UUID getId() { return id; }</span>
+<span class="nc" id="L35">    public LocalDateTime getFecCreacion() { return fecCreacion; }</span>
+<span class="nc" id="L36">    public void setFecCreacion(LocalDateTime fecCreacion) { this.fecCreacion = fecCreacion; }</span>
+<span class="nc" id="L37">    public LocalDateTime getFecActualizacion() { return fecActualizacion; }</span>
+<span class="nc" id="L38">    public void setFecActualizacion(LocalDateTime fecActualizacion) { this.fecActualizacion = fecActualizacion; }</span>
+<span class="nc" id="L39">    public UsuarioSalud getUsuario() { return usuario; }</span>
+<span class="nc" id="L40">    public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }</span>
+
+<span class="nc bnc" id="L42" title="All 6 branches missed.">    @Override public boolean equals(Object o){ return (this==o) || (o instanceof historia_clinica h &amp;&amp; Objects.equals(id,h.id)); }</span>
+<span class="nc" id="L43">    @Override public int hashCode(){ return Objects.hash(id); }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

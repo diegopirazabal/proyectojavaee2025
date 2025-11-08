@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PerifericoUsuariosClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.service</a> &gt; <span class="el_source">PerifericoUsuariosClient.java</span></div><h1>PerifericoUsuariosClient.java</h1><pre class="source lang-java linenums">package hcen.central.inus.service;
+
+import hcen.central.inus.dto.UsuarioSistemaResponse;
+import hcen.central.inus.enums.TipoDocumento;
+import hcen.central.inus.enums.UsuarioSistemaTipo;
+import jakarta.ejb.Stateless;
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
+
+import java.io.StringReader;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+@Stateless
+<span class="nc" id="L28">public class PerifericoUsuariosClient {</span>
+
+<span class="nc" id="L30">    private static final Logger LOGGER = Logger.getLogger(PerifericoUsuariosClient.class.getName());</span>
+
+    private static final String PERIPHERAL_ENV_VAR = &quot;HCEN_PERIPHERAL_API_BASE_URL&quot;;
+    private static final String PERIPHERAL_SYS_PROP = &quot;hcen.peripheralApiBaseUrl&quot;;
+    private static final String DEFAULT_PERIPHERAL_URL = &quot;http://179.31.3.190/multitenant-api&quot;;
+
+<span class="nc" id="L36">    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(15);</span>
+
+<span class="nc" id="L38">    private final HttpClient httpClient = HttpClient.newBuilder()</span>
+<span class="nc" id="L39">        .connectTimeout(DEFAULT_TIMEOUT)</span>
+<span class="nc" id="L40">        .build();</span>
+
+<span class="nc" id="L42">    private final String peripheralBaseUrl = resolvePeripheralUrl();</span>
+
+    public List&lt;UsuarioSistemaResponse&gt; listarProfesionales(String numeroDocumento,
+                                                            TipoDocumento tipoDocumento,
+                                                            String nombre,
+                                                            String apellido,
+                                                            int limit) {
+        try {
+<span class="nc" id="L50">            StringBuilder urlBuilder = new StringBuilder(peripheralBaseUrl).append(&quot;/profesionales?&quot;);</span>
+
+<span class="nc" id="L52">            boolean hasParam = false;</span>
+
+<span class="nc bnc" id="L54" title="All 4 branches missed.">            if (numeroDocumento != null &amp;&amp; !numeroDocumento.isBlank()) {</span>
+<span class="nc" id="L55">                Optional&lt;Integer&gt; ci = parseInteger(numeroDocumento);</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">                if (ci.isPresent()) {</span>
+<span class="nc" id="L57">                    urlBuilder.append(&quot;ci=&quot;).append(ci.get());</span>
+<span class="nc" id="L58">                    hasParam = true;</span>
+                } else {
+<span class="nc" id="L60">                    LOGGER.warning(() -&gt; &quot;Número de documento inválido para profesional: &quot; + numeroDocumento);</span>
+                }
+            }
+
+<span class="nc" id="L64">            String search = buildSearchTerm(nombre, apellido);</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">            if (search != null) {</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">                if (hasParam) {</span>
+<span class="nc" id="L67">                    urlBuilder.append('&amp;');</span>
+                }
+<span class="nc" id="L69">                urlBuilder.append(&quot;search=&quot;).append(encode(search));</span>
+<span class="nc" id="L70">                hasParam = true;</span>
+            }
+
+<span class="nc bnc" id="L73" title="All 2 branches missed.">            if (limit &gt; 0) {</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">                if (hasParam) {</span>
+<span class="nc" id="L75">                    urlBuilder.append('&amp;');</span>
+                }
+<span class="nc" id="L77">                urlBuilder.append(&quot;size=&quot;).append(limit);</span>
+            }
+
+<span class="nc" id="L80">            HttpRequest request = HttpRequest.newBuilder()</span>
+<span class="nc" id="L81">                .uri(URI.create(urlBuilder.toString()))</span>
+<span class="nc" id="L82">                .timeout(DEFAULT_TIMEOUT)</span>
+<span class="nc" id="L83">                .GET()</span>
+<span class="nc" id="L84">                .build();</span>
+
+<span class="nc" id="L86">            HttpResponse&lt;String&gt; response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());</span>
+
+<span class="nc bnc" id="L88" title="All 2 branches missed.">            if (response.statusCode() == 200) {</span>
+<span class="nc" id="L89">                return parseProfesionales(response.body());</span>
+            } else {
+<span class="nc" id="L91">                LOGGER.log(Level.WARNING, &quot;Falló obtención de profesionales. Código {0}: {1}&quot;,</span>
+<span class="nc" id="L92">                    new Object[]{response.statusCode(), response.body()});</span>
+            }
+<span class="nc" id="L94">        } catch (Exception e) {</span>
+<span class="nc" id="L95">            LOGGER.log(Level.SEVERE, &quot;Error al obtener profesionales desde periférico&quot;, e);</span>
+<span class="nc" id="L96">        }</span>
+<span class="nc" id="L97">        return new ArrayList&lt;&gt;();</span>
+    }
+
+    public List&lt;UsuarioSistemaResponse&gt; listarAdministradores(String nombre, String apellido, int limit) {
+        try {
+<span class="nc" id="L102">            StringBuilder urlBuilder = new StringBuilder(peripheralBaseUrl).append(&quot;/administradores?&quot;);</span>
+<span class="nc" id="L103">            boolean hasParam = false;</span>
+
+<span class="nc" id="L105">            String search = buildSearchTerm(nombre, apellido);</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">            if (search != null) {</span>
+<span class="nc" id="L107">                urlBuilder.append(&quot;search=&quot;).append(encode(search));</span>
+<span class="nc" id="L108">                hasParam = true;</span>
+            }
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            if (limit &gt; 0) {</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">                if (hasParam) {</span>
+<span class="nc" id="L113">                    urlBuilder.append('&amp;');</span>
+                }
+<span class="nc" id="L115">                urlBuilder.append(&quot;size=&quot;).append(limit);</span>
+            }
+
+<span class="nc" id="L118">            HttpRequest request = HttpRequest.newBuilder()</span>
+<span class="nc" id="L119">                .uri(URI.create(urlBuilder.toString()))</span>
+<span class="nc" id="L120">                .timeout(DEFAULT_TIMEOUT)</span>
+<span class="nc" id="L121">                .GET()</span>
+<span class="nc" id="L122">                .build();</span>
+
+<span class="nc" id="L124">            HttpResponse&lt;String&gt; response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());</span>
+
+<span class="nc bnc" id="L126" title="All 2 branches missed.">            if (response.statusCode() == 200) {</span>
+<span class="nc" id="L127">                return parseAdministradores(response.body());</span>
+            } else {
+<span class="nc" id="L129">                LOGGER.log(Level.WARNING, &quot;Falló obtención de administradores. Código {0}: {1}&quot;,</span>
+<span class="nc" id="L130">                    new Object[]{response.statusCode(), response.body()});</span>
+            }
+<span class="nc" id="L132">        } catch (Exception e) {</span>
+<span class="nc" id="L133">            LOGGER.log(Level.SEVERE, &quot;Error al obtener administradores desde periférico&quot;, e);</span>
+<span class="nc" id="L134">        }</span>
+<span class="nc" id="L135">        return new ArrayList&lt;&gt;();</span>
+    }
+
+    private List&lt;UsuarioSistemaResponse&gt; parseProfesionales(String json) {
+<span class="nc" id="L139">        List&lt;UsuarioSistemaResponse&gt; resultados = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L140">        try (JsonReader reader = Json.createReader(new StringReader(json))) {</span>
+<span class="nc" id="L141">            JsonObject root = reader.readObject();</span>
+<span class="nc" id="L142">            JsonArray data = root.getJsonArray(&quot;data&quot;);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">            if (data == null) {</span>
+<span class="nc" id="L144">                return resultados;</span>
+            }
+<span class="nc bnc" id="L146" title="All 2 branches missed.">            for (var value : data) {</span>
+<span class="nc" id="L147">                JsonObject obj = value.asJsonObject();</span>
+<span class="nc" id="L148">                UsuarioSistemaResponse dto = new UsuarioSistemaResponse();</span>
+<span class="nc" id="L149">                dto.setTipo(UsuarioSistemaTipo.PROFESIONAL_SALUD);</span>
+<span class="nc" id="L150">                dto.setOrigen(&quot;PERIFERICO&quot;);</span>
+
+<span class="nc bnc" id="L152" title="All 2 branches missed.">                String ciValue = obj.isNull(&quot;ci&quot;) ? null : obj.get(&quot;ci&quot;).toString();</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">                if (ciValue != null) {</span>
+<span class="nc" id="L154">                    dto.setId(ciValue);</span>
+<span class="nc" id="L155">                    dto.setNumeroDocumento(ciValue);</span>
+                }
+<span class="nc" id="L157">                dto.setTipoDocumento(TipoDocumento.DO.name());</span>
+
+<span class="nc" id="L159">                String nombre = obj.getString(&quot;nombre&quot;, &quot;&quot;);</span>
+<span class="nc" id="L160">                String apellidos = obj.getString(&quot;apellidos&quot;, &quot;&quot;);</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">                dto.setPrimerNombre(nombre.isBlank() ? null : nombre);</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                dto.setPrimerApellido(apellidos.isBlank() ? null : apellidos);</span>
+<span class="nc" id="L163">                dto.setNombreCompleto((nombre + &quot; &quot; + apellidos).trim());</span>
+<span class="nc bnc" id="L164" title="All 4 branches missed.">                dto.setEmail(obj.containsKey(&quot;email&quot;) &amp;&amp; !obj.isNull(&quot;email&quot;) ? obj.getString(&quot;email&quot;) : null);</span>
+<span class="nc bnc" id="L165" title="All 4 branches missed.">                dto.setEspecialidad(obj.containsKey(&quot;especialidad&quot;) &amp;&amp; !obj.isNull(&quot;especialidad&quot;)</span>
+<span class="nc" id="L166">                    ? obj.getString(&quot;especialidad&quot;) : null);</span>
+<span class="nc" id="L167">                resultados.add(dto);</span>
+<span class="nc" id="L168">            }</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        } catch (Exception e) {</span>
+<span class="nc" id="L170">            LOGGER.log(Level.SEVERE, &quot;Error parseando profesionales desde periférico&quot;, e);</span>
+<span class="nc" id="L171">        }</span>
+<span class="nc" id="L172">        return resultados;</span>
+    }
+
+    private List&lt;UsuarioSistemaResponse&gt; parseAdministradores(String json) {
+<span class="nc" id="L176">        List&lt;UsuarioSistemaResponse&gt; resultados = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L177">        try (JsonReader reader = Json.createReader(new StringReader(json))) {</span>
+<span class="nc" id="L178">            JsonObject root = reader.readObject();</span>
+<span class="nc" id="L179">            JsonArray data = root.getJsonArray(&quot;data&quot;);</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">            if (data == null) {</span>
+<span class="nc" id="L181">                return resultados;</span>
+            }
+<span class="nc bnc" id="L183" title="All 2 branches missed.">            for (var value : data) {</span>
+<span class="nc" id="L184">                JsonObject obj = value.asJsonObject();</span>
+<span class="nc" id="L185">                UsuarioSistemaResponse dto = new UsuarioSistemaResponse();</span>
+<span class="nc" id="L186">                dto.setTipo(UsuarioSistemaTipo.ADMINISTRADOR_CLINICA);</span>
+<span class="nc" id="L187">                dto.setOrigen(&quot;PERIFERICO&quot;);</span>
+
+<span class="nc bnc" id="L189" title="All 4 branches missed.">                String idValue = obj.containsKey(&quot;id&quot;) &amp;&amp; !obj.isNull(&quot;id&quot;) ? obj.getString(&quot;id&quot;) : null;</span>
+<span class="nc bnc" id="L190" title="All 4 branches missed.">                if (idValue != null &amp;&amp; !idValue.isBlank()) {</span>
+                    try {
+<span class="nc" id="L192">                        UUID id = UUID.fromString(idValue);</span>
+<span class="nc" id="L193">                        dto.setId(id.toString());</span>
+<span class="nc" id="L194">                    } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L195">                        LOGGER.log(Level.FINE, &quot;ID de administrador inválido&quot;, e);</span>
+<span class="nc" id="L196">                    }</span>
+                }
+
+<span class="nc bnc" id="L199" title="All 4 branches missed.">                dto.setUsername(obj.containsKey(&quot;username&quot;) &amp;&amp; !obj.isNull(&quot;username&quot;) ? obj.getString(&quot;username&quot;) : null);</span>
+<span class="nc" id="L200">                String nombre = obj.getString(&quot;nombre&quot;, &quot;&quot;);</span>
+<span class="nc" id="L201">                String apellidos = obj.getString(&quot;apellidos&quot;, &quot;&quot;);</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">                dto.setPrimerNombre(nombre.isBlank() ? null : nombre);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">                dto.setPrimerApellido(apellidos.isBlank() ? null : apellidos);</span>
+<span class="nc" id="L204">                dto.setNombreCompleto((nombre + &quot; &quot; + apellidos).trim());</span>
+<span class="nc bnc" id="L205" title="All 4 branches missed.">                dto.setTenantId(obj.containsKey(&quot;tenantId&quot;) &amp;&amp; !obj.isNull(&quot;tenantId&quot;) ? obj.getString(&quot;tenantId&quot;) : null);</span>
+<span class="nc" id="L206">                resultados.add(dto);</span>
+<span class="nc" id="L207">            }</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">        } catch (Exception e) {</span>
+<span class="nc" id="L209">            LOGGER.log(Level.SEVERE, &quot;Error parseando administradores desde periférico&quot;, e);</span>
+<span class="nc" id="L210">        }</span>
+<span class="nc" id="L211">        return resultados;</span>
+    }
+
+    private String resolvePeripheralUrl() {
+<span class="nc" id="L215">        String url = System.getenv(PERIPHERAL_ENV_VAR);</span>
+<span class="nc bnc" id="L216" title="All 4 branches missed.">        if (url == null || url.isBlank()) {</span>
+<span class="nc" id="L217">            url = System.getProperty(PERIPHERAL_SYS_PROP);</span>
+        }
+<span class="nc bnc" id="L219" title="All 4 branches missed.">        if (url == null || url.isBlank()) {</span>
+<span class="nc" id="L220">            url = DEFAULT_PERIPHERAL_URL;</span>
+        }
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (url.endsWith(&quot;/&quot;)) {</span>
+<span class="nc" id="L223">            url = url.substring(0, url.length() - 1);</span>
+        }
+<span class="nc" id="L225">        return url;</span>
+    }
+
+    private String buildSearchTerm(String nombre, String apellido) {
+<span class="nc" id="L229">        StringBuilder builder = new StringBuilder();</span>
+<span class="nc bnc" id="L230" title="All 4 branches missed.">        if (nombre != null &amp;&amp; !nombre.isBlank()) {</span>
+<span class="nc" id="L231">            builder.append(nombre.trim());</span>
+        }
+<span class="nc bnc" id="L233" title="All 4 branches missed.">        if (apellido != null &amp;&amp; !apellido.isBlank()) {</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">            if (builder.length() &gt; 0) {</span>
+<span class="nc" id="L235">                builder.append(' ');</span>
+            }
+<span class="nc" id="L237">            builder.append(apellido.trim());</span>
+        }
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        return builder.length() == 0 ? null : builder.toString();</span>
+    }
+
+    private Optional&lt;Integer&gt; parseInteger(String value) {
+        try {
+<span class="nc" id="L244">            return Optional.of(Integer.parseInt(value.trim()));</span>
+<span class="nc" id="L245">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L246">            return Optional.empty();</span>
+        }
+    }
+
+    private String encode(String value) {
+<span class="nc" id="L251">        return URLEncoder.encode(value, StandardCharsets.UTF_8);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

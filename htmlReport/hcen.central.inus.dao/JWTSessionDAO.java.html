@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JWTSessionDAO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.dao</a> &gt; <span class="el_source">JWTSessionDAO.java</span></div><h1>JWTSessionDAO.java</h1><pre class="source lang-java linenums">package hcen.central.inus.dao;
+
+import hcen.central.inus.entity.JWTSession;
+import jakarta.ejb.Stateless;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * DAO para gestionar sesiones JWT de clientes externos (componente-periferico)
+ */
+@Stateless
+<span class="fc" id="L17">public class JWTSessionDAO {</span>
+    
+    @PersistenceContext(unitName = &quot;hcen-central-pu&quot;)
+    private EntityManager em;
+    
+    /**
+     * Guarda o actualiza una sesión JWT
+     */
+    public JWTSession save(JWTSession session) {
+<span class="pc bpc" id="L26" title="1 of 2 branches missed.">        if (session.getId() == null) {</span>
+<span class="fc" id="L27">            em.persist(session);</span>
+<span class="fc" id="L28">            return session;</span>
+        } else {
+<span class="nc" id="L30">            return em.merge(session);</span>
+        }
+    }
+    
+    /**
+     * Busca una sesión por el token JWT
+     */
+    public Optional&lt;JWTSession&gt; findByToken(String token) {
+        try {
+<span class="nc" id="L39">            TypedQuery&lt;JWTSession&gt; query = em.createQuery(</span>
+                &quot;SELECT s FROM JWTSession s WHERE s.jwtToken = :token AND s.active = true&quot;, 
+                JWTSession.class
+            );
+<span class="nc" id="L43">            query.setParameter(&quot;token&quot;, token);</span>
+<span class="nc" id="L44">            return Optional.of(query.getSingleResult());</span>
+<span class="nc" id="L45">        } catch (NoResultException e) {</span>
+<span class="nc" id="L46">            return Optional.empty();</span>
+        }
+    }
+    
+    /**
+     * Busca sesiones activas por client_id
+     */
+    public List&lt;JWTSession&gt; findActiveByClientId(String clientId) {
+<span class="fc" id="L54">        TypedQuery&lt;JWTSession&gt; query = em.createQuery(</span>
+            &quot;SELECT s FROM JWTSession s WHERE s.clientId = :clientId AND s.active = true AND s.expiresAt &gt; :now ORDER BY s.issuedAt DESC&quot;, 
+            JWTSession.class
+        );
+<span class="fc" id="L58">        query.setParameter(&quot;clientId&quot;, clientId);</span>
+<span class="fc" id="L59">        query.setParameter(&quot;now&quot;, LocalDateTime.now());</span>
+<span class="fc" id="L60">        return query.getResultList();</span>
+    }
+    
+    /**
+     * Invalida todas las sesiones de un cliente
+     */
+    public int invalidateAllByClientId(String clientId) {
+<span class="nc" id="L67">        return em.createQuery(</span>
+            &quot;UPDATE JWTSession s SET s.active = false WHERE s.clientId = :clientId&quot;
+        )
+<span class="nc" id="L70">        .setParameter(&quot;clientId&quot;, clientId)</span>
+<span class="nc" id="L71">        .executeUpdate();</span>
+    }
+    
+    /**
+     * Invalida una sesión específica por token
+     */
+    public int invalidateByToken(String token) {
+<span class="nc" id="L78">        return em.createQuery(</span>
+            &quot;UPDATE JWTSession s SET s.active = false WHERE s.jwtToken = :token&quot;
+        )
+<span class="nc" id="L81">        .setParameter(&quot;token&quot;, token)</span>
+<span class="nc" id="L82">        .executeUpdate();</span>
+    }
+    
+    /**
+     * Actualiza el timestamp de último uso de una sesión
+     */
+    public void updateLastUsed(Long sessionId) {
+<span class="nc" id="L89">        JWTSession session = em.find(JWTSession.class, sessionId);</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (session != null) {</span>
+<span class="nc" id="L91">            session.setLastUsedAt(LocalDateTime.now());</span>
+<span class="nc" id="L92">            em.merge(session);</span>
+        }
+<span class="nc" id="L94">    }</span>
+    
+    /**
+     * Elimina sesiones expiradas (limpieza periódica)
+     */
+    public int deleteExpiredSessions() {
+<span class="nc" id="L100">        return em.createQuery(</span>
+            &quot;DELETE FROM JWTSession s WHERE s.expiresAt &lt; :now OR s.active = false&quot;
+        )
+<span class="nc" id="L103">        .setParameter(&quot;now&quot;, LocalDateTime.now().minusDays(7)) // Mantener histórico de 7 días</span>
+<span class="nc" id="L104">        .executeUpdate();</span>
+    }
+    
+    /**
+     * Verifica si existe una sesión activa y válida para un token
+     */
+    public boolean isTokenValid(String token) {
+        try {
+<span class="nc" id="L112">            TypedQuery&lt;Long&gt; query = em.createQuery(</span>
+                &quot;SELECT COUNT(s) FROM JWTSession s WHERE s.jwtToken = :token AND s.active = true AND s.expiresAt &gt; :now&quot;, 
+                Long.class
+            );
+<span class="nc" id="L116">            query.setParameter(&quot;token&quot;, token);</span>
+<span class="nc" id="L117">            query.setParameter(&quot;now&quot;, LocalDateTime.now());</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">            return query.getSingleResult() &gt; 0;</span>
+<span class="nc" id="L119">        } catch (Exception e) {</span>
+<span class="nc" id="L120">            return false;</span>
+        }
+    }
+    
+    /**
+     * Obtiene todas las sesiones activas
+     */
+    public List&lt;JWTSession&gt; findAllActive() {
+<span class="fc" id="L128">        TypedQuery&lt;JWTSession&gt; query = em.createQuery(</span>
+            &quot;SELECT s FROM JWTSession s WHERE s.active = true AND s.expiresAt &gt; :now ORDER BY s.issuedAt DESC&quot;, 
+            JWTSession.class
+        );
+<span class="fc" id="L132">        query.setParameter(&quot;now&quot;, LocalDateTime.now());</span>
+<span class="fc" id="L133">        return query.getResultList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

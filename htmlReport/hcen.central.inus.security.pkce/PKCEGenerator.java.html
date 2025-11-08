@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PKCEGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.security.pkce</a> &gt; <span class="el_source">PKCEGenerator.java</span></div><h1>PKCEGenerator.java</h1><pre class="source lang-java linenums">package hcen.central.inus.security.pkce;
+
+import jakarta.ejb.Stateless;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
+
+/**
+ * Generador de parámetros PKCE (Proof Key for Code Exchange)
+ * RFC 7636 - Para proteger el flujo de autorización contra ataques de intercepción
+ * 
+ * Genera:
+ * - code_verifier: String aleatorio de 43-128 caracteres
+ * - code_challenge: SHA256(code_verifier) en base64url
+ */
+@Stateless
+<span class="nc" id="L19">public class PKCEGenerator {</span>
+    
+    private static final String CODE_VERIFIER_CHARSET = &quot;ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~&quot;;
+    private static final int CODE_VERIFIER_LENGTH = 128; // RFC 7636: 43-128 caracteres
+<span class="nc" id="L23">    private static final SecureRandom secureRandom = new SecureRandom();</span>
+    
+    /**
+     * Genera un code_verifier aleatorio según RFC 7636
+     * @return String de 128 caracteres usando [A-Z, a-z, 0-9, -, ., _, ~]
+     */
+    public String generateCodeVerifier() {
+<span class="nc" id="L30">        StringBuilder verifier = new StringBuilder(CODE_VERIFIER_LENGTH);</span>
+        
+<span class="nc bnc" id="L32" title="All 2 branches missed.">        for (int i = 0; i &lt; CODE_VERIFIER_LENGTH; i++) {</span>
+<span class="nc" id="L33">            int randomIndex = secureRandom.nextInt(CODE_VERIFIER_CHARSET.length());</span>
+<span class="nc" id="L34">            verifier.append(CODE_VERIFIER_CHARSET.charAt(randomIndex));</span>
+        }
+        
+<span class="nc" id="L37">        return verifier.toString();</span>
+    }
+    
+    /**
+     * Genera el code_challenge a partir del code_verifier
+     * Método: S256 (SHA-256)
+     * @param codeVerifier El code_verifier generado previamente
+     * @return code_challenge en Base64URL sin padding
+     */
+    public String generateCodeChallenge(String codeVerifier) {
+        try {
+            // SHA-256 del code_verifier
+<span class="nc" id="L49">            MessageDigest digest = MessageDigest.getInstance(&quot;SHA-256&quot;);</span>
+<span class="nc" id="L50">            byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));</span>
+            
+            // Base64URL encode sin padding (RFC 7636)
+<span class="nc" id="L53">            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);</span>
+            
+<span class="nc" id="L55">        } catch (NoSuchAlgorithmException e) {</span>
+<span class="nc" id="L56">            throw new RuntimeException(&quot;SHA-256 no está disponible&quot;, e);</span>
+        }
+    }
+    
+    /**
+     * Clase contenedora para code_verifier y code_challenge
+     */
+    public static class PKCEPair {
+        private final String codeVerifier;
+        private final String codeChallenge;
+        
+<span class="nc" id="L67">        public PKCEPair(String codeVerifier, String codeChallenge) {</span>
+<span class="nc" id="L68">            this.codeVerifier = codeVerifier;</span>
+<span class="nc" id="L69">            this.codeChallenge = codeChallenge;</span>
+<span class="nc" id="L70">        }</span>
+        
+<span class="nc" id="L72">        public String getCodeVerifier() { return codeVerifier; }</span>
+<span class="nc" id="L73">        public String getCodeChallenge() { return codeChallenge; }</span>
+    }
+    
+    /**
+     * Genera un par completo de PKCE (verifier + challenge)
+     * @return PKCEPair con ambos valores
+     */
+    public PKCEPair generatePKCEPair() {
+<span class="nc" id="L81">        String verifier = generateCodeVerifier();</span>
+<span class="nc" id="L82">        String challenge = generateCodeChallenge(verifier);</span>
+<span class="nc" id="L83">        return new PKCEPair(verifier, challenge);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

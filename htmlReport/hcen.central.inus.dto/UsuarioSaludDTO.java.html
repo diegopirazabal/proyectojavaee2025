@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioSaludDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.dto</a> &gt; <span class="el_source">UsuarioSaludDTO.java</span></div><h1>UsuarioSaludDTO.java</h1><pre class="source lang-java linenums">package hcen.central.inus.dto;
+
+import hcen.central.inus.enums.TipoDocumento;
+import java.io.Serializable;
+import java.time.Instant;
+import java.time.LocalDate;
+
+/**
+ * DTO para transferir datos de UsuarioSalud
+ */
+public class UsuarioSaludDTO implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private Long id;
+    private String cedula;
+    private TipoDocumento tipoDocumento;
+    private LocalDate fechaNacimiento;
+    private String email;
+    private Boolean emailVerificado;
+    private String nombreCompleto;
+    private String primerNombre;
+    private String segundoNombre;
+    private String primerApellido;
+    private String segundoApellido;
+    private Boolean active;
+    private Instant createdAt;
+    private Instant updatedAt;
+
+    // Constructores
+<span class="nc" id="L31">    public UsuarioSaludDTO() {}</span>
+
+<span class="nc" id="L33">    public UsuarioSaludDTO(Long id, String cedula, String primerNombre, String primerApellido, String email) {</span>
+<span class="nc" id="L34">        this.id = id;</span>
+<span class="nc" id="L35">        this.cedula = cedula;</span>
+<span class="nc" id="L36">        this.primerNombre = primerNombre;</span>
+<span class="nc" id="L37">        this.primerApellido = primerApellido;</span>
+<span class="nc" id="L38">        this.email = email;</span>
+<span class="nc" id="L39">    }</span>
+
+    // Getters y Setters
+    public Long getId() {
+<span class="nc" id="L43">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="nc" id="L47">        this.id = id;</span>
+<span class="nc" id="L48">    }</span>
+
+    public String getCedula() {
+<span class="nc" id="L51">        return cedula;</span>
+    }
+
+    public void setCedula(String cedula) {
+<span class="nc" id="L55">        this.cedula = cedula;</span>
+<span class="nc" id="L56">    }</span>
+
+    public TipoDocumento getTipoDocumento() {
+<span class="nc" id="L59">        return tipoDocumento;</span>
+    }
+
+    public void setTipoDocumento(TipoDocumento tipoDocumento) {
+<span class="nc" id="L63">        this.tipoDocumento = tipoDocumento;</span>
+<span class="nc" id="L64">    }</span>
+
+    public LocalDate getFechaNacimiento() {
+<span class="nc" id="L67">        return fechaNacimiento;</span>
+    }
+
+    public void setFechaNacimiento(LocalDate fechaNacimiento) {
+<span class="nc" id="L71">        this.fechaNacimiento = fechaNacimiento;</span>
+<span class="nc" id="L72">    }</span>
+
+    public String getEmail() {
+<span class="nc" id="L75">        return email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="nc" id="L79">        this.email = email;</span>
+<span class="nc" id="L80">    }</span>
+
+    public Boolean getEmailVerificado() {
+<span class="nc" id="L83">        return emailVerificado;</span>
+    }
+
+    public void setEmailVerificado(Boolean emailVerificado) {
+<span class="nc" id="L87">        this.emailVerificado = emailVerificado;</span>
+<span class="nc" id="L88">    }</span>
+
+    public String getNombreCompleto() {
+<span class="nc" id="L91">        return nombreCompleto;</span>
+    }
+
+    public void setNombreCompleto(String nombreCompleto) {
+<span class="nc" id="L95">        this.nombreCompleto = nombreCompleto;</span>
+<span class="nc" id="L96">    }</span>
+
+    public String getPrimerNombre() {
+<span class="nc" id="L99">        return primerNombre;</span>
+    }
+
+    public void setPrimerNombre(String primerNombre) {
+<span class="nc" id="L103">        this.primerNombre = primerNombre;</span>
+<span class="nc" id="L104">    }</span>
+
+    public String getSegundoNombre() {
+<span class="nc" id="L107">        return segundoNombre;</span>
+    }
+
+    public void setSegundoNombre(String segundoNombre) {
+<span class="nc" id="L111">        this.segundoNombre = segundoNombre;</span>
+<span class="nc" id="L112">    }</span>
+
+    public String getPrimerApellido() {
+<span class="nc" id="L115">        return primerApellido;</span>
+    }
+
+    public void setPrimerApellido(String primerApellido) {
+<span class="nc" id="L119">        this.primerApellido = primerApellido;</span>
+<span class="nc" id="L120">    }</span>
+
+    public String getSegundoApellido() {
+<span class="nc" id="L123">        return segundoApellido;</span>
+    }
+
+    public void setSegundoApellido(String segundoApellido) {
+<span class="nc" id="L127">        this.segundoApellido = segundoApellido;</span>
+<span class="nc" id="L128">    }</span>
+
+    public Boolean getActive() {
+<span class="nc" id="L131">        return active;</span>
+    }
+
+    public void setActive(Boolean active) {
+<span class="nc" id="L135">        this.active = active;</span>
+<span class="nc" id="L136">    }</span>
+
+    public Instant getCreatedAt() {
+<span class="nc" id="L139">        return createdAt;</span>
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+<span class="nc" id="L143">        this.createdAt = createdAt;</span>
+<span class="nc" id="L144">    }</span>
+
+    public Instant getUpdatedAt() {
+<span class="nc" id="L147">        return updatedAt;</span>
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+<span class="nc" id="L151">        this.updatedAt = updatedAt;</span>
+<span class="nc" id="L152">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L156">        return &quot;UsuarioSaludDTO{&quot; +</span>
+                &quot;id=&quot; + id +
+                &quot;, cedula='&quot; + cedula + '\'' +
+                &quot;, primerNombre='&quot; + primerNombre + '\'' +
+                &quot;, primerApellido='&quot; + primerApellido + '\'' +
+                &quot;, email='&quot; + email + '\'' +
+                &quot;, active=&quot; + active +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

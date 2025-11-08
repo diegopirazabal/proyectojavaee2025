@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UsuarioSistemaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.service</a> &gt; <span class="el_source">UsuarioSistemaService.java</span></div><h1>UsuarioSistemaService.java</h1><pre class="source lang-java linenums">package hcen.central.inus.service;
+
+import hcen.central.inus.dao.UsuarioSaludDAO;
+import hcen.central.inus.dto.UsuarioSistemaResponse;
+import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.enums.TipoDocumento;
+import hcen.central.inus.enums.UsuarioSistemaTipo;
+import jakarta.annotation.Resource;
+import jakarta.ejb.EJB;
+import jakarta.ejb.Stateless;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+@Stateless
+<span class="nc" id="L23">public class UsuarioSistemaService {</span>
+
+<span class="nc" id="L25">    private static final Logger LOGGER = Logger.getLogger(UsuarioSistemaService.class.getName());</span>
+    private static final int DEFAULT_LIMIT = 150;
+    private static final int MAX_LIMIT = 500;
+<span class="nc" id="L28">    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE;</span>
+
+    @EJB
+    private UsuarioSaludDAO usuarioSaludDAO;
+
+    @EJB
+    private PerifericoUsuariosClient perifericoUsuariosClient;
+
+    @Resource(lookup = &quot;java:comp/DefaultManagedExecutorService&quot;)
+    private ManagedExecutorService executorService;
+
+    public List&lt;UsuarioSistemaResponse&gt; obtenerCatalogo(String tipoDocumento,
+                                                        String numeroDocumento,
+                                                        String nombre,
+                                                        String apellido,
+                                                        Integer limit) {
+<span class="nc" id="L44">        int resolvedLimit = normalizeLimit(limit);</span>
+<span class="nc" id="L45">        TipoDocumento tipoDocEnum = parseTipoDocumento(tipoDocumento);</span>
+
+<span class="nc bnc" id="L47" title="All 6 branches missed.">        if (tipoDocumento != null &amp;&amp; !tipoDocumento.isBlank() &amp;&amp; tipoDocEnum == null) {</span>
+<span class="nc" id="L48">            throw new IllegalArgumentException(&quot;Tipo de documento no soportado: &quot; + tipoDocumento);</span>
+        }
+
+<span class="nc bnc" id="L51" title="All 6 branches missed.">        boolean filtroDocumento = tipoDocEnum != null &amp;&amp; numeroDocumento != null &amp;&amp; !numeroDocumento.isBlank();</span>
+
+<span class="nc" id="L53">        CompletableFuture&lt;List&lt;UsuarioSistemaResponse&gt;&gt; usuariosSaludFuture = CompletableFuture.supplyAsync(() -&gt;</span>
+<span class="nc" id="L54">            mapearUsuariosSalud(usuarioSaludDAO.findByFilters(</span>
+                tipoDocEnum,
+                numeroDocumento,
+                nombre,
+                apellido,
+                0,
+                resolvedLimit
+<span class="nc" id="L61">            )), executor()</span>
+        );
+
+<span class="nc bnc" id="L64" title="All 4 branches missed.">        CompletableFuture&lt;List&lt;UsuarioSistemaResponse&gt;&gt; profesionalesFuture = filtroDocumento &amp;&amp; !puedeBuscarProfesionalPorDocumento(tipoDocEnum)</span>
+<span class="nc" id="L65">            ? CompletableFuture.completedFuture(Collections.emptyList())</span>
+<span class="nc" id="L66">            : CompletableFuture.supplyAsync(() -&gt;</span>
+<span class="nc" id="L67">                perifericoUsuariosClient.listarProfesionales(</span>
+                    numeroDocumento,
+                    tipoDocEnum,
+                    nombre,
+                    apellido,
+                    resolvedLimit
+<span class="nc" id="L73">                ), executor()</span>
+            );
+
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        CompletableFuture&lt;List&lt;UsuarioSistemaResponse&gt;&gt; administradoresFuture = filtroDocumento</span>
+<span class="nc" id="L77">            ? CompletableFuture.completedFuture(Collections.emptyList())</span>
+<span class="nc" id="L78">            : CompletableFuture.supplyAsync(() -&gt;</span>
+<span class="nc" id="L79">                perifericoUsuariosClient.listarAdministradores(</span>
+                    nombre,
+                    apellido,
+                    resolvedLimit
+<span class="nc" id="L83">                ), executor()</span>
+            );
+
+<span class="nc" id="L86">        CompletableFuture&lt;List&lt;UsuarioSistemaResponse&gt;&gt; combinados = usuariosSaludFuture</span>
+<span class="nc" id="L87">            .thenCombine(profesionalesFuture, (salud, profesionales) -&gt; {</span>
+<span class="nc" id="L88">                List&lt;UsuarioSistemaResponse&gt; combined = new ArrayList&lt;&gt;(salud.size() + profesionales.size());</span>
+<span class="nc" id="L89">                combined.addAll(salud);</span>
+<span class="nc" id="L90">                combined.addAll(profesionales);</span>
+<span class="nc" id="L91">                return combined;</span>
+            })
+<span class="nc" id="L93">            .thenCombine(administradoresFuture, (previo, administradores) -&gt; {</span>
+<span class="nc" id="L94">                previo.addAll(administradores);</span>
+<span class="nc" id="L95">                return previo;</span>
+            })
+<span class="nc" id="L97">            .exceptionally(ex -&gt; {</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;</span>
+<span class="nc" id="L99">                LOGGER.log(Level.SEVERE, &quot;Error consolidando catálogo de usuarios&quot;, cause);</span>
+<span class="nc" id="L100">                return Collections.emptyList();</span>
+            });
+
+        try {
+<span class="nc" id="L104">            return combinados.get(30, TimeUnit.SECONDS);</span>
+<span class="nc" id="L105">        } catch (Exception e) {</span>
+<span class="nc" id="L106">            LOGGER.log(Level.SEVERE, &quot;Timeout al obtener catálogo de usuarios&quot;, e);</span>
+<span class="nc" id="L107">            return Collections.emptyList();</span>
+        }
+    }
+
+    private List&lt;UsuarioSistemaResponse&gt; mapearUsuariosSalud(List&lt;UsuarioSalud&gt; usuarios) {
+<span class="nc" id="L112">        List&lt;UsuarioSistemaResponse&gt; respuesta = new ArrayList&lt;&gt;(usuarios.size());</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        for (UsuarioSalud usuario : usuarios) {</span>
+<span class="nc" id="L114">            UsuarioSistemaResponse dto = new UsuarioSistemaResponse();</span>
+<span class="nc" id="L115">            dto.setTipo(UsuarioSistemaTipo.USUARIO_SALUD);</span>
+<span class="nc" id="L116">            dto.setOrigen(&quot;CENTRAL&quot;);</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">            dto.setId(usuario.getId() != null ? usuario.getId().toString() : usuario.getCedula());</span>
+<span class="nc" id="L118">            dto.setNumeroDocumento(usuario.getCedula());</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">            dto.setTipoDocumento(usuario.getTipoDeDocumento() != null ? usuario.getTipoDeDocumento().name() : null);</span>
+<span class="nc" id="L120">            dto.setPrimerNombre(usuario.getPrimerNombre());</span>
+<span class="nc" id="L121">            dto.setSegundoNombre(usuario.getSegundoNombre());</span>
+<span class="nc" id="L122">            dto.setPrimerApellido(usuario.getPrimerApellido());</span>
+<span class="nc" id="L123">            dto.setSegundoApellido(usuario.getSegundoApellido());</span>
+<span class="nc" id="L124">            dto.setNombreCompleto(resolverNombreCompleto(usuario));</span>
+<span class="nc" id="L125">            dto.setEmail(usuario.getEmail());</span>
+<span class="nc" id="L126">            dto.setActivo(usuario.getActive());</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">            dto.setTenantId(usuario.getTenantId() != null ? usuario.getTenantId().toString() : null);</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            if (usuario.getFechaNacimiento() != null) {</span>
+<span class="nc" id="L129">                dto.setFechaNacimiento(DATE_FORMAT.format(usuario.getFechaNacimiento()));</span>
+            }
+<span class="nc" id="L131">            respuesta.add(dto);</span>
+<span class="nc" id="L132">        }</span>
+<span class="nc" id="L133">        return respuesta;</span>
+    }
+
+    private int normalizeLimit(Integer limit) {
+<span class="nc bnc" id="L137" title="All 4 branches missed.">        if (limit == null || limit &lt;= 0) {</span>
+<span class="nc" id="L138">            return DEFAULT_LIMIT;</span>
+        }
+<span class="nc" id="L140">        return Math.min(limit, MAX_LIMIT);</span>
+    }
+
+    private TipoDocumento parseTipoDocumento(String tipoDocumento) {
+<span class="nc bnc" id="L144" title="All 4 branches missed.">        if (tipoDocumento == null || tipoDocumento.isBlank()) {</span>
+<span class="nc" id="L145">            return null;</span>
+        }
+        try {
+<span class="nc" id="L148">            return TipoDocumento.valueOf(tipoDocumento.trim().toUpperCase());</span>
+<span class="nc" id="L149">        } catch (IllegalArgumentException ex) {</span>
+<span class="nc" id="L150">            LOGGER.log(Level.WARNING, &quot;Tipo de documento desconocido: {0}&quot;, tipoDocumento);</span>
+<span class="nc" id="L151">            return null;</span>
+        }
+    }
+
+    private boolean puedeBuscarProfesionalPorDocumento(TipoDocumento tipoDocumento) {
+<span class="nc bnc" id="L156" title="All 4 branches missed.">        return tipoDocumento == null || tipoDocumento == TipoDocumento.DO;</span>
+    }
+
+    private java.util.concurrent.Executor executor() {
+<span class="nc bnc" id="L160" title="All 2 branches missed.">        return executorService != null ? executorService : Runnable::run;</span>
+    }
+
+    private String resolverNombreCompleto(UsuarioSalud usuario) {
+<span class="nc" id="L164">        String nombreCompleto = usuario.getNombreCompleto();</span>
+<span class="nc bnc" id="L165" title="All 4 branches missed.">        if (nombreCompleto != null &amp;&amp; !nombreCompleto.isBlank()) {</span>
+<span class="nc" id="L166">            return nombreCompleto;</span>
+        }
+<span class="nc" id="L168">        StringBuilder builder = new StringBuilder();</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        if (usuario.getPrimerNombre() != null) {</span>
+<span class="nc" id="L170">            builder.append(usuario.getPrimerNombre());</span>
+        }
+<span class="nc bnc" id="L172" title="All 4 branches missed.">        if (usuario.getSegundoNombre() != null &amp;&amp; !usuario.getSegundoNombre().isBlank()) {</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">            if (builder.length() &gt; 0) {</span>
+<span class="nc" id="L174">                builder.append(' ');</span>
+            }
+<span class="nc" id="L176">            builder.append(usuario.getSegundoNombre());</span>
+        }
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        if (usuario.getPrimerApellido() != null) {</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">            if (builder.length() &gt; 0) {</span>
+<span class="nc" id="L180">                builder.append(' ');</span>
+            }
+<span class="nc" id="L182">            builder.append(usuario.getPrimerApellido());</span>
+        }
+<span class="nc bnc" id="L184" title="All 4 branches missed.">        if (usuario.getSegundoApellido() != null &amp;&amp; !usuario.getSegundoApellido().isBlank()) {</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">            if (builder.length() &gt; 0) {</span>
+<span class="nc" id="L186">                builder.append(' ');</span>
+            }
+<span class="nc" id="L188">            builder.append(usuario.getSegundoApellido());</span>
+        }
+<span class="nc" id="L190">        return builder.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

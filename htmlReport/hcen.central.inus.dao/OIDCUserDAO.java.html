@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OIDCUserDAO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.dao</a> &gt; <span class="el_source">OIDCUserDAO.java</span></div><h1>OIDCUserDAO.java</h1><pre class="source lang-java linenums">package hcen.central.inus.dao;
+
+import hcen.central.inus.entity.UsuarioSalud;
+import jakarta.ejb.Stateless;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * DAO para persistencia de usuarios autenticados via OIDC
+ * Operaciones CRUD sobre UsuarioSalud
+ */
+@Stateless
+<span class="nc" id="L18">public class OIDCUserDAO {</span>
+    
+    @PersistenceContext(unitName = &quot;hcen-central-pu&quot;)
+    private EntityManager em;
+    
+    /**
+     * Guarda o actualiza un usuario OIDC
+     */
+    public UsuarioSalud save(UsuarioSalud user) {
+<span class="nc bnc" id="L27" title="All 2 branches missed.">        if (user.getId() == null) {</span>
+<span class="nc" id="L28">            em.persist(user);</span>
+<span class="nc" id="L29">            return user;</span>
+        } else {
+<span class="nc" id="L31">            return em.merge(user);</span>
+        }
+    }
+    
+    /**
+     * Busca usuario por ID
+     */
+    public Optional&lt;UsuarioSalud&gt; findById(Long id) {
+<span class="nc" id="L39">        UsuarioSalud user = em.find(UsuarioSalud.class, id);</span>
+<span class="nc" id="L40">        return Optional.ofNullable(user);</span>
+    }
+    
+    /**
+     * Busca usuario por cédula - retorna Optional
+     */
+    public Optional&lt;UsuarioSalud&gt; findByCedulaOptional(String cedula) {
+        try {
+<span class="nc" id="L48">            TypedQuery&lt;UsuarioSalud&gt; query = em.createQuery(</span>
+                &quot;SELECT u FROM UsuarioSalud u WHERE u.cedula = :cedula AND u.active = true&quot;,
+                UsuarioSalud.class
+            );
+<span class="nc" id="L52">            query.setParameter(&quot;cedula&quot;, cedula);</span>
+<span class="nc" id="L53">            return Optional.of(query.getSingleResult());</span>
+<span class="nc" id="L54">        } catch (NoResultException e) {</span>
+<span class="nc" id="L55">            return Optional.empty();</span>
+        }
+    }
+    
+    /**
+     * Busca usuario por cédula - retorna UsuarioSalud o null
+     */
+    public UsuarioSalud findByCedula(String cedula) {
+<span class="nc" id="L63">        return findByCedulaOptional(cedula).orElse(null);</span>
+    }
+    
+    /**
+     * @deprecated Usar findByCedula en su lugar
+     */
+    @Deprecated
+    public UsuarioSalud findBySub(String sub) {
+<span class="nc" id="L71">        return findByCedula(sub);</span>
+    }
+    
+    /**
+     * Busca usuario por email
+     */
+    public Optional&lt;UsuarioSalud&gt; findByEmail(String email) {
+        try {
+<span class="nc" id="L79">            TypedQuery&lt;UsuarioSalud&gt; query = em.createQuery(</span>
+                &quot;SELECT u FROM UsuarioSalud u WHERE u.email = :email AND u.active = true&quot;,
+                UsuarioSalud.class
+            );
+<span class="nc" id="L83">            query.setParameter(&quot;email&quot;, email);</span>
+<span class="nc" id="L84">            return Optional.of(query.getSingleResult());</span>
+<span class="nc" id="L85">        } catch (NoResultException e) {</span>
+<span class="nc" id="L86">            return Optional.empty();</span>
+        }
+    }
+    
+    /**
+     * Busca usuario por cédula (alias de findByCedulaOptional)
+     */
+    public Optional&lt;UsuarioSalud&gt; findByDocumento(String cedula) {
+<span class="nc" id="L94">        return findByCedulaOptional(cedula);</span>
+    }
+    
+    /**
+     * Lista todos los usuarios activos
+     */
+    public List&lt;UsuarioSalud&gt; findAll() {
+<span class="nc" id="L101">        TypedQuery&lt;UsuarioSalud&gt; query = em.createQuery(</span>
+            &quot;SELECT u FROM UsuarioSalud u WHERE u.active = true ORDER BY u.createdAt DESC&quot;,
+            UsuarioSalud.class
+        );
+<span class="nc" id="L105">        return query.getResultList();</span>
+    }
+    
+    /**
+     * Lista todos los usuarios (incluyendo inactivos)
+     */
+    public List&lt;UsuarioSalud&gt; findAllIncludingInactive() {
+<span class="nc" id="L112">        TypedQuery&lt;UsuarioSalud&gt; query = em.createQuery(</span>
+            &quot;SELECT u FROM UsuarioSalud u ORDER BY u.createdAt DESC&quot;,
+            UsuarioSalud.class
+        );
+<span class="nc" id="L116">        return query.getResultList();</span>
+    }
+    
+    /**
+     * Actualiza el último login del usuario
+     */
+    public void updateLastLogin(String cedula) {
+<span class="nc" id="L123">        UsuarioSalud user = findByCedula(cedula);</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        if (user != null) {</span>
+<span class="nc" id="L125">            user.setLastLogin(Instant.now());</span>
+<span class="nc" id="L126">            em.merge(user);</span>
+        }
+<span class="nc" id="L128">    }</span>
+    
+    /**
+     * Desactiva un usuario
+     */
+    public void deactivate(String cedula) {
+<span class="nc" id="L134">        UsuarioSalud user = findByCedula(cedula);</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        if (user != null) {</span>
+<span class="nc" id="L136">            user.setActive(false);</span>
+<span class="nc" id="L137">            em.merge(user);</span>
+        }
+<span class="nc" id="L139">    }</span>
+    
+    /**
+     * Activa un usuario
+     */
+    public void activate(String cedula) {
+<span class="nc" id="L145">        TypedQuery&lt;UsuarioSalud&gt; query = em.createQuery(</span>
+            &quot;SELECT u FROM UsuarioSalud u WHERE u.cedula = :cedula&quot;,
+            UsuarioSalud.class
+        );
+<span class="nc" id="L149">        query.setParameter(&quot;cedula&quot;, cedula);</span>
+        try {
+<span class="nc" id="L151">            UsuarioSalud user = query.getSingleResult();</span>
+<span class="nc" id="L152">            user.setActive(true);</span>
+<span class="nc" id="L153">            em.merge(user);</span>
+<span class="nc" id="L154">        } catch (NoResultException e) {</span>
+            // Usuario no existe
+<span class="nc" id="L156">        }</span>
+<span class="nc" id="L157">    }</span>
+    
+    /**
+     * Verifica si existe un usuario con la cédula dada
+     */
+    public boolean existsByCedula(String cedula) {
+<span class="nc" id="L163">        TypedQuery&lt;Long&gt; query = em.createQuery(</span>
+            &quot;SELECT COUNT(u) FROM UsuarioSalud u WHERE u.cedula = :cedula&quot;,
+            Long.class
+        );
+<span class="nc" id="L167">        query.setParameter(&quot;cedula&quot;, cedula);</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">        return query.getSingleResult() &gt; 0;</span>
+    }
+    
+    /**
+     * @deprecated Usar existsByCedula en su lugar
+     */
+    @Deprecated
+    public boolean existsBySub(String sub) {
+<span class="nc" id="L176">        return existsByCedula(sub);</span>
+    }
+    
+    /**
+     * Verifica si existe un usuario con el email dado
+     */
+    public boolean existsByEmail(String email) {
+<span class="nc" id="L183">        TypedQuery&lt;Long&gt; query = em.createQuery(</span>
+            &quot;SELECT COUNT(u) FROM UsuarioSalud u WHERE u.email = :email&quot;,
+            Long.class
+        );
+<span class="nc" id="L187">        query.setParameter(&quot;email&quot;, email);</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        return query.getSingleResult() &gt; 0;</span>
+    }
+    
+    /**
+     * Elimina un usuario (hard delete)
+     */
+    public void delete(String cedula) {
+<span class="nc" id="L195">        UsuarioSalud user = findByCedula(cedula);</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">        if (user != null) {</span>
+<span class="nc" id="L197">            em.remove(user);</span>
+        }
+<span class="nc" id="L199">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

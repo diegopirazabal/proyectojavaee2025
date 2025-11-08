@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientAuthResource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.inus.rest</a> &gt; <span class="el_source">ClientAuthResource.java</span></div><h1>ClientAuthResource.java</h1><pre class="source lang-java linenums">package hcen.central.inus.rest;
+
+import hcen.central.inus.dto.ClientAuthRequest;
+import hcen.central.inus.dto.ClientAuthResponse;
+import hcen.central.inus.service.ClientAuthenticationService;
+import jakarta.ejb.EJB;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
+import java.util.logging.Logger;
+
+/**
+ * REST Resource para autenticación de clientes externos (componente-periferico)
+ */
+@Path(&quot;/auth&quot;)
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+<span class="nc" id="L19">public class ClientAuthResource {</span>
+    
+<span class="nc" id="L21">    private static final Logger LOGGER = Logger.getLogger(ClientAuthResource.class.getName());</span>
+    
+    @EJB
+    private ClientAuthenticationService clientAuthService;
+    
+    /**
+     * Endpoint para obtener JWT usando client_credentials
+     * POST /api/auth/token
+     */
+    @POST
+    @Path(&quot;/token&quot;)
+    public Response getToken(ClientAuthRequest request) {
+        try {
+<span class="nc" id="L34">            LOGGER.info(&quot;Recibida petición de autenticación para cliente: &quot; + request.getClientId());</span>
+            
+            // Validar request
+<span class="nc bnc" id="L37" title="All 4 branches missed.">            if (request.getClientId() == null || request.getClientSecret() == null) {</span>
+<span class="nc" id="L38">                return Response.status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L39">                    .entity(new ErrorResponse(&quot;client_id y client_secret son requeridos&quot;))</span>
+<span class="nc" id="L40">                    .build();</span>
+            }
+            
+            // Autenticar y generar JWT
+<span class="nc" id="L44">            String jwt = clientAuthService.authenticateClient(</span>
+<span class="nc" id="L45">                request.getClientId(), </span>
+<span class="nc" id="L46">                request.getClientSecret()</span>
+            );
+            
+<span class="nc bnc" id="L49" title="All 2 branches missed.">            if (jwt == null) {</span>
+<span class="nc" id="L50">                LOGGER.warning(&quot;Autenticación fallida para cliente: &quot; + request.getClientId());</span>
+<span class="nc" id="L51">                return Response.status(Response.Status.UNAUTHORIZED)</span>
+<span class="nc" id="L52">                    .entity(new ErrorResponse(&quot;Credenciales inválidas&quot;))</span>
+<span class="nc" id="L53">                    .build();</span>
+            }
+            
+            // Construir response
+<span class="nc" id="L57">            long expiresIn = clientAuthService.getTokenExpirationSeconds();</span>
+<span class="nc" id="L58">            ClientAuthResponse response = new ClientAuthResponse(jwt, expiresIn);</span>
+            
+<span class="nc" id="L60">            LOGGER.info(&quot;Token generado exitosamente para cliente: &quot; + request.getClientId());</span>
+            
+<span class="nc" id="L62">            return Response.ok(response).build();</span>
+            
+<span class="nc" id="L64">        } catch (Exception e) {</span>
+<span class="nc" id="L65">            LOGGER.severe(&quot;Error al procesar autenticación: &quot; + e.getMessage());</span>
+<span class="nc" id="L66">            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)</span>
+<span class="nc" id="L67">                .entity(new ErrorResponse(&quot;Error interno del servidor&quot;))</span>
+<span class="nc" id="L68">                .build();</span>
+        }
+    }
+    
+    /**
+     * Clase interna para responses de error
+     */
+    public static class ErrorResponse {
+        private String error;
+        
+<span class="fc" id="L78">        public ErrorResponse(String error) {</span>
+<span class="fc" id="L79">            this.error = error;</span>
+<span class="fc" id="L80">        }</span>
+        
+        public String getError() {
+<span class="nc" id="L83">            return error;</span>
+        }
+        
+        public void setError(String error) {
+<span class="nc" id="L87">            this.error = error;</span>
+<span class="nc" id="L88">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

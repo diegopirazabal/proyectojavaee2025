@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FCMToken.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">All in tests Coverage Results</a> &gt; <a href="index.source.html" class="el_package">hcen.central.notifications.entity</a> &gt; <span class="el_source">FCMToken.java</span></div><h1>FCMToken.java</h1><pre class="source lang-java linenums">package hcen.central.notifications.entity;
+
+import jakarta.persistence.*;
+import java.io.Serializable;
+import java.time.Instant;
+import java.util.Objects;
+
+/**
+ * JPA Entity para almacenar tokens FCM de dispositivos móviles
+ * Asociados a usuarios autenticados para recibir notificaciones push
+ */
+@Entity
+@Table(name = &quot;fcm_tokens&quot;,
+       indexes = {
+           @Index(name = &quot;idx_fcm_usuario_id&quot;, columnList = &quot;usuario_id&quot;),
+           @Index(name = &quot;idx_fcm_token&quot;, columnList = &quot;fcm_token&quot;)
+       })
+public class FCMToken implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = &quot;id&quot;)
+    private Long id;
+
+    /**
+     * ID del usuario asociado al token
+     * Se corresponde con el ID de la tabla usuario_salud
+     */
+    @Column(name = &quot;usuario_id&quot;, nullable = false)
+    private Long usuarioId;
+
+    /**
+     * Token FCM del dispositivo
+     */
+    @Column(name = &quot;fcm_token&quot;, nullable = false, unique = true, length = 255)
+    private String fcmToken;
+
+    /**
+     * Identificador único del dispositivo
+     */
+    @Column(name = &quot;device_id&quot;, nullable = false, length = 100)
+    private String deviceId;
+
+    /**
+     * Modelo del dispositivo (opcional)
+     */
+    @Column(name = &quot;device_model&quot;, length = 100)
+    private String deviceModel;
+
+    /**
+     * Versión del sistema operativo (opcional)
+     */
+    @Column(name = &quot;os_version&quot;, length = 50)
+    private String osVersion;
+
+    /**
+     * Fecha de creación del registro
+     */
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private Instant createdAt;
+
+    /**
+     * Fecha de última actualización
+     */
+    @Column(name = &quot;updated_at&quot;)
+    private Instant updatedAt;
+
+    /**
+     * Indica si el token está activo
+     */
+<span class="nc" id="L71">    @Column(name = &quot;active&quot;, nullable = false, columnDefinition = &quot;BOOLEAN DEFAULT true&quot;)</span>
+<span class="nc" id="L72">    private Boolean active = true;</span>
+
+    @PrePersist
+    protected void onCreate() {
+<span class="nc" id="L76">        createdAt = Instant.now();</span>
+<span class="nc" id="L77">        updatedAt = Instant.now();</span>
+<span class="nc" id="L78">    }</span>
+
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L82">        updatedAt = Instant.now();</span>
+<span class="nc" id="L83">    }</span>
+
+    // Constructores
+
+<span class="nc" id="L87">    public FCMToken() {}</span>
+
+<span class="nc" id="L89">    public FCMToken(Long usuarioId, String fcmToken, String deviceId) {</span>
+<span class="nc" id="L90">        this.usuarioId = usuarioId;</span>
+<span class="nc" id="L91">        this.fcmToken = fcmToken;</span>
+<span class="nc" id="L92">        this.deviceId = deviceId;</span>
+<span class="nc" id="L93">    }</span>
+
+    // Getters y Setters
+
+    public Long getId() {
+<span class="nc" id="L98">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="nc" id="L102">        this.id = id;</span>
+<span class="nc" id="L103">    }</span>
+
+    public Long getUsuarioId() {
+<span class="nc" id="L106">        return usuarioId;</span>
+    }
+
+    public void setUsuarioId(Long usuarioId) {
+<span class="nc" id="L110">        this.usuarioId = usuarioId;</span>
+<span class="nc" id="L111">    }</span>
+
+    public String getFcmToken() {
+<span class="nc" id="L114">        return fcmToken;</span>
+    }
+
+    public void setFcmToken(String fcmToken) {
+<span class="nc" id="L118">        this.fcmToken = fcmToken;</span>
+<span class="nc" id="L119">    }</span>
+
+    public String getDeviceId() {
+<span class="nc" id="L122">        return deviceId;</span>
+    }
+
+    public void setDeviceId(String deviceId) {
+<span class="nc" id="L126">        this.deviceId = deviceId;</span>
+<span class="nc" id="L127">    }</span>
+
+    public String getDeviceModel() {
+<span class="nc" id="L130">        return deviceModel;</span>
+    }
+
+    public void setDeviceModel(String deviceModel) {
+<span class="nc" id="L134">        this.deviceModel = deviceModel;</span>
+<span class="nc" id="L135">    }</span>
+
+    public String getOsVersion() {
+<span class="nc" id="L138">        return osVersion;</span>
+    }
+
+    public void setOsVersion(String osVersion) {
+<span class="nc" id="L142">        this.osVersion = osVersion;</span>
+<span class="nc" id="L143">    }</span>
+
+    public Instant getCreatedAt() {
+<span class="nc" id="L146">        return createdAt;</span>
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+<span class="nc" id="L150">        this.createdAt = createdAt;</span>
+<span class="nc" id="L151">    }</span>
+
+    public Instant getUpdatedAt() {
+<span class="nc" id="L154">        return updatedAt;</span>
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+<span class="nc" id="L158">        this.updatedAt = updatedAt;</span>
+<span class="nc" id="L159">    }</span>
+
+    public Boolean getActive() {
+<span class="nc" id="L162">        return active;</span>
+    }
+
+    public void setActive(Boolean active) {
+<span class="nc" id="L166">        this.active = active;</span>
+<span class="nc" id="L167">    }</span>
+
+    public Boolean isActive() {
+<span class="nc" id="L170">        return active;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L175" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L176" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L177">        FCMToken fcmToken = (FCMToken) o;</span>
+<span class="nc" id="L178">        return Objects.equals(id, fcmToken.id);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L183">        return Objects.hash(id);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L188">        return &quot;FCMToken{&quot; +</span>
+                &quot;id=&quot; + id +
+                &quot;, usuarioId=&quot; + usuarioId +
+                &quot;, deviceId='&quot; + deviceId + '\'' +
+                &quot;, deviceModel='&quot; + deviceModel + '\'' +
+                &quot;, active=&quot; + active +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
