@@ -1,6 +1,5 @@
 package com.hcen.periferico.service;
 
-import com.hcen.periferico.api.CentralAPIClient;
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
 import com.hcen.periferico.dao.ProfesionalSaludDAO;
 import com.hcen.periferico.dao.SincronizacionPendienteDAO;
@@ -10,12 +9,14 @@ import com.hcen.periferico.entity.UsuarioSalud;
 import com.hcen.periferico.entity.documento_clinico;
 import com.hcen.periferico.entity.profesional_salud;
 import com.hcen.periferico.enums.TipoSincronizacion;
-import com.hcen.periferico.sync.ICentralSyncAdapter;
-import com.hcen.periferico.sync.SyncResult;
+import com.hcen.periferico.messaging.DocumentoSincronizacionProducer;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
+import jakarta.jms.JMSException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 @Stateless
 public class DocumentoClinicoService {
 
+    private static final Logger LOGGER = Logger.getLogger(DocumentoClinicoService.class.getName());
     private static final int PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 200;
 
@@ -46,15 +48,11 @@ public class DocumentoClinicoService {
     @PersistenceContext(unitName = "hcen-periferico-pu")
     private EntityManager em;
 
-    @EJB
-    private CentralAPIClient centralAPIClient;
-
     /**
-     * Adapter para sincronización de DOCUMENTOS con el componente central.
-     * Especificamos beanName porque hay múltiples implementaciones de ICentralSyncAdapter.
+     * Productor JMS para enviar documentos a la cola de sincronización
      */
-    @EJB(beanName = "CentralSyncAdapterDocumentos")
-    private ICentralSyncAdapter documentosSyncAdapter;
+    @EJB
+    private DocumentoSincronizacionProducer sincronizacionProducer;
 
     /**
      * Crea un nuevo documento clínico
@@ -116,8 +114,8 @@ public class DocumentoClinicoService {
         // Guardar documento localmente (Hibernate generará el UUID automáticamente)
         documento_clinico documentoGuardado = documentoDAO.save(documento);
 
-        // Sincronización asíncrona con el central
-        sincronizarConCentral(documentoGuardado, tenantId);
+        // Enviar a cola JMS para sincronización asíncrona con el central
+        enviarDocumentoACola(documentoGuardado, tenantId);
 
         return documentoGuardado;
     }
@@ -364,74 +362,75 @@ public class DocumentoClinicoService {
     }
 
     /**
-     * Sincroniza el documento con el componente central.
-     * Si la sincronización falla, registra el documento en la cola de reintentos.
+     * Envía un documento recién creado a la cola JMS para sincronización asíncrona con el componente central.
+     * Registra el envío en la tabla sincronizacion_pendiente para auditoría y monitoreo.
      *
-     * IMPORTANTE: Se sincroniza directamente el documento en lugar de usar el adapter
-     * para evitar problemas de visibilidad transaccional (el adapter con REQUIRES_NEW
-     * no vería el documento recién creado en la transacción padre).
+     * Este método NO intenta sincronizar directamente vía REST. En su lugar:
+     * 1. Envía mensaje a cola "DocumentosSincronizacion"
+     * 2. Registra en tabla de auditoría (sincronizacion_pendiente)
+     * 3. El componente central consumirá el mensaje y procesará el documento
+     * 4. El central enviará confirmación a cola "SincronizacionConfirmaciones"
+     * 5. El consumidor de confirmaciones actualizará hist_clinica_id y estado de auditoría
+     *
+     * @param documento Documento recién creado
+     * @param tenantId ID de la clínica
      */
-    private void sincronizarConCentral(documento_clinico documento, UUID tenantId) {
+    private void enviarDocumentoACola(documento_clinico documento, UUID tenantId) {
+
+        LOGGER.log(Level.INFO, "Enviando documento {0} a cola de sincronización (paciente: {1}, tenant: {2})",
+                new Object[]{documento.getId(), documento.getUsuarioSaludCedula(), tenantId});
+
+        String messageId = null;
+
         try {
-            System.out.println("=== Iniciando sincronización de documento " + documento.getId() + " ===");
-
-            // Sincronizar directamente con el central (sin usar adapter para evitar problemas transaccionales)
-            UUID historiaId = centralAPIClient.registrarDocumentoHistoriaClinica(
-                documento.getUsuarioSaludCedula(),
-                tenantId,
-                documento.getId()
-            );
-
-            // Actualizar el documento con el hist_clinica_id retornado
-            documento.setHistClinicaId(historiaId);
-            documentoDAO.save(documento);
-
-            System.out.println("✓ Documento " + documento.getId() + " sincronizado exitosamente con historia ID " + historiaId);
-
-            // Si existía un registro pendiente para este usuario, marcarlo como resuelto
-            sincronizacionDAO.findByUsuarioCedulaAndTenant(
-                documento.getUsuarioSaludCedula(),
-                tenantId
-            ).ifPresent(sync -> {
-                // Solo marcar como resuelto si es de tipo DOCUMENTO
-                if (sync.getTipo() == TipoSincronizacion.DOCUMENTO) {
-                    sync.marcarComoResuelta();
-                    sincronizacionDAO.save(sync);
-                    System.out.println("✓ Registro de sincronización pendiente marcado como resuelto");
-                }
-            });
-
-        } catch (Exception e) {
-            // Si falla la sincronización, registrar en cola de reintentos
-            System.err.println("✗ Error al sincronizar documento " + documento.getId() +
-                             " con el central: " + e.getMessage());
-            e.printStackTrace();
-
-            // Verificar si ya existe un registro pendiente para este usuario y tipo DOCUMENTO
-            Optional<SincronizacionPendiente> syncExistente =
-                sincronizacionDAO.findByUsuarioCedulaAndTenant(
+            // Enviar mensaje JMS a la cola
+            messageId = sincronizacionProducer.enviarDocumento(
+                    documento.getId(),
                     documento.getUsuarioSaludCedula(),
                     tenantId
-                );
+            );
 
-            if (syncExistente.isPresent() && syncExistente.get().getTipo() == TipoSincronizacion.DOCUMENTO) {
-                // Actualizar registro existente
-                SincronizacionPendiente sync = syncExistente.get();
-                sync.registrarError("Error al sincronizar documento: " + e.getMessage());
-                sync.setDocumentoId(documento.getId());
-                sincronizacionDAO.save(sync);
-                System.out.println("Actualizado registro de sincronización pendiente existente");
-            } else {
-                // Crear nuevo registro en la cola con tipo DOCUMENTO
-                SincronizacionPendiente nuevaSync = new SincronizacionPendiente(
+            LOGGER.log(Level.INFO, "Documento {0} enviado a cola exitosamente. MessageID: {1}",
+                    new Object[]{documento.getId(), messageId});
+
+        } catch (JMSException e) {
+            // Error crítico: no se pudo enviar a la cola
+            LOGGER.log(Level.SEVERE, "Error al enviar documento " + documento.getId() +
+                    " a cola de sincronización", e);
+
+            // Continuar para registrar en tabla de auditoría con estado ERROR
+        }
+
+        // Registrar en tabla de auditoría para monitoreo
+        // Se crea SIEMPRE, independientemente si el envío a cola fue exitoso o no
+        try {
+            SincronizacionPendiente auditoria = new SincronizacionPendiente(
                     documento.getUsuarioSaludCedula(),
                     tenantId,
                     documento.getId() // documento_id
-                );
-                nuevaSync.registrarError("Sincronización inicial falló: " + e.getMessage());
-                sincronizacionDAO.save(nuevaSync);
-                System.out.println("Creado nuevo registro de sincronización pendiente");
+            );
+
+            auditoria.setMessageId(messageId);
+            auditoria.setFecEnvioCola(LocalDateTime.now());
+
+            if (messageId != null) {
+                // Mensaje enviado exitosamente
+                auditoria.setEstado(SincronizacionPendiente.EstadoSincronizacion.PENDIENTE);
+            } else {
+                // Falló envío a cola
+                auditoria.setEstado(SincronizacionPendiente.EstadoSincronizacion.ERROR);
+                auditoria.registrarError("Error al enviar mensaje a cola JMS");
             }
+
+            sincronizacionDAO.save(auditoria);
+
+            LOGGER.log(Level.INFO, "Registro de auditoría creado para documento {0}",
+                    documento.getId());
+
+        } catch (Exception e) {
+            // Error al guardar auditoría - loguear pero no fallar la transacción principal
+            LOGGER.log(Level.SEVERE, "Error al crear registro de auditoría para documento " +
+                    documento.getId(), e);
         }
     }
 }

@@ -1,33 +1,33 @@
 package com.hcen.periferico.service;
 
-import com.hcen.periferico.api.CentralAPIClient;
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
 import com.hcen.periferico.dao.SincronizacionPendienteDAO;
 import com.hcen.periferico.entity.SincronizacionPendiente;
-import com.hcen.periferico.entity.UsuarioSalud;
 import com.hcen.periferico.entity.documento_clinico;
 import com.hcen.periferico.enums.TipoSincronizacion;
-import com.hcen.periferico.sync.ICentralSyncAdapter;
-import com.hcen.periferico.sync.SyncResult;
+import com.hcen.periferico.messaging.DocumentoSincronizacionProducer;
 import jakarta.ejb.EJB;
-import jakarta.ejb.Schedule;
-import jakarta.ejb.Singleton;
-import jakarta.ejb.Startup;
+import jakarta.ejb.Stateless;
+import jakarta.jms.JMSException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Servicio programado para reintentar sincronizaciones pendientes con el componente central.
- * Se ejecuta cada 15 minutos procesando documentos que no se pudieron sincronizar inicialmente.
+ * Servicio encargado de reintentar la sincronización de documentos clínicos que
+ * quedaron en estado ERROR dentro de la tabla sincronizacion_pendiente.
+ *
+ * Se utiliza desde endpoints administrativos para forzar el reenvío manual de
+ * documentos a la cola JMS procesada por el componente central.
  */
-@Singleton
-@Startup
+@Stateless
 public class SincronizacionReintentosService {
 
-    private static final int MAX_INTENTOS = 20;
-    private static final int BATCH_SIZE = 50;
+    private static final Logger LOGGER = Logger.getLogger(SincronizacionReintentosService.class.getName());
+    private static final int MAX_INTENTOS_DEFAULT = 5;
 
     @EJB
     private SincronizacionPendienteDAO sincronizacionDAO;
@@ -36,119 +36,113 @@ public class SincronizacionReintentosService {
     private DocumentoClinicoDAO documentoDAO;
 
     @EJB
-    private CentralAPIClient centralAPIClient;
+    private DocumentoSincronizacionProducer documentoProducer;
 
     /**
-     * Adapter para sincronización de DOCUMENTOS con el componente central.
-     * Especificamos beanName porque hay múltiples implementaciones de ICentralSyncAdapter.
+     * Reenvía los documentos que siguen pendientes o con errores hacia la cola
+     * JMS. Solo se consideran aquellos registros que aún no superan el límite
+     * de intentos configurado.
+     *
+     * @return cantidad de documentos que se volvieron a encolar
      */
-    @EJB(beanName = "CentralSyncAdapterDocumentos")
-    private ICentralSyncAdapter documentosSyncAdapter;
+    public int procesarInmediato() {
+        List<SincronizacionPendiente> candidatos =
+            sincronizacionDAO.findByTipoParaReintentar(TipoSincronizacion.DOCUMENTO, MAX_INTENTOS_DEFAULT);
 
-    /**
-     * Procesa reintentos de sincronización cada 15 minutos.
-     * Se ejecuta automáticamente gracias a @Schedule.
-     */
-    @Schedule(minute = "*/15", hour = "*", persistent = false)
-    public void procesarReintentos() {
-        System.out.println("=== Iniciando procesamiento de reintentos de sincronización ===");
+        int reenviados = 0;
 
-        try {
-            // Obtener sincronizaciones pendientes de DOCUMENTOS (filtrado por tipo)
-            List<SincronizacionPendiente> pendientes =
-                sincronizacionDAO.findByTipoParaReintentar(TipoSincronizacion.DOCUMENTO, MAX_INTENTOS);
-
-            if (pendientes.isEmpty()) {
-                System.out.println("No hay sincronizaciones pendientes para procesar.");
-                return;
+        for (SincronizacionPendiente pendiente : candidatos) {
+            if (!requiereReintento(pendiente)) {
+                continue;
             }
 
-            System.out.println("Encontradas " + pendientes.size() + " sincronizaciones pendientes. " +
-                             "Procesando hasta " + BATCH_SIZE + "...");
-
-            int procesados = 0;
-            int exitosos = 0;
-            int fallidos = 0;
-
-            // Procesar batch limitado
-            for (SincronizacionPendiente sync : pendientes) {
-                if (procesados >= BATCH_SIZE) {
-                    break;
+            try {
+                if (reenviarDocumento(pendiente)) {
+                    reenviados++;
                 }
-
-                procesados++;
-                boolean exito = procesarSincronizacion(sync);
-
-                if (exito) {
-                    exitosos++;
-                } else {
-                    fallidos++;
-                }
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE,
+                        "Error inesperado reintentando sincronización {0}: {1}",
+                        new Object[]{pendiente.getId(), e.getMessage()});
+                pendiente.registrarError("Error inesperado en reintento: " + e.getMessage());
+                sincronizacionDAO.save(pendiente);
             }
-
-            System.out.println("=== Procesamiento completado: " +
-                             "Procesados=" + procesados +
-                             ", Exitosos=" + exitosos +
-                             ", Fallidos=" + fallidos + " ===");
-
-        } catch (Exception e) {
-            System.err.println("Error en el procesamiento de reintentos: " + e.getMessage());
-            e.printStackTrace();
         }
+
+        LOGGER.log(Level.INFO,
+                "Reintentos ejecutados. reenviados={0}, total_candidatos={1}",
+                new Object[]{reenviados, candidatos.size()});
+
+        return reenviados;
     }
 
-    /**
-     * Procesa una sincronización individual usando el adapter.
-     * @return true si tuvo éxito, false si falló
-     */
-    private boolean procesarSincronizacion(SincronizacionPendiente sync) {
-        try {
-            System.out.println("Procesando sincronización para usuario " +
-                             sync.getUsuarioCedula() + " (intento " +
-                             (sync.getIntentos() + 1) + "/" + MAX_INTENTOS + ")");
-
-            // Crear objeto UsuarioSalud temporal para el adapter
-            UsuarioSalud usuario = new UsuarioSalud();
-            usuario.setCedula(sync.getUsuarioCedula());
-            usuario.setTenantId(sync.getTenantId());
-
-            // Usar el adapter para sincronizar todos los documentos pendientes del usuario
-            SyncResult resultado = documentosSyncAdapter.enviarUsuario(usuario);
-
-            if (resultado.isExito()) {
-                // Sincronización exitosa, marcar como resuelto
-                sync.marcarComoResuelta();
-                sincronizacionDAO.save(sync);
-                System.out.println("✓ Sincronización exitosa para usuario " + sync.getUsuarioCedula() +
-                                 ": " + resultado.getMensaje());
-                return true;
-            } else {
-                // Sincronización falló, registrar error
-                sync.registrarError("Intento " + (sync.getIntentos()) + " falló: " +
-                                   resultado.getMensaje() +
-                                   (resultado.getErrorDetalle() != null ? " - " + resultado.getErrorDetalle() : ""));
-                sincronizacionDAO.save(sync);
-                System.out.println("✗ Sincronización falló para usuario " + sync.getUsuarioCedula() +
-                                 ": " + resultado.getMensaje());
-                return false;
-            }
-
-        } catch (Exception e) {
-            // Error inesperado, registrar y continuar
-            sync.registrarError("Error inesperado: " + e.getMessage());
-            sincronizacionDAO.save(sync);
-            System.err.println("✗ Error al procesar sincronización para " +
-                             sync.getUsuarioCedula() + ": " + e.getMessage());
+    private boolean requiereReintento(SincronizacionPendiente pendiente) {
+        if (pendiente == null) {
             return false;
         }
+
+        if (pendiente.getDocumentoId() == null) {
+            LOGGER.log(Level.WARNING,
+                    "Registro de sincronización sin documento_id. Marcando como CANCELADA. id={0}",
+                    pendiente.getId());
+            pendiente.marcarComoCancelada();
+            pendiente.setUltimoError("Documento asociado no existe");
+            sincronizacionDAO.save(pendiente);
+            return false;
+        }
+
+        if (pendiente.getTenantId() == null) {
+            LOGGER.log(Level.WARNING,
+                    "Registro de sincronización sin tenantId. Marcando como CANCELADA. id={0}",
+                    pendiente.getId());
+            pendiente.marcarComoCancelada();
+            pendiente.setUltimoError("Tenant asociado no existe");
+            sincronizacionDAO.save(pendiente);
+            return false;
+        }
+
+        if (pendiente.getEstado() == SincronizacionPendiente.EstadoSincronizacion.RESUELTA ||
+            pendiente.getEstado() == SincronizacionPendiente.EstadoSincronizacion.CANCELADA) {
+            return false;
+        }
+
+        // Solo reintentar errores o envíos que nunca llegaron a encolarse
+        return pendiente.getEstado() == SincronizacionPendiente.EstadoSincronizacion.ERROR ||
+               pendiente.getMessageId() == null;
     }
 
-    /**
-     * Método auxiliar para forzar un procesamiento inmediato (útil para testing/admin).
-     * Puede ser invocado desde un endpoint REST de administración.
-     */
-    public void procesarInmediato() {
-        System.out.println("Procesamiento inmediato solicitado.");
-        procesarReintentos();
+    private boolean reenviarDocumento(SincronizacionPendiente pendiente) throws JMSException {
+        Optional<documento_clinico> documentoOpt =
+            documentoDAO.findByIdAndTenantId(pendiente.getDocumentoId(), pendiente.getTenantId());
+
+        if (documentoOpt.isEmpty()) {
+            LOGGER.log(Level.WARNING,
+                    "Documento {0} no existe localmente. Cancelando sincronización.",
+                    pendiente.getDocumentoId());
+            pendiente.marcarComoCancelada();
+            pendiente.setUltimoError("Documento inexistente en base local");
+            sincronizacionDAO.save(pendiente);
+            return false;
+        }
+
+        documento_clinico documento = documentoOpt.get();
+        String messageId = documentoProducer.enviarDocumento(
+                documento.getId(),
+                documento.getUsuarioSaludCedula(),
+                documento.getTenantId()
+        );
+
+        pendiente.incrementarIntentos();
+        pendiente.setEstado(SincronizacionPendiente.EstadoSincronizacion.PENDIENTE);
+        pendiente.setUltimoError(null);
+        pendiente.setMessageId(messageId);
+        pendiente.setFecEnvioCola(LocalDateTime.now());
+        sincronizacionDAO.save(pendiente);
+
+        LOGGER.log(Level.INFO,
+                "Documento {0} reenviado a cola. messageId={1}",
+                new Object[]{documento.getId(), messageId});
+
+        return true;
     }
 }

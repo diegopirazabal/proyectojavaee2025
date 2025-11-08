@@ -67,6 +67,20 @@ public class SincronizacionPendiente implements Serializable {
     @Column(name = "tenant_id", nullable = false, columnDefinition = "UUID")
     private UUID tenantId;
 
+    /**
+     * ID del mensaje JMS enviado a la cola de sincronización
+     * Permite trackear el mensaje en ActiveMQ Artemis
+     */
+    @Column(name = "message_id", length = 255)
+    private String messageId;
+
+    /**
+     * Fecha y hora en que se envió el mensaje a la cola JMS
+     * Útil para auditoría y cálculo de latencias
+     */
+    @Column(name = "fec_envio_cola")
+    private LocalDateTime fecEnvioCola;
+
     // ============ ESTADO Y TRACKING ============
 
     /**
@@ -243,6 +257,22 @@ public class SincronizacionPendiente implements Serializable {
 
     public void setDocumentoId(UUID documentoId) {
         this.documentoId = documentoId;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
+    }
+
+    public LocalDateTime getFecEnvioCola() {
+        return fecEnvioCola;
+    }
+
+    public void setFecEnvioCola(LocalDateTime fecEnvioCola) {
+        this.fecEnvioCola = fecEnvioCola;
     }
 
     @Override

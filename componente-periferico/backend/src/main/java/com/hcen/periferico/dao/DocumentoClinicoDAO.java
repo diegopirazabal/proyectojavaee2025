@@ -41,6 +41,17 @@ public class DocumentoClinicoDAO {
     }
 
     /**
+     * Busca un documento por ID sin filtrar por tenant.
+     * Útil para procesos internos donde la validación se realiza en otra capa.
+     */
+    public Optional<documento_clinico> findById(UUID id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(em.find(documento_clinico.class, id));
+    }
+
+    /**
      * Lista todos los documentos de un paciente específico
      */
     public List<documento_clinico> findByPaciente(String cedula, UUID tenantId) {
