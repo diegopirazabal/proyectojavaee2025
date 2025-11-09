@@ -20,8 +20,8 @@ public class politica_acceso {
 
     @ManyToOne
     @JoinColumns({
-        @JoinColumn(name = "usuario_salud_cedula", referencedColumnName = "cedula"),
-        @JoinColumn(name = "usuario_salud_id", referencedColumnName = "id")
+        @JoinColumn(name = "usuario_salud_id", referencedColumnName = "id"),
+        @JoinColumn(name = "usuario_salud_cedula", referencedColumnName = "cedula")
     })
     private UsuarioSalud usuarioSalud;
 
