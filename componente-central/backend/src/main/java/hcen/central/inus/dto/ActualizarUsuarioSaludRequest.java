@@ -13,7 +13,6 @@ public class ActualizarUsuarioSaludRequest implements Serializable {
     private String email;
     private Boolean activo;
     private String fechaNacimiento;
-    private String tenantId;
 
     public String getPrimerNombre() {
         return primerNombre;
@@ -69,13 +68,5 @@ public class ActualizarUsuarioSaludRequest implements Serializable {
 
     public void setFechaNacimiento(String fechaNacimiento) {
         this.fechaNacimiento = fechaNacimiento;
-    }
-
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
     }
 }

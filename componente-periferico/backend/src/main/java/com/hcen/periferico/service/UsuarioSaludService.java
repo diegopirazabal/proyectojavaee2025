@@ -6,12 +6,13 @@ import com.hcen.periferico.dto.usuario_salud_dto;
 import com.hcen.periferico.entity.SincronizacionPendiente;
 import com.hcen.periferico.entity.UsuarioSalud;
 import com.hcen.periferico.enums.TipoDocumento;
-import com.hcen.periferico.sync.ICentralSyncAdapter;
-import com.hcen.periferico.sync.SyncResult;
+import com.hcen.periferico.enums.TipoSincronizacion;
+import com.hcen.periferico.messaging.UsuarioSaludSincronizacionProducer;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.ejb.TransactionAttribute;
 import jakarta.ejb.TransactionAttributeType;
+import jakarta.jms.JMSException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,10 +25,10 @@ import java.util.stream.Collectors;
 /**
  * Service para gestión de usuarios de salud en el componente periférico.
  *
- * ARQUITECTURA NUEVA (post-migración):
+ * ARQUITECTURA (post-migración a JMS):
  * - PERSISTE localmente en BD periférico (fuente de verdad local)
- * - SINCRONIZA con componente central de forma asíncrona (usuario único global)
- * - Usa patrón Strategy (ICentralSyncAdapter) para futura migración a mensajería
+ * - SINCRONIZA con componente central de forma asíncrona vía JMS (usuario único global)
+ * - Usa ActiveMQ Artemis para mensajería bidireccional
  *
  * El periférico consulta SOLO su BD local. La sincronización con el central
  * es para registro nacional, no afecta las operaciones locales.
@@ -44,13 +45,11 @@ public class UsuarioSaludService {
     private SincronizacionPendienteDAO sincronizacionDAO;
 
     /**
-     * Adapter para sincronización de USUARIOS con el componente central.
-     * Especificamos beanName porque hay múltiples implementaciones de ICentralSyncAdapter:
-     * - CentralSyncAdapterREST: para sincronizar usuarios
-     * - CentralSyncAdapterDocumentos: para sincronizar documentos clínicos
+     * Productor JMS para sincronización de usuarios con el componente central.
+     * Envía mensajes a la cola "UsuarioSaludRegistrado"
      */
-    @EJB(beanName = "CentralSyncAdapterREST")
-    private ICentralSyncAdapter syncAdapter;
+    @EJB
+    private UsuarioSaludSincronizacionProducer sincronizacionProducer;
 
     /**
      * Registra un usuario en una clínica (componente periférico).
@@ -98,78 +97,100 @@ public class UsuarioSaludService {
         usuario = usuarioDAO.save(usuario);
         LOGGER.info("Usuario persistido localmente con éxito");
 
-        // TEMPORAL: Sincronización con central deshabilitada
-        // TODO: Habilitar cuando el central esté adaptado para usuarios sin tenant_id
-        // sincronizarConCentral(usuario);
-        LOGGER.info("Sincronización con central deshabilitada temporalmente");
+        // Sincronizar con central vía JMS (asíncrono, no bloquea)
+        sincronizarConCentral(usuario);
 
         // Retornar DTO del usuario local
         return convertirADTO(usuario);
     }
 
     /**
-     * Sincroniza un usuario con el componente central.
-     * Si falla, registra en DLQ para reintentos posteriores.
+     * Sincroniza un usuario con el componente central vía JMS.
+     * Si falla el envío del mensaje, registra en tabla de auditoría para reintentos.
      *
      * IMPORTANTE: Se ejecuta en una transacción separada (REQUIRES_NEW) para que
-     * si falla la sincronización con el central, NO afecte la persistencia local.
-     * Esto garantiza que el usuario siempre se guarde localmente aunque el central falle.
+     * si falla el envío del mensaje JMS, NO afecte la persistencia local.
+     * Esto garantiza que el usuario siempre se guarde localmente aunque el envío falle.
+     *
+     * NOTA: ActiveMQ Artemis maneja automáticamente los reintentos del mensaje.
+     * La tabla sincronizacion_pendiente es solo para auditoría y monitoreo.
      */
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void sincronizarConCentral(UsuarioSalud usuario) {
         try {
-            LOGGER.info("Intentando sincronizar usuario con central: " + usuario.getCedula());
+            LOGGER.info("Enviando usuario a cola JMS para sincronización con central: " + usuario.getCedula());
 
-            SyncResult resultado = syncAdapter.enviarUsuario(usuario);
+            // Enviar mensaje JMS a la cola
+            String messageId = sincronizacionProducer.enviarUsuario(
+                    usuario.getCedula(),
+                    TipoDocumento.valueOf(usuario.getTipoDocumento())
+            );
 
-            if (resultado.isExito()) {
-                LOGGER.info("Sincronización exitosa: " + resultado.getMensaje());
-                usuarioDAO.marcarComoSincronizado(usuario.getCedula(), usuario.getTenantId());
+            LOGGER.info("Usuario enviado exitosamente a cola JMS. MessageID: " + messageId);
 
-                // Si había una sincronización pendiente, marcarla como resuelta
-                sincronizacionDAO.findByUsuarioCedulaAndTenant(usuario.getCedula(), usuario.getTenantId())
-                    .ifPresent(sync -> {
-                        sync.marcarComoResuelta();
-                        sincronizacionDAO.save(sync);
-                    });
-            } else {
-                // Falló la sincronización
-                LOGGER.warning("Falló sincronización con central: " + resultado.getMensaje());
-                registrarSincronizacionPendiente(usuario, resultado.getErrorDetalle());
-            }
+            // Registrar en tabla de auditoría (estado PENDIENTE)
+            registrarSincronizacionPendiente(usuario, messageId);
+
+        } catch (JMSException e) {
+            // Error al enviar mensaje JMS - loguear y registrar en auditoría
+            LOGGER.log(Level.SEVERE, "Error al enviar usuario a cola JMS: " + usuario.getCedula(), e);
+            registrarSincronizacionError(usuario, "Error JMS: " + e.getMessage());
+            // NO propagamos la excepción - la transacción local debe completarse
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error inesperado al sincronizar con central", e);
-            registrarSincronizacionPendiente(usuario, e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error inesperado al sincronizar usuario con central", e);
+            registrarSincronizacionError(usuario, "Error: " + e.getMessage());
             // NO propagamos la excepción - la transacción local debe completarse
         }
     }
 
     /**
-     * Registra una sincronización fallida en DLQ para reintentos.
+     * Registra una sincronización exitosamente enviada a JMS (estado PENDIENTE).
+     * El MDB consumidor actualizará el estado cuando reciba confirmación.
      *
-     * IMPORTANTE: Ejecutado en transacción independiente para garantizar que
-     * se registre la sincronización pendiente incluso si la transacción de
-     * sincronización con el central falló.
+     * @param usuario Usuario que se está sincronizando
+     * @param messageId ID del mensaje JMS enviado
      */
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public void registrarSincronizacionPendiente(UsuarioSalud usuario, String error) {
+    public void registrarSincronizacionPendiente(UsuarioSalud usuario, String messageId) {
         try {
-            Optional<SincronizacionPendiente> existing =
-                sincronizacionDAO.findByUsuarioCedulaAndTenant(usuario.getCedula(), usuario.getTenantId());
-
-            SincronizacionPendiente sync;
-            if (existing.isPresent()) {
-                sync = existing.get();
-                sync.registrarError(error);
-            } else {
-                sync = new SincronizacionPendiente(usuario.getCedula(), usuario.getTenantId());
-                sync.registrarError(error);
-            }
+            SincronizacionPendiente sync = new SincronizacionPendiente(
+                    usuario.getCedula(),
+                    usuario.getTenantId(),
+                    TipoSincronizacion.USUARIO
+            );
+            sync.setMessageId(messageId);
+            sync.setEstado(SincronizacionPendiente.EstadoSincronizacion.PENDIENTE);
 
             sincronizacionDAO.save(sync);
-            LOGGER.info("Sincronización pendiente registrada para reintento posterior");
+            LOGGER.info("Registro de auditoría creado para usuario " + usuario.getCedula() + " (messageId: " + messageId + ")");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al registrar sincronización pendiente", e);
+            // No lanzar excepción - el usuario ya está guardado localmente y mensaje JMS ya fue enviado
+        }
+    }
+
+    /**
+     * Registra un error en el envío del mensaje JMS (antes de llegar a ActiveMQ).
+     * Esto es diferente a los errores de procesamiento en el central (que son manejados por el MDB).
+     *
+     * @param usuario Usuario que falló al sincronizar
+     * @param errorMensaje Descripción del error
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public void registrarSincronizacionError(UsuarioSalud usuario, String errorMensaje) {
+        try {
+            SincronizacionPendiente sync = new SincronizacionPendiente(
+                    usuario.getCedula(),
+                    usuario.getTenantId(),
+                    TipoSincronizacion.USUARIO
+            );
+            sync.setEstado(SincronizacionPendiente.EstadoSincronizacion.ERROR);
+            sync.setUltimoError(errorMensaje);
+
+            sincronizacionDAO.save(sync);
+            LOGGER.info("Error de sincronización registrado para usuario " + usuario.getCedula());
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al registrar error de sincronización", e);
             // No lanzar excepción - el usuario ya está guardado localmente
         }
     }

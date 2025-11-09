@@ -48,6 +48,25 @@ public class SincronizacionPendienteDAO {
     }
 
     /**
+     * Busca sincronizaciones pendientes por cédula de usuario (sin filtrar por tenant).
+     * Útil para confirmaciones del central que no conoce tenant_id.
+     *
+     * @param cedula Cédula del usuario
+     * @return Lista de sincronizaciones pendientes para ese usuario
+     */
+    public List<SincronizacionPendiente> findByUsuarioCedula(String cedula) {
+        TypedQuery<SincronizacionPendiente> query = em.createQuery(
+            "SELECT s FROM SincronizacionPendiente s " +
+            "WHERE s.usuarioCedula = :cedula " +
+            "AND s.estado IN ('PENDIENTE', 'ERROR') " +
+            "ORDER BY s.fechaEnvio DESC",
+            SincronizacionPendiente.class
+        );
+        query.setParameter("cedula", cedula);
+        return query.getResultList();
+    }
+
+    /**
      * Obtiene todas las sincronizaciones pendientes
      */
     public List<SincronizacionPendiente> findAllPendientes() {

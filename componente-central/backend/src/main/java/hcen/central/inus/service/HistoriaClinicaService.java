@@ -31,13 +31,9 @@ public class HistoriaClinicaService {
             throw new IllegalArgumentException("El documentoId es requerido");
         }
 
-        UsuarioSalud usuario = usuarioSaludDAO.findByCedulaAndTenant(cedula.trim(), tenantId)
+        UsuarioSalud usuario = usuarioSaludDAO.findByCedula(cedula.trim())
             .orElseThrow(() -> new IllegalArgumentException(
                 "El usuario con cédula " + cedula + " no existe en el componente central"));
-
-        if (usuario.getTenantId() == null || !tenantId.equals(usuario.getTenantId())) {
-            throw new IllegalArgumentException("El usuario no pertenece al tenant indicado");
-        }
 
         historia_clinica historia = historiaDAO.findByUsuario(usuario)
             .orElseGet(() -> crearHistoria(usuario));

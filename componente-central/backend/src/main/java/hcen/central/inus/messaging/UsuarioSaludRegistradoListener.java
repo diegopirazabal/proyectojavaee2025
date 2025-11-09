@@ -1,34 +1,63 @@
 package hcen.central.inus.messaging;
 
 import hcen.central.inus.dto.RegistrarUsuarioRequest;
+import hcen.central.inus.dto.UsuarioSaludDTO;
+import hcen.central.inus.dto.UsuarioSaludSincronizacionMessage;
 import hcen.central.inus.enums.TipoDocumento;
 import hcen.central.inus.service.UsuarioSaludService;
 import jakarta.ejb.ActivationConfigProperty;
 import jakarta.ejb.EJB;
 import jakarta.ejb.MessageDriven;
+import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.MessageListener;
-import jakarta.jms.TextMessage;
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
-
-import java.io.StringReader;
-import java.time.LocalDate;
-import java.util.UUID;
+import jakarta.jms.ObjectMessage;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Message Driven Bean que consume eventos de registro de usuarios enviados desde el componente periférico.
- * Cada mensaje genera (o confirma) el alta del usuario en INUS.
+ * Message-Driven Bean que consume mensajes de sincronización de usuarios de salud.
+ *
+ * Este MDB escucha la cola "UsuarioSaludRegistrado" y procesa los mensajes
+ * enviados desde componentes periféricos para registrar usuarios de salud
+ * en el sistema nacional HCEN.
+ *
+ * Flujo:
+ * 1. Recibe mensaje con datos del usuario (UsuarioSaludSincronizacionMessage)
+ * 2. Registra el usuario usando UsuarioSaludService (idempotente)
+ * 3. Envía confirmación exitosa o de error a cola "UsuarioSaludConfirmaciones"
+ * 4. Si ocurre excepción, ActiveMQ reintentará automáticamente (max 5 veces)
+ *
+ * Características:
+ * - Transaccional: CMT (Container Managed Transaction) por defecto
+ * - Concurrente: Puede haber múltiples instancias procesando mensajes en paralelo (max 5)
+ * - Idempotente: Si el usuario ya existe, devuelve el existente sin error
+ * - Sin tenant_id: El central NO maneja multi-tenancy para usuarios
+ *
+ * @author Sistema HCEN
+ * @version 1.0
  */
-@MessageDriven(activationConfig = {
-    @ActivationConfigProperty(propertyName = "destinationLookup", propertyValue = "java:/jms/queue/UsuarioSaludRegistrado"),
-    @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "jakarta.jms.Queue"),
-    @ActivationConfigProperty(propertyName = "connectionFactoryLookup", propertyValue = "java:/jms/UsuarioSaludConnectionFactory"),
-    @ActivationConfigProperty(propertyName = "acknowledgeMode", propertyValue = "Auto-acknowledge")
-})
+@MessageDriven(
+    name = "UsuarioSaludRegistradoListener",
+    activationConfig = {
+        @ActivationConfigProperty(
+            propertyName = "destinationLookup",
+            propertyValue = "java:/jms/queue/UsuarioSaludRegistrado"
+        ),
+        @ActivationConfigProperty(
+            propertyName = "destinationType",
+            propertyValue = "jakarta.jms.Queue"
+        ),
+        @ActivationConfigProperty(
+            propertyName = "acknowledgeMode",
+            propertyValue = "Auto-acknowledge"
+        ),
+        @ActivationConfigProperty(
+            propertyName = "maxSession",
+            propertyValue = "5"  // Máximo 5 instancias concurrentes (usuarios son menos frecuentes que documentos)
+        )
+    }
+)
 public class UsuarioSaludRegistradoListener implements MessageListener {
 
     private static final Logger LOGGER = Logger.getLogger(UsuarioSaludRegistradoListener.class.getName());
@@ -36,80 +65,139 @@ public class UsuarioSaludRegistradoListener implements MessageListener {
     @EJB
     private UsuarioSaludService usuarioSaludService;
 
+    @EJB
+    private UsuarioSaludConfirmacionProducer confirmacionProducer;
+
+    /**
+     * Callback invocado por el contenedor cuando llega un mensaje a la cola.
+     *
+     * Este método es transaccional (CMT). Si lanza una excepción:
+     * - La transacción hace rollback
+     * - ActiveMQ reintenta el mensaje (redelivery)
+     * - Después de 5 reintentos, el mensaje va a DLQ
+     *
+     * @param message Mensaje JMS recibido
+     */
     @Override
     public void onMessage(Message message) {
-        if (!(message instanceof TextMessage textMessage)) {
-            LOGGER.warning("Se recibió un mensaje JMS que no es TextMessage; se descarta");
-            return;
-        }
+
+        String messageId = null;
+        UsuarioSaludSincronizacionMessage userMessage = null;
 
         try {
-            String payload = textMessage.getText();
-            JsonObject json = parsePayload(payload);
-            RegistrarUsuarioRequest request = buildRequest(json);
+            // Obtener ID del mensaje para trazabilidad
+            messageId = message.getJMSMessageID();
 
-            usuarioSaludService.registrarUsuarioEnClinica(request);
-            LOGGER.info(() -> "Usuario registrado/actualizado via cola JMS: " + request.getCedula());
-        } catch (IllegalArgumentException ex) {
-            // El servicio arrojará IllegalArgumentException para duplicados u otras validaciones.
-            // No queremos reintento infinito para estos casos.
-            LOGGER.log(Level.INFO, "Registro omitido para mensaje JMS: {0}", ex.getMessage());
-        } catch (Exception ex) {
-            LOGGER.log(Level.SEVERE, "Error procesando mensaje JMS de usuario salud", ex);
-            throw new RuntimeException("Error al procesar mensaje JMS de usuario salud", ex);
+            LOGGER.log(Level.INFO, "Procesando mensaje de usuario: {0}", messageId);
+
+            // Validar tipo de mensaje
+            if (!(message instanceof ObjectMessage)) {
+                LOGGER.log(Level.SEVERE, "Mensaje recibido no es ObjectMessage: {0}", message.getClass());
+                throw new IllegalArgumentException("Tipo de mensaje inválido");
+            }
+
+            ObjectMessage objectMessage = (ObjectMessage) message;
+
+            // Deserializar mensaje
+            Object payload = objectMessage.getObject();
+            if (!(payload instanceof UsuarioSaludSincronizacionMessage)) {
+                LOGGER.log(Level.SEVERE, "Payload no es UsuarioSaludSincronizacionMessage: {0}",
+                        payload != null ? payload.getClass() : "null");
+                throw new IllegalArgumentException("Payload inválido");
+            }
+
+            userMessage = (UsuarioSaludSincronizacionMessage) payload;
+
+            // Validar mensaje
+            if (!userMessage.isValid()) {
+                LOGGER.log(Level.SEVERE, "Mensaje inválido: {0}", userMessage);
+                throw new IllegalArgumentException("Mensaje de sincronización inválido: " + userMessage);
+            }
+
+            LOGGER.log(Level.INFO,
+                    "Sincronizando usuario {0} (tipo: {1})",
+                    new Object[]{userMessage.getCedula(), userMessage.getTipoDocumento()});
+
+            // Convertir String a enum TipoDocumento
+            TipoDocumento tipoDocEnum;
+            try {
+                tipoDocEnum = TipoDocumento.valueOf(userMessage.getTipoDocumento());
+            } catch (IllegalArgumentException e) {
+                LOGGER.log(Level.SEVERE, "Tipo de documento inválido: {0}", userMessage.getTipoDocumento());
+                throw new IllegalArgumentException("Tipo de documento no válido: " + userMessage.getTipoDocumento());
+            }
+
+            // Registrar usuario en sistema nacional
+            RegistrarUsuarioRequest request = new RegistrarUsuarioRequest();
+            request.setCedula(userMessage.getCedula());
+            request.setTipoDocumento(tipoDocEnum);
+
+            UsuarioSaludDTO usuarioDTO = usuarioSaludService.registrarUsuarioEnClinica(request);
+
+            LOGGER.log(Level.INFO,
+                    "Usuario {0} sincronizado exitosamente (ID: {1})",
+                    new Object[]{userMessage.getCedula(), usuarioDTO.getId()});
+
+            // Enviar confirmación exitosa al periférico
+            try {
+                confirmacionProducer.enviarConfirmacionExitosa(
+                        userMessage.getCedula(),
+                        messageId
+                );
+
+                LOGGER.log(Level.INFO,
+                        "Confirmación exitosa enviada para usuario {0}",
+                        userMessage.getCedula());
+
+            } catch (JMSException e) {
+                // Error al enviar confirmación - loguear pero NO fallar transacción principal
+                // El usuario YA fue registrado exitosamente
+                LOGGER.log(Level.SEVERE,
+                        "Error al enviar confirmación para usuario " + userMessage.getCedula() +
+                        " (usuario SÍ fue sincronizado)", e);
+                // No lanzar excepción - dejar que transacción se confirme
+            }
+
+        } catch (IllegalArgumentException e) {
+            // Error de validación - NO reintentar (mensaje envenenado)
+            LOGGER.log(Level.SEVERE, "Error de validación procesando mensaje " + messageId + ": " + e.getMessage(), e);
+
+            // Enviar confirmación de error al periférico (si tenemos datos suficientes)
+            if (userMessage != null && userMessage.getCedula() != null) {
+                try {
+                    confirmacionProducer.enviarConfirmacionError(
+                            userMessage.getCedula(),
+                            "Error de validación: " + e.getMessage(),
+                            messageId
+                    );
+                } catch (JMSException jmsEx) {
+                    LOGGER.log(Level.SEVERE, "Error al enviar confirmación de error", jmsEx);
+                }
+            }
+
+            // NO lanzar excepción - mensaje se consumirá y no se reintentará
+            // Esto es correcto para mensajes inválidos/envenenados
+
+        } catch (Exception e) {
+            // Error inesperado - REINTENTAR (lanzar excepción para rollback)
+            LOGGER.log(Level.SEVERE, "Error procesando mensaje " + messageId +
+                    " (se reintentará)", e);
+
+            // Enviar confirmación de error (best effort)
+            if (userMessage != null && userMessage.getCedula() != null) {
+                try {
+                    confirmacionProducer.enviarConfirmacionError(
+                            userMessage.getCedula(),
+                            "Error temporal: " + e.getMessage(),
+                            messageId
+                    );
+                } catch (JMSException jmsEx) {
+                    LOGGER.log(Level.SEVERE, "Error al enviar confirmación de error", jmsEx);
+                }
+            }
+
+            // Lanzar RuntimeException para provocar rollback y reintento
+            throw new RuntimeException("Error procesando usuario: " + e.getMessage(), e);
         }
-    }
-
-    private JsonObject parsePayload(String payload) {
-        try (JsonReader reader = Json.createReader(new StringReader(payload))) {
-            return reader.readObject();
-        }
-    }
-
-    private RegistrarUsuarioRequest buildRequest(JsonObject json) {
-        RegistrarUsuarioRequest request = new RegistrarUsuarioRequest();
-        request.setCedula(json.getString("cedula"));
-
-        if (!json.isNull("tipoDocumento") && !json.getString("tipoDocumento").isBlank()) {
-            request.setTipoDocumento(parseTipoDocumento(json.getString("tipoDocumento")));
-        } else {
-            request.setTipoDocumento(TipoDocumento.DO);
-        }
-
-        request.setPrimerNombre(json.getString("primerNombre"));
-        request.setPrimerApellido(json.getString("primerApellido"));
-        request.setEmail(json.getString("email"));
-
-        request.setSegundoNombre(readOptional(json, "segundoNombre"));
-        request.setSegundoApellido(readOptional(json, "segundoApellido"));
-
-        String fechaNacimiento = readOptional(json, "fechaNacimiento");
-        if (fechaNacimiento != null && !fechaNacimiento.isBlank()) {
-            request.setFechaNacimiento(LocalDate.parse(fechaNacimiento));
-        }
-
-        String tenantId = readOptional(json, "tenantId");
-        if (tenantId != null && !tenantId.isBlank()) {
-            request.setTenantId(UUID.fromString(tenantId));
-        }
-
-        return request;
-    }
-
-    private TipoDocumento parseTipoDocumento(String value) {
-        try {
-            return TipoDocumento.valueOf(value);
-        } catch (IllegalArgumentException ex) {
-            LOGGER.log(Level.WARNING, "Tipo de documento inválido recibido en JMS ({0}); se usará DO", value);
-            return TipoDocumento.DO;
-        }
-    }
-
-    private String readOptional(JsonObject json, String key) {
-        if (!json.containsKey(key) || json.isNull(key)) {
-            return null;
-        }
-        String value = json.getString(key, null);
-        return value != null && !value.isBlank() ? value : null;
     }
 }

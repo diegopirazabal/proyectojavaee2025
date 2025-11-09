@@ -68,9 +68,6 @@ public class UsuarioSalud {
     @Column(name = "last_login")
     private Instant lastLogin;
 
-    @Column(name = "tenant_id", columnDefinition = "UUID")
-    private UUID tenantId;
-
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
@@ -137,9 +134,6 @@ public class UsuarioSalud {
     
     public Instant getLastLogin() { return lastLogin; }
     public void setLastLogin(Instant lastLogin) { this.lastLogin = lastLogin; }
-
-    public UUID getTenantId() { return tenantId; }
-    public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
 
     @Override
     public boolean equals(Object o) {
