@@ -21,6 +21,10 @@ import java.util.UUID;
 public class UsuarioSalud {
     
     @Id
+    @Column(name = "cedula", nullable = false, length = 20)
+    private String cedula;
+
+    @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "usuario_salud_seq")
     @SequenceGenerator(name = "usuario_salud_seq", sequenceName = "usuario_salud_id_seq", allocationSize = 1)
     @Column(name = "id")
@@ -33,10 +37,6 @@ public class UsuarioSalud {
 
     @OneToMany(mappedBy = "usuarioSalud", cascade = CascadeType.ALL)
     private List<politica_acceso> politicasAcceso = new ArrayList<>();
-
-    @Id
-    @Column(name = "cedula", nullable = false, length = 20)
-    private String cedula;
 
     @Convert(converter = TipoDocumentoAttributeConverter.class)
     @Column(name = "tipo_documento", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'DO'")
@@ -130,11 +130,11 @@ public class UsuarioSalud {
         politica.setUsuarioSalud(null);
     }
     
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    
     public String getCedula() { return cedula; }
     public void setCedula(String cedula) { this.cedula = cedula; }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     
     public TipoDocumento getTipoDeDocumento() { return tipoDeDocumento; }
     public void setTipoDeDocumento(TipoDocumento tipoDeDocumento) { this.tipoDeDocumento = tipoDeDocumento; }
@@ -185,27 +185,27 @@ public class UsuarioSalud {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         UsuarioSalud usuarioSalud = (UsuarioSalud) o;
-        return Objects.equals(id, usuarioSalud.id) && 
-               Objects.equals(cedula, usuarioSalud.cedula);
+        return Objects.equals(cedula, usuarioSalud.cedula) &&
+               Objects.equals(id, usuarioSalud.id);
     }
     
     @Override
     public int hashCode() {
-        return Objects.hash(id, cedula);
+        return Objects.hash(cedula, id);
     }
     
     /**
      * Clase interna para la clave compuesta
      */
     public static class UsuarioSaludId implements Serializable {
-        private Long id;
         private String cedula;
+        private Long id;
         
         public UsuarioSaludId() {}
         
-        public UsuarioSaludId(Long id, String cedula) {
-            this.id = id;
+        public UsuarioSaludId(String cedula, Long id) {
             this.cedula = cedula;
+            this.id = id;
         }
         
         @Override
@@ -213,13 +213,13 @@ public class UsuarioSalud {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             UsuarioSaludId that = (UsuarioSaludId) o;
-            return Objects.equals(id, that.id) && 
-                   Objects.equals(cedula, that.cedula);
+            return Objects.equals(cedula, that.cedula) &&
+                   Objects.equals(id, that.id);
         }
         
         @Override
         public int hashCode() {
-            return Objects.hash(id, cedula);
+            return Objects.hash(cedula, id);
         }
     }
     
