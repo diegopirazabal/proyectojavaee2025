@@ -19,7 +19,10 @@ public class politica_acceso {
     private UUID id;
 
     @ManyToOne
-    @JoinColumn(name = "usuario_salud_id")
+    @JoinColumns({
+        @JoinColumn(name = "usuario_salud_id", referencedColumnName = "id"),
+        @JoinColumn(name = "usuario_salud_cedula", referencedColumnName = "cedula")
+    })
     private UsuarioSalud usuarioSalud;
 
     @Column(name = "entidad_autorizada", length = 100)
