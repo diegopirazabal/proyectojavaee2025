@@ -12,8 +12,10 @@ import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -147,8 +149,16 @@ public class api_service {
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 int status = response.getCode();
                 LOGGER.fine(() -> "Respuesta usuarios-sistema status=" + status);
-                if (response.getCode() == 200) {
+                if (status == 200) {
                     return parseUsuariosSistema(readEntityContent(response));
+                }
+                if (status == 401 || status == 403) {
+                    String body = readEntityContent(response);
+                    LOGGER.warning(() -> "Catálogo de usuarios rechazado por autorización. Código=" + status);
+                    throw new ApiUnauthorizedException(
+                            body != null && !body.isBlank()
+                                    ? "Acceso no autorizado: " + body
+                                    : "Acceso no autorizado al catálogo de usuarios");
                 }
                 throw new IOException("Código inesperado al obtener catálogo de usuarios: " + status);
             }
@@ -468,35 +478,19 @@ public class api_service {
                 if (obj.containsKey("id") && !obj.isNull("id")) {
                     dto.setId(obj.getJsonNumber("id").longValue());
                 }
-                if (obj.containsKey("cedula") && !obj.isNull("cedula")) {
-                    dto.setCedula(obj.getString("cedula"));
-                }
-                if (obj.containsKey("nombreCompleto") && !obj.isNull("nombreCompleto")) {
-                    dto.setNombreCompleto(obj.getString("nombreCompleto"));
-                }
-                if (obj.containsKey("primerNombre") && !obj.isNull("primerNombre")) {
-                    dto.setPrimerNombre(obj.getString("primerNombre"));
-                }
-                if (obj.containsKey("primerApellido") && !obj.isNull("primerApellido")) {
-                    dto.setPrimerApellido(obj.getString("primerApellido"));
-                }
-                if (obj.containsKey("email") && !obj.isNull("email")) {
-                    dto.setEmail(obj.getString("email"));
-                }
+                dto.setCedula(readStringValue(obj, "cedula"));
+                dto.setNombreCompleto(readStringValue(obj, "nombreCompleto"));
+                dto.setPrimerNombre(readStringValue(obj, "primerNombre"));
+                dto.setPrimerApellido(readStringValue(obj, "primerApellido"));
+                dto.setEmail(readStringValue(obj, "email"));
                 if (obj.containsKey("active") && !obj.isNull("active")) {
                     dto.setActive(obj.getBoolean("active"));
                 }
                 if (obj.containsKey("createdAt") && !obj.isNull("createdAt")) {
-                    String createdRaw = obj.getString("createdAt");
-                    if (createdRaw != null && !createdRaw.isBlank()) {
-                        dto.setCreatedAt(Instant.parse(createdRaw));
-                    }
+                    dto.setCreatedAt(readInstant(obj.get("createdAt")));
                 }
                 if (obj.containsKey("lastLogin") && !obj.isNull("lastLogin")) {
-                    String lastLoginRaw = obj.getString("lastLogin");
-                    if (lastLoginRaw != null && !lastLoginRaw.isBlank()) {
-                        dto.setLastLogin(Instant.parse(lastLoginRaw));
-                    }
+                    dto.setLastLogin(readInstant(obj.get("lastLogin")));
                 }
 
                 usuarios.add(dto);
@@ -506,6 +500,50 @@ public class api_service {
             throw new RuntimeException("No se pudo interpretar la lista de usuarios de salud", e);
         }
         return usuarios;
+    }
+
+    private String readStringValue(JsonObject obj, String key) {
+        if (!obj.containsKey(key) || obj.isNull(key)) {
+            return null;
+        }
+        JsonValue value = obj.get(key);
+        if (value == null) {
+            return null;
+        }
+        return switch (value.getValueType()) {
+            case STRING -> ((JsonString) value).getString();
+            case NUMBER -> ((JsonNumber) value).toString();
+            case TRUE -> "true";
+            case FALSE -> "false";
+            default -> value.toString();
+        };
+    }
+
+    private Instant readInstant(JsonValue value) {
+        if (value == null || value.getValueType() == JsonValue.ValueType.NULL) {
+            return null;
+        }
+        try {
+            return switch (value.getValueType()) {
+                case STRING -> {
+                    String text = ((JsonString) value).getString();
+                    yield (text == null || text.isBlank()) ? null : Instant.parse(text);
+                }
+                case NUMBER -> {
+                    JsonNumber number = (JsonNumber) value;
+                    long rawValue = number.longValue();
+                    // Heuristic: values greater than epoch seconds range are milliseconds.
+                    Instant instant = rawValue > 1_000_000_0000L
+                            ? Instant.ofEpochMilli(rawValue)
+                            : Instant.ofEpochSecond(rawValue);
+                    yield instant;
+                }
+                default -> null;
+            };
+        } catch (Exception parseError) {
+            LOGGER.log(Level.WARNING, "No se pudo interpretar fecha JSON: {0}", value);
+            return null;
+        }
     }
 
     private List<usuario_sistema_dto> parseUsuariosSistema(String jsonString) {

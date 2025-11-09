@@ -16,6 +16,7 @@
         <class>hcen.central.inus.entity.JWTSession</class>
         <class>hcen.central.inus.entity.historia_clinica</class>
         <class>hcen.central.inus.entity.historia_clinica_documento</class>
+        <class>hcen.central.inus.entity.politica_acceso</class>
         <class>hcen.central.inus.entity.notificacion</class>
 
         <properties>
