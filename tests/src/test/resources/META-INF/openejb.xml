@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openejb>
+    <!-- DataSource JTA que tu PU usa por JNDI -->
+    <Resource id="HcenDSTest" type="DataSource">
+        JdbcDriver org.h2.Driver
+        JdbcUrl jdbc:h2:mem:hcen;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+        UserName sa
+        Password sa
+        JtaManaged true
+        PoolPreparedStatements true
+        MaxActive 50
+        MaxIdle 10
+    </Resource>
+</openejb>

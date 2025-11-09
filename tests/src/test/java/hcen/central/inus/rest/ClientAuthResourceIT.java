@@ -8,6 +8,7 @@ import hcen.central.inus.security.exceptions.InvalidTokenException;
 import hcen.central.inus.security.jwt.JWTConfiguration;
 import hcen.central.inus.security.jwt.JWTTokenProvider;
 import hcen.central.inus.service.ClientAuthenticationService;
+import hcen.central.inus.testsupport.ArquillianMavenResolver;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
@@ -41,6 +42,8 @@ public class ClientAuthResourceIT {
 
     @Deployment
     public static WebArchive createDeployment() {
+        File[] libs = ArquillianMavenResolver.resolve("com.h2database:h2");
+
         return ShrinkWrap.create(WebArchive.class, "client-auth-resource-it.war")
                 .addClasses(
                         ClientAuthResource.class,
@@ -55,6 +58,7 @@ public class ClientAuthResourceIT {
                         hcen.central.inus.testsupport.converter.TestInstantAttributeConverter.class,
                         hcen.central.inus.testsupport.converter.TestUUIDAttributeConverter.class
                 )
+                .addAsLibraries(libs)
                 .addAsResource("META-INF/persistence.xml", "META-INF/persistence.xml")
                 .addAsResource("META-INF/oidc-config.properties", "META-INF/oidc-config.properties")
                 .addAsWebInfResource("test-ds/resources.xml", "resources.xml")

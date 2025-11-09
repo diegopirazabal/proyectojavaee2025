@@ -11,9 +11,7 @@ public class TestInstantAttributeConverter implements AttributeConverter<Instant
 
     @Override
     public Timestamp convertToDatabaseColumn(Instant attribute) {
-        Timestamp timestamp = attribute != null ? Timestamp.from(attribute) : null;
-        System.out.println(">> TestInstantAttributeConverter.convertToDatabaseColumn(" + attribute + ") -> " + timestamp);
-        return timestamp;
+        return attribute != null ? Timestamp.from(attribute) : null;
     }
 
     @Override

@@ -5,7 +5,6 @@ import hcen.central.inus.dto.UsuarioSistemaResponse;
 import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.enums.TipoDocumento;
 import hcen.central.inus.enums.UsuarioSistemaTipo;
-import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,13 +24,9 @@ public class UsuarioSistemaServiceTest {
 
     @Before
     public void setUp() {
-        service = new UsuarioSistemaService();
         usuarioSaludDAO = new StubUsuarioSaludDAO();
         perifericoClient = new StubPerifericoUsuariosClient();
-
-        inject(service, "usuarioSaludDAO", usuarioSaludDAO);
-        inject(service, "perifericoUsuariosClient", perifericoClient);
-        inject(service, "executorService", null); // fuerza el fallback Runnable::run
+        service = new UsuarioSistemaService(usuarioSaludDAO, perifericoClient, null);
     }
 
     @Test
@@ -137,16 +132,6 @@ public class UsuarioSistemaServiceTest {
         return usuario;
     }
 
-    private static void inject(Object target, String fieldName, Object value) {
-        try {
-            Field field = UsuarioSistemaService.class.getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("No se pudo inyectar dependencia: " + fieldName, e);
-        }
-    }
-
     private static class StubUsuarioSaludDAO extends UsuarioSaludDAO {
         private List<UsuarioSalud> response = new ArrayList<>();
         private TipoDocumento lastTipoDocumento;
@@ -228,4 +213,3 @@ public class UsuarioSistemaServiceTest {
         }
     }
 }
-

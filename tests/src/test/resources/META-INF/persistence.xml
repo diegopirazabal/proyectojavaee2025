@@ -1,22 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
-             version="3.0">
+             version="2.2"
+             xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+                                 http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd">
 
     <persistence-unit name="hcen-central-pu" transaction-type="JTA">
         <jta-data-source>java:openejb/Resource/HcenDSTest</jta-data-source>
+
+        <!-- Fuerza registro de entidades usadas en los IT -->
+        <class>hcen.central.inus.entity.UsuarioSalud</class>
+        <class>hcen.central.inus.entity.JWTSession</class>
         <exclude-unlisted-classes>false</exclude-unlisted-classes>
+
         <properties>
-            <property name="jakarta.persistence.schema-generation.database.action" value="none"/>
-            <property name="jakarta.persistence.jdbc.driver" value="org.h2.Driver"/>
-            <property name="jakarta.persistence.jdbc.url" value="jdbc:h2:mem:hcen;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"/>
-            <property name="jakarta.persistence.jdbc.user" value="sa"/>
-            <property name="jakarta.persistence.jdbc.password" value="sa"/>
-            <property name="openjpa.jdbc.SynchronizeMappings" value="false"/>
+            <!-- Generar esquema en H2 -->
+            <property name="javax.persistence.schema-generation.database.action" value="drop-and-create"/>
+            <property name="javax.persistence.schema-generation.create-source" value="metadata"/>
+            <property name="javax.persistence.schema-generation.drop-source" value="metadata"/>
+
+            <!-- JDBC (el contenedor hará JTA, pero esto no molesta) -->
+            <property name="javax.persistence.jdbc.driver" value="org.h2.Driver"/>
+            <property name="javax.persistence.jdbc.url" value="jdbc:h2:mem:hcen;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"/>
+            <property name="javax.persistence.jdbc.user" value="sa"/>
+            <property name="javax.persistence.jdbc.password" value="sa"/>
+
+            <!-- OpenJPA: por si ignora lo anterior, que construya DDL -->
+            <property name="openjpa.jdbc.SynchronizeMappings" value="buildSchema(ForeignKeys=true)"/>
             <property name="openjpa.jdbc.DBDictionary" value="hcen.central.inus.testsupport.jpa.H2UUIDFriendlyDictionary"/>
-            <property name="jakarta.persistence.validation.mode" value="NONE"/>
+
+            <!-- Sin Bean Validation en tests -->
+            <property name="javax.persistence.validation.mode" value="NONE"/>
+
+            <!-- (Opcional) logs útiles para ver SQL y causas -->
+            <property name="openjpa.Log" value="SQL=TRACE, Tool=INFO, Runtime=INFO"/>
         </properties>
     </persistence-unit>
-
 </persistence>
