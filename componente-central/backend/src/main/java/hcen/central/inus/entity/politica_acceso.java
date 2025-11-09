@@ -20,8 +20,8 @@ public class politica_acceso {
 
     @ManyToOne
     @JoinColumns({
-        @JoinColumn(name = "usuario_salud_id", referencedColumnName = "id"),
-        @JoinColumn(name = "usuario_salud_cedula", referencedColumnName = "cedula")
+        @JoinColumn(name = "usuario_salud_cedula", referencedColumnName = "cedula"),
+        @JoinColumn(name = "usuario_salud_id", referencedColumnName = "id")
     })
     private UsuarioSalud usuarioSalud;
 
@@ -44,13 +44,16 @@ public class politica_acceso {
     @Column(name = "fechaCreacion")
     private LocalDateTime fechaCreacion;
 
-    @Column(name = "tipoAcceso", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'LECTURA'")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipoAcceso", length = 20, nullable = false)
     private TipoAcceso tipoAcceso;
 
-    @Column(name = "alcance", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'TODOS'")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "alcance", length = 20, nullable = false)
     private PoliticaAlcance politicaAlcance;
 
-    @Column(name = "estado", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'ACTIVO'")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", length = 20, nullable = false)
     private PoliticaEstado politicaEstado;
 
     // Constructores

@@ -29,8 +29,8 @@ public class notificacion {
     // Usuario FK not null - Referencia a UsuarioSalud local con composite key
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumns({
-        @JoinColumn(name = "USUARIO_ID", referencedColumnName = "id", nullable = false),
-        @JoinColumn(name = "USUARIO_CEDULA", referencedColumnName = "cedula", nullable = false)
+        @JoinColumn(name = "USUARIO_CEDULA", referencedColumnName = "cedula", nullable = false),
+        @JoinColumn(name = "USUARIO_ID", referencedColumnName = "id", nullable = false)
     })
     private UsuarioSalud usuario;
 
