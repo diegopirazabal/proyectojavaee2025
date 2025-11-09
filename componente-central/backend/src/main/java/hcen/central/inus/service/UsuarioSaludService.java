@@ -1,11 +1,9 @@
 package hcen.central.inus.service;
 
-import hcen.central.inus.dao.UsuarioClinicaDAO;
 import hcen.central.inus.dao.UsuarioSaludDAO;
 import hcen.central.inus.dto.RegistrarUsuarioRequest;
 import hcen.central.inus.dto.UsuarioSaludDTO;
 import hcen.central.inus.dto.ActualizarUsuarioSaludRequest;
-import hcen.central.inus.entity.UsuarioClinica;
 import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.enums.TipoDocumento;
 import jakarta.ejb.EJB;
@@ -28,9 +26,6 @@ public class UsuarioSaludService {
 
     @EJB
     private UsuarioSaludDAO usuarioDAO;
-
-    @EJB
-    private UsuarioClinicaDAO usuarioClinicaDAO;
 
     /**
      * Verifica si un usuario existe por cédula
