@@ -19,6 +19,9 @@ public class historia_clinica {
     @Column(name = "FEC_ACTUALIZACION")
     private LocalDateTime fecActualizacion;
 
+    @Column(name = "USUARIO_CEDULA", nullable = false, length = 20)
+    private String usuarioCedula;
+
     @OneToOne(mappedBy = "historiaClinica")
     private UsuarioSalud usuarioSalud;
 
@@ -37,6 +40,9 @@ public class historia_clinica {
     public void setFecActualizacion(LocalDateTime fecActualizacion) { this.fecActualizacion = fecActualizacion; }
     public List<historia_clinica_documento> getDocumentos() { return documentos; }
     public void setDocumentos(List<historia_clinica_documento> documentos) { this.documentos = documentos; }
+
+    public String getUsuarioCedula() { return usuarioCedula; }
+    public void setUsuarioCedula(String usuarioCedula) { this.usuarioCedula = usuarioCedula; }
 
     public UsuarioSalud getUsuario() { return usuarioSalud; }
     public void setUsuario(UsuarioSalud usuario) { this.usuarioSalud = usuario; }

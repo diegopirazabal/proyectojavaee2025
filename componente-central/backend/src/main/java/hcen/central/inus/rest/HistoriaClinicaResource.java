@@ -1,10 +1,14 @@
 package hcen.central.inus.rest;
 
+import hcen.central.inus.dto.HistoriaClinicaDocumentoDetalleResponse;
 import hcen.central.inus.service.HistoriaClinicaService;
+import hcen.central.notifications.dto.ApiResponse;
 import jakarta.ejb.EJB;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -67,6 +71,24 @@ public class HistoriaClinicaResource {
             LOGGER.log(Level.SEVERE, "Error al registrar documento en historia clínica", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(new ErrorResponse("Error interno al registrar el documento: " + e.getMessage()))
+                .build();
+        }
+    }
+
+    @GET
+    @Path("/{cedula}/documentos")
+    public Response obtenerDocumentosPorCedula(@PathParam("cedula") String cedula) {
+        try {
+            var documentos = historiaClinicaService.obtenerDocumentosPorCedula(cedula);
+            return Response.ok(ApiResponse.success(documentos)).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(ApiResponse.error(e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener documentos de historia clínica", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ApiResponse.error("Error interno al obtener la historia clínica"))
                 .build();
         }
     }
