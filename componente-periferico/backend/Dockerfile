@@ -33,6 +33,9 @@ USER root
 # Install PostgreSQL driver from Maven Central
 RUN curl -L https://repo1.maven.org/maven2/org/postgresql/postgresql/42.6.0/postgresql-42.6.0.jar -o /opt/jboss/wildfly/standalone/deployments/postgresql-42.6.0.jar
 
+# Copy WildFly standalone configuration
+COPY --chown=jboss:jboss componente-periferico/backend/standalone-servidor.xml /opt/jboss/wildfly/standalone/configuration/standalone.xml
+
 # Copy datasource configuration script
 COPY --chown=jboss:jboss componente-periferico/backend/datasource-config.cli /opt/jboss/
 
