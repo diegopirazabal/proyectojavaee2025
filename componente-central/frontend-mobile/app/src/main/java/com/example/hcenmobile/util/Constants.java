@@ -7,7 +7,7 @@ public class Constants {
 
     // API Configuration
     // Backend central en producción
-    public static final String BASE_URL = "https://hcen-uy.web.elasticloud.uy/api/";
+    public static final String BASE_URL = "https://hcen-uy.web.elasticloud.uy/api";
     public static final int CONNECT_TIMEOUT = 30; // seconds
     public static final int READ_TIMEOUT = 30; // seconds
     public static final int WRITE_TIMEOUT = 30; // seconds

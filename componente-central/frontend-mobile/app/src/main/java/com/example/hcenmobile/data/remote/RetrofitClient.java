@@ -39,7 +39,7 @@ public class RetrofitClient {
 
         // Configurar Retrofit
         retrofit = new Retrofit.Builder()
-                .baseUrl(Constants.BASE_URL)
+                .baseUrl(Constants.BASE_URL + "/")
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
