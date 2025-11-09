@@ -30,8 +30,21 @@ RUN mvn clean package -DskipTests
 FROM quay.io/wildfly/wildfly:37.0.1.Final-jdk17
 USER root
 
-# Instalar driver PostgreSQL
-RUN curl -L https://repo1.maven.org/maven2/org/postgresql/postgresql/42.6.0/postgresql-42.6.0.jar -o /opt/jboss/wildfly/standalone/deployments/postgresql-42.6.0.jar
+# Instalar driver PostgreSQL como módulo
+RUN mkdir -p /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main && \
+    curl -L https://repo1.maven.org/maven2/org/postgresql/postgresql/42.6.0/postgresql-42.6.0.jar \
+        -o /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/postgresql-42.6.0.jar && \
+    cat <<'EOF' > /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml
+<module xmlns="urn:jboss:module:1.9" name="org.postgresql">
+    <resources>
+        <resource-root path="postgresql-42.6.0.jar"/>
+    </resources>
+    <dependencies>
+        <module name="javax.api"/>
+        <module name="javax.transaction.api"/>
+    </dependencies>
+</module>
+EOF
 
 # Copiar configuración de WildFly y scripts auxiliares
 COPY --chown=jboss:jboss componente-periferico/backend/standalone-servidor.xml /opt/jboss/wildfly/standalone/configuration/standalone.xml
