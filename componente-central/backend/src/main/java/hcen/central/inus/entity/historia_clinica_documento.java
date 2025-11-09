@@ -26,9 +26,6 @@ public class historia_clinica_documento {
     @Column(name = "DOCUMENTO_ID", nullable = false, columnDefinition = "UUID")
     private UUID documentoId;
 
-    @Column(name = "USUARIO_CEDULA", nullable = false, length = 20)
-    private String usuarioCedula;
-
     @Column(name = "TENANT_ID", columnDefinition = "UUID", nullable = false)
     private UUID tenantId;
 
@@ -53,14 +50,6 @@ public class historia_clinica_documento {
 
     public void setDocumentoId(UUID documentoId) {
         this.documentoId = documentoId;
-    }
-
-    public String getUsuarioCedula() {
-        return usuarioCedula;
-    }
-
-    public void setUsuarioCedula(String usuarioCedula) {
-        this.usuarioCedula = usuarioCedula;
     }
 
     public UUID getTenantId() {

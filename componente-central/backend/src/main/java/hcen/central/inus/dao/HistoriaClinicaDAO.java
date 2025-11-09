@@ -29,10 +29,10 @@ public class HistoriaClinicaDAO {
 
     public Optional<historia_clinica> findByUsuario(UsuarioSalud usuario) {
         TypedQuery<historia_clinica> query = em.createQuery(
-            "SELECT h FROM historia_clinica h WHERE h.usuario = :usuario",
+            "SELECT h FROM historia_clinica h WHERE h.usuarioCedula = :cedula",
             historia_clinica.class
         );
-        query.setParameter("usuario", usuario);
+        query.setParameter("cedula", usuario.getCedula());
         try {
             return Optional.of(query.getSingleResult());
         } catch (NoResultException ex) {
@@ -42,7 +42,7 @@ public class HistoriaClinicaDAO {
 
     public Optional<historia_clinica> findByCedulaAndTenant(String cedula, UUID tenantId) {
         TypedQuery<historia_clinica> query = em.createQuery(
-            "SELECT h FROM historia_clinica h JOIN h.usuario u " +
+            "SELECT h FROM historia_clinica h JOIN h.usuarioSalud u " +
                 "WHERE u.cedula = :cedula AND u.tenantId = :tenantId",
             historia_clinica.class
         );
@@ -82,4 +82,5 @@ public class HistoriaClinicaDAO {
         query.setParameter("historiaId", historiaId);
         return query.getResultList();
     }
+
 }

@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Configuración para producción -->
+    <!-- Configuración para depuración -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">hcen-uy.web.elasticloud.uy</domain>
         <trust-anchors>
-            <!-- Confiar en certificados del sistema -->
             <certificates src="system" />
-            <!-- Confiar en certificados de usuario instalados -->
             <certificates src="user" />
         </trust-anchors>
+    </domain-config>
+
+    <!-- Permitimos HTTP contra el host local del emulador únicamente en builds debug -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
     </domain-config>
 </network-security-config>
