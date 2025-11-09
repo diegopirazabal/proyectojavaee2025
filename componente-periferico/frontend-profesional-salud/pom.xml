@@ -63,7 +63,7 @@
     </dependencies>
 
     <build>
-        <finalName>frontend-profesional-salud</finalName>
+        <finalName>profesional-salud</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

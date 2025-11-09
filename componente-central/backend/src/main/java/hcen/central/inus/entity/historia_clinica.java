@@ -19,13 +19,9 @@ public class historia_clinica {
     @Column(name = "FEC_ACTUALIZACION")
     private LocalDateTime fecActualizacion;
 
-    // Usuario - Referencia a UsuarioSalud local con composite key
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumns({
-        @JoinColumn(name = "USUARIO_ID", referencedColumnName = "id", nullable = false),
-        @JoinColumn(name = "USUARIO_CEDULA", referencedColumnName = "cedula", nullable = false)
-    })
-    private UsuarioSalud usuario;
+    @OneToOne(mappedBy = "historiaClinica")
+    private UsuarioSalud usuarioSalud;
+
 
     @OneToMany(mappedBy = "historiaClinica", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<historia_clinica_documento> documentos = new ArrayList<>();
@@ -39,10 +35,11 @@ public class historia_clinica {
     public void setFecCreacion(LocalDateTime fecCreacion) { this.fecCreacion = fecCreacion; }
     public LocalDateTime getFecActualizacion() { return fecActualizacion; }
     public void setFecActualizacion(LocalDateTime fecActualizacion) { this.fecActualizacion = fecActualizacion; }
-    public UsuarioSalud getUsuario() { return usuario; }
-    public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
     public List<historia_clinica_documento> getDocumentos() { return documentos; }
     public void setDocumentos(List<historia_clinica_documento> documentos) { this.documentos = documentos; }
+
+    public UsuarioSalud getUsuario() { return usuarioSalud; }
+    public void setUsuario(UsuarioSalud usuario) { this.usuarioSalud = usuario; }
 
     @Override public boolean equals(Object o){ return (this==o) || (o instanceof historia_clinica h && Objects.equals(id,h.id)); }
     @Override public int hashCode(){ return Objects.hash(id); }

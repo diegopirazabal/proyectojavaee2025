@@ -1,55 +1,113 @@
 package hcen.central.inus.entity;
 
+import hcen.central.inus.enums.PoliticaAlcance;
+import hcen.central.inus.enums.PoliticaEstado;
+import hcen.central.inus.enums.TipoAcceso;
+import hcen.central.inus.enums.TipoEntidad;
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
-import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Política de acceso asignada a un usuario de salud.
- * Cada fila referencia al usuario mediante la PK compuesta (id, cedula).
- */
 @Entity
 @Table(name = "politica_acceso")
 public class politica_acceso {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", columnDefinition = "UUID")
+    @Column(name = "ID", columnDefinition = "UUID")
     private UUID id;
 
-    @Column(name = "tipo_acceso", length = 50)
-    private String tipoAcceso;
+    @ManyToOne
+    @JoinColumn(name = "usuario_salud_id")
+    private UsuarioSalud usuarioSalud;
 
-    @Column(name = "entidad_autorizada", length = 120)
-    private String entidadAutorizada;
+    @Column(name = "entidad_autorizada", length = 100)
+    private String entidadAutorizada; //entidadAutorizada guarda el identificador de la entidad a la que se le otorga el permiso.
 
-    @Column(name = "fec_creacion", nullable = false)
-    private LocalDateTime fecCreacion = LocalDateTime.now();
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_entidad", length = 20)
+    private TipoEntidad tipoEntidad;
 
-    @Column(name = "fec_vencimiento")
-    private LocalDateTime fecVencimiento;
+    @Column(name = "especialidad", length = 100)
+    private String especialidad;
 
-    @Column(name = "estado", length = 30)
-    private String estado;
+    @Column(name = "fecha_vencimiento")
+    private LocalDateTime fechaVencimiento;
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumns({
-        @JoinColumn(name = "usuario_salud_id", referencedColumnName = "id", nullable = false),
-        @JoinColumn(name = "usuario_salud_cedula", referencedColumnName = "cedula", nullable = false)
-    })
-    private UsuarioSalud usuario;
+    @Column(name = "documento_especifico_id", columnDefinition = "UUID")
+    private UUID documentoEspecificoId;
 
+    @Column(name = "fechaCreacion")
+    private LocalDateTime fechaCreacion;
+
+    @Column(name = "tipoAcceso", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'LECTURA'")
+    private TipoAcceso tipoAcceso;
+
+    @Column(name = "alcance", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'TODOS'")
+    private PoliticaAlcance politicaAlcance;
+
+    @Column(name = "estado", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'ACTIVO'")
+    private PoliticaEstado politicaEstado;
+
+    // Constructores
+    public politica_acceso() {
+        this.fechaCreacion = LocalDateTime.now();
+        this.tipoAcceso = TipoAcceso.LECTURA;
+        this.politicaAlcance = PoliticaAlcance.TODOS;
+        this.politicaEstado = PoliticaEstado.ACTIVO;
+        this.tipoEntidad = TipoEntidad.TODOS;
+    }
+
+    // Getters y Setters
     public UUID getId() {
         return id;
     }
 
-    public String getTipoAcceso() {
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+
+
+    public LocalDateTime getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+    }
+
+    public TipoAcceso getTipoAcceso() {
         return tipoAcceso;
     }
 
-    public void setTipoAcceso(String tipoAcceso) {
+    public void setTipoAcceso(TipoAcceso tipoAcceso) {
         this.tipoAcceso = tipoAcceso;
+    }
+
+    public PoliticaAlcance getPoliticaAlcance() {
+        return politicaAlcance;
+    }
+
+    public void setPoliticaAlcance(PoliticaAlcance politicaAlcance) {
+        this.politicaAlcance = politicaAlcance;
+    }
+
+    public PoliticaEstado getPoliticaEstado() {
+        return politicaEstado;
+    }
+
+    public void setPoliticaEstado(PoliticaEstado politicaEstado) {
+        this.politicaEstado = politicaEstado;
+    }
+
+    public UsuarioSalud getUsuarioSalud() {
+        return usuarioSalud;
+    }
+
+    public void setUsuarioSalud(UsuarioSalud usuarioSalud) {
+        this.usuarioSalud = usuarioSalud;
     }
 
     public String getEntidadAutorizada() {
@@ -60,54 +118,78 @@ public class politica_acceso {
         this.entidadAutorizada = entidadAutorizada;
     }
 
-    public LocalDateTime getFecCreacion() {
-        return fecCreacion;
+    public TipoEntidad getTipoEntidad() {
+        return tipoEntidad;
     }
 
-    public void setFecCreacion(LocalDateTime fecCreacion) {
-        this.fecCreacion = fecCreacion;
+    public void setTipoEntidad(TipoEntidad tipoEntidad) {
+        this.tipoEntidad = tipoEntidad;
     }
 
-    public LocalDateTime getFecVencimiento() {
-        return fecVencimiento;
+    public String getEspecialidad() {
+        return especialidad;
     }
 
-    public void setFecVencimiento(LocalDateTime fecVencimiento) {
-        this.fecVencimiento = fecVencimiento;
+    public void setEspecialidad(String especialidad) {
+        this.especialidad = especialidad;
     }
 
-    public String getEstado() {
-        return estado;
+    public LocalDateTime getFechaVencimiento() {
+        return fechaVencimiento;
     }
 
-    public void setEstado(String estado) {
-        this.estado = estado;
+    public void setFechaVencimiento(LocalDateTime fechaVencimiento) {
+        this.fechaVencimiento = fechaVencimiento;
     }
 
-    public UsuarioSalud getUsuario() {
-        return usuario;
+    public UUID getDocumentoEspecificoId() {
+        return documentoEspecificoId;
     }
 
-    public void setUsuario(UsuarioSalud usuario) {
-        this.usuario = usuario;
+    public void setDocumentoEspecificoId(UUID documentoEspecificoId) {
+        this.documentoEspecificoId = documentoEspecificoId;
+    }
+
+    // Métodos de utilidad
+    public boolean estaActiva() {
+        return PoliticaEstado.ACTIVO.equals(this.politicaEstado);
+    }
+
+    public void activarPolitica() {
+        this.politicaEstado = PoliticaEstado.ACTIVO;
+    }
+
+    public void desactivarPolitica() {
+        this.politicaEstado = PoliticaEstado.INACTIVO;
+    }
+
+    public boolean tieneAccesoEscritura() {
+        return TipoAcceso.ESCRITURA.equals(this.tipoAcceso) ||
+                TipoAcceso.TODOS.equals(this.tipoAcceso);
+    }
+
+    public boolean tieneAccesoLectura() {
+        return TipoAcceso.LECTURA.equals(this.tipoAcceso) ||
+                TipoAcceso.TODOS.equals(this.tipoAcceso);
+    }
+
+    public boolean esParaProfesional() {
+        return TipoEntidad.PROFESIONAL.equals(this.tipoEntidad);
+    }
+
+    public boolean esParaClinica() {
+        return TipoEntidad.CLINICA.equals(this.tipoEntidad);
+    }
+
+    public boolean esParaEspecialidad() {
+        return TipoEntidad.ESPECIALIDAD.equals(this.tipoEntidad);
     }
 
     @PrePersist
     protected void onCreate() {
-        if (fecCreacion == null) {
-            fecCreacion = LocalDateTime.now();
+        if (this.fechaCreacion == null) {
+            this.fechaCreacion = LocalDateTime.now();
         }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof politica_acceso that)) return false;
-        return Objects.equals(id, that.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
 }
