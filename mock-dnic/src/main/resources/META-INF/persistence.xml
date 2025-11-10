@@ -7,10 +7,9 @@
     <persistence-unit name="mock-dnic-pu" transaction-type="JTA">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
         <!-- 
-            JNDI configurado para WildFly en Railway 
-            El Dockerfile configura este datasource automáticamente con variables de entorno
+            JNDI del datasource definido en MockDnicDataSourceConfig
         -->
-        <jta-data-source>java:jboss/datasources/MockDnicDS</jta-data-source>
+        <jta-data-source>java:app/jdbc/MockDnicDS</jta-data-source>
 
         <class>com.hcen.mockdnic.dominio.Ciudadano</class>
 
