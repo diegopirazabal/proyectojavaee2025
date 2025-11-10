@@ -1,11 +1,13 @@
 package com.hcen.periferico.service;
 
+import com.hcen.periferico.dao.ClinicaDAO;
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
 import com.hcen.periferico.dao.ProfesionalSaludDAO;
 import com.hcen.periferico.dao.SincronizacionPendienteDAO;
 import com.hcen.periferico.dto.documento_clinico_dto;
 import com.hcen.periferico.entity.SincronizacionPendiente;
 import com.hcen.periferico.entity.UsuarioSalud;
+import com.hcen.periferico.entity.clinica;
 import com.hcen.periferico.entity.documento_clinico;
 import com.hcen.periferico.entity.profesional_salud;
 import com.hcen.periferico.enums.TipoSincronizacion;
@@ -44,6 +46,9 @@ public class DocumentoClinicoService {
 
     @EJB
     private SincronizacionPendienteDAO sincronizacionDAO;
+
+    @EJB
+    private ClinicaDAO clinicaDAO;
 
     @PersistenceContext(unitName = "hcen-periferico-pu")
     private EntityManager em;
@@ -272,6 +277,21 @@ public class DocumentoClinicoService {
         profesional_salud profesional = documento.getProfesionalFirmante();
         dto.setNombreCompletoProfesional(profesional.getNombre() + " " + profesional.getApellidos());
         dto.setEspecialidadProfesional(profesional.getEspecialidad());
+
+        // Información de la clínica
+        if (documento.getTenantId() != null) {
+            LOGGER.info("Buscando clínica para tenantId: " + documento.getTenantId());
+            Optional<clinica> clinicaOpt = clinicaDAO.findByTenantId(documento.getTenantId());
+            if (clinicaOpt.isPresent()) {
+                String nombreClinica = clinicaOpt.get().getNombre();
+                dto.setNombreClinica(nombreClinica);
+                LOGGER.info("Clínica encontrada: '" + nombreClinica + "' para tenantId: " + documento.getTenantId());
+            } else {
+                LOGGER.warning("No se encontró clínica para tenantId: " + documento.getTenantId() + " del documento " + documento.getId());
+            }
+        } else {
+            LOGGER.warning("Documento " + documento.getId() + " no tiene tenantId");
+        }
 
         // Motivo de consulta
         dto.setCodigoMotivoConsulta(documento.getCodigoMotivoConsulta());

@@ -68,12 +68,18 @@ public class PerifericoDocumentosClient {
         try (JsonReader reader = Json.createReader(new StringReader(json))) {
             JsonObject root = reader.readObject();
             DocumentoClinicoDTO dto = new DocumentoClinicoDTO();
+
+            // Campos básicos
             dto.setId(root.getString("id", null));
             dto.setTenantId(root.getString("tenantId", null));
             dto.setFecCreacion(root.getString("fecCreacion", null));
             dto.setFechaInicioDiagnostico(root.getString("fechaInicioDiagnostico", null));
+
+            // Motivo de consulta
             dto.setCodigoMotivoConsulta(root.getString("codigoMotivoConsulta", null));
             dto.setNombreMotivoConsulta(root.getString("nombreMotivoConsulta", null));
+
+            // Profesional
             dto.setNombreCompletoProfesional(root.getString("nombreCompletoProfesional", null));
             dto.setEspecialidadProfesional(root.getString("especialidadProfesional", null));
             if (!root.isNull("profesionalCi") && root.get("profesionalCi") != null) {
@@ -83,6 +89,22 @@ public class PerifericoDocumentosClient {
                     dto.setProfesionalCi(null);
                 }
             }
+
+            // Clínica
+            String nombreClinica = root.getString("nombreClinica", null);
+            dto.setNombreClinica(nombreClinica);
+            LOGGER.info("nombreClinica recibido del periférico: '" + nombreClinica + "' para documento: " + dto.getId());
+
+            // Diagnóstico
+            dto.setDescripcionDiagnostico(root.getString("descripcionDiagnostico", null));
+            dto.setNombreEstadoProblema(root.getString("nombreEstadoProblema", null));
+            dto.setNombreGradoCerteza(root.getString("nombreGradoCerteza", null));
+
+            // Instrucciones de seguimiento
+            dto.setFechaProximaConsulta(root.getString("fechaProximaConsulta", null));
+            dto.setDescripcionProximaConsulta(root.getString("descripcionProximaConsulta", null));
+            dto.setReferenciaAlta(root.getString("referenciaAlta", null));
+
             return Optional.of(dto);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error parseando documento clínico desde periférico", e);

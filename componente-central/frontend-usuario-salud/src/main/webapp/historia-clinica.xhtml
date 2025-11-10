@@ -122,13 +122,16 @@
                                 var="doc"
                                 type="none"
                                 emptyMessage="No se encontraron documentos">
-                        <div class="documento-card" onclick="PF('detalleDialog').show();">
-                            <h:commandLink action="#{historiaClinicaBean.seleccionarDocumento(doc)}"
-                                           styleClass="documento-motivo"
-                                           style="text-decoration: none; color: inherit;">
-                                <f:ajax render=":detalleForm" execute="@this"/>
-                                #{doc.motivoDisplay}
-                            </h:commandLink>
+                        <div class="documento-card">
+                            <p:commandButton value="#{doc.motivoDisplay}"
+                                           styleClass="documento-motivo ui-button-link"
+                                           style="text-decoration: none; color: inherit; border: none; background: none; padding: 0; font-size: 1.25rem; font-weight: 600; cursor: pointer;"
+                                           oncomplete="setTimeout(function() { PF('detalleDialog').show(); }, 100);"
+                                           update="detalleForm"
+                                           process="@this"
+                                           ajax="true">
+                                <f:setPropertyActionListener target="#{historiaClinicaBean.documentoSeleccionado}" value="#{doc}"/>
+                            </p:commandButton>
                             <p class="documento-info">
                                 <strong>Fecha:</strong> #{doc.fechaFormateada}
                             </p>
@@ -152,10 +155,9 @@
                           width="600"
                           styleClass="detalle-dialog">
                     <p:outputPanel rendered="#{historiaClinicaBean.documentoSeleccionado != null}">
-                        <h:panelGrid columns="2" styleClass="ui-noborder" style="width: 100%;">
-                            <h:outputLabel value="Motivo de Consulta:" style="font-weight: 600;"/>
-                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.motivoDisplay}"/>
-
+                        <!-- Información General -->
+                        <h3 style="color: #2196F3; margin-top: 0; margin-bottom: 1rem;">Información General</h3>
+                        <h:panelGrid columns="2" styleClass="ui-noborder" style="width: 100%; margin-bottom: 1.5rem;">
                             <h:outputLabel value="Fecha del Documento:" style="font-weight: 600;"/>
                             <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.fechaFormateada}"/>
 
@@ -164,20 +166,49 @@
 
                             <h:outputLabel value="Clínica:" style="font-weight: 600;"/>
                             <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.clinicaDisplay}"/>
-
-                            <h:outputLabel value="ID Historia:" style="font-weight: 600;"/>
-                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.historiaId}" style="font-family: monospace; font-size: 0.9rem;"/>
-
-                            <h:outputLabel value="ID Documento:" style="font-weight: 600;"/>
-                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.documentoId}" style="font-family: monospace; font-size: 0.9rem;"/>
                         </h:panelGrid>
 
-                        <p:separator style="margin: 1.5rem 0;"/>
+                        <!-- Motivo de Consulta -->
+                        <h3 style="color: #2196F3; margin-bottom: 1rem;">Motivo de Consulta</h3>
+                        <p:panelGrid columns="1" styleClass="ui-noborder" style="width: 100%; margin-bottom: 1.5rem;">
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.motivoDisplay}"/>
+                        </p:panelGrid>
 
-                        <p style="color: #666; font-size: 0.9rem; text-align: center; margin: 0;">
-                            <i class="pi pi-info-circle"></i>
-                            Para ver el contenido completo del documento, contacte con su clínica.
-                        </p>
+                        <!-- Diagnóstico -->
+                        <h3 style="color: #2196F3; margin-bottom: 1rem;">Diagnóstico</h3>
+                        <h:panelGrid columns="2" styleClass="ui-noborder" style="width: 100%; margin-bottom: 1.5rem;">
+                            <h:outputLabel value="Descripción:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.descripcionDiagnostico}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.descripcionDiagnostico}"/>
+                            <h:outputText value="No especificado" style="color: #999;" rendered="#{empty historiaClinicaBean.documentoSeleccionado.descripcionDiagnostico}"/>
+
+                            <h:outputLabel value="Fecha de inicio:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.fechaInicioDiagnostico}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.fechaInicioDiagnostico}"/>
+                            <h:outputText value="No especificado" style="color: #999;" rendered="#{empty historiaClinicaBean.documentoSeleccionado.fechaInicioDiagnostico}"/>
+
+                            <h:outputLabel value="Estado del problema:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.nombreEstadoProblema}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.nombreEstadoProblema}"/>
+                            <h:outputText value="No especificado" style="color: #999;" rendered="#{empty historiaClinicaBean.documentoSeleccionado.nombreEstadoProblema}"/>
+
+                            <h:outputLabel value="Grado de certeza:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.nombreGradoCerteza}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.nombreGradoCerteza}"/>
+                            <h:outputText value="No especificado" style="color: #999;" rendered="#{empty historiaClinicaBean.documentoSeleccionado.nombreGradoCerteza}"/>
+                        </h:panelGrid>
+
+                        <!-- Instrucciones de Seguimiento -->
+                        <h3 style="color: #2196F3; margin-bottom: 1rem;">Instrucciones de Seguimiento</h3>
+                        <h:panelGrid columns="2" styleClass="ui-noborder" style="width: 100%; margin-bottom: 1.5rem;">
+                            <h:outputLabel value="Fecha próxima consulta:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.fechaProximaConsulta}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.fechaProximaConsulta}"/>
+                            <h:outputText value="No especificado" style="color: #999;" rendered="#{empty historiaClinicaBean.documentoSeleccionado.fechaProximaConsulta}"/>
+
+                            <h:outputLabel value="Próxima consulta:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.descripcionProximaConsulta}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.descripcionProximaConsulta}"/>
+                            <h:outputText value="No especificado" style="color: #999;" rendered="#{empty historiaClinicaBean.documentoSeleccionado.descripcionProximaConsulta}"/>
+
+                            <h:outputLabel value="Referencia al alta:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.referenciaAlta}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.referenciaAlta}"/>
+                            <h:outputText value="No especificado" style="color: #999;" rendered="#{empty historiaClinicaBean.documentoSeleccionado.referenciaAlta}"/>
+                        </h:panelGrid>
                     </p:outputPanel>
 
                     <f:facet name="footer">

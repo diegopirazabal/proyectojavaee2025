@@ -15,10 +15,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Stateless
 public class HistoriaClinicaService {
+
+    private static final Logger LOGGER = Logger.getLogger(HistoriaClinicaService.class.getName());
 
     @EJB
     private HistoriaClinicaDAO historiaDAO;
@@ -118,12 +121,14 @@ public class HistoriaClinicaService {
             return;
         }
 
+        // Motivo de consulta
         String motivo = periferico.getNombreMotivoConsulta();
         if (motivo == null || motivo.isBlank()) {
             motivo = periferico.getCodigoMotivoConsulta();
         }
         dto.setMotivoConsulta(motivo);
 
+        // Profesional
         String profesional = periferico.getNombreCompletoProfesional();
         if (profesional == null || profesional.isBlank()) {
             if (periferico.getProfesionalCi() != null) {
@@ -132,11 +137,28 @@ public class HistoriaClinicaService {
         }
         dto.setProfesional(profesional);
 
+        // Fecha del documento
         String fechaDocumento = periferico.getFechaInicioDiagnostico();
         if (fechaDocumento == null || fechaDocumento.isBlank()) {
             fechaDocumento = periferico.getFecCreacion();
         }
         dto.setFechaDocumento(fechaDocumento);
+
+        // Clínica
+        String nombreClinica = periferico.getNombreClinica();
+        dto.setNombreClinica(nombreClinica);
+        LOGGER.info("Mapeando nombreClinica: '" + nombreClinica + "' para documento: " + dto.getDocumentoId());
+
+        // Diagnóstico
+        dto.setDescripcionDiagnostico(periferico.getDescripcionDiagnostico());
+        dto.setFechaInicioDiagnostico(periferico.getFechaInicioDiagnostico());
+        dto.setNombreEstadoProblema(periferico.getNombreEstadoProblema());
+        dto.setNombreGradoCerteza(periferico.getNombreGradoCerteza());
+
+        // Instrucciones de seguimiento
+        dto.setFechaProximaConsulta(periferico.getFechaProximaConsulta());
+        dto.setDescripcionProximaConsulta(periferico.getDescripcionProximaConsulta());
+        dto.setReferenciaAlta(periferico.getReferenciaAlta());
     }
 
     private historia_clinica crearHistoria(UsuarioSalud usuario) {

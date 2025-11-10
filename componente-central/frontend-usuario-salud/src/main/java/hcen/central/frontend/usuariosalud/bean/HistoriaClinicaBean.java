@@ -175,6 +175,11 @@ public class HistoriaClinicaBean implements Serializable {
 
     public void setDocumentoSeleccionado(HistoriaClinicaDocumentoDTO documentoSeleccionado) {
         this.documentoSeleccionado = documentoSeleccionado;
+        if (documentoSeleccionado != null) {
+            LOGGER.info("Documento seleccionado via setter: " + documentoSeleccionado.getDocumentoId());
+        } else {
+            LOGGER.warning("setDocumentoSeleccionado llamado con null");
+        }
     }
 
     public boolean isHasDocumentos() {
