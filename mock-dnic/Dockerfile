@@ -15,25 +15,38 @@ FROM quay.io/wildfly/wildfly:31.0.1.Final-jdk17
 # Establecer usuario root temporalmente para configuración
 USER root
 
-# Instalar PostgreSQL JDBC driver
-RUN curl -L -o /opt/jboss/wildfly/standalone/deployments/postgresql.jar \
+# Instalar PostgreSQL JDBC driver en módulos de WildFly
+RUN mkdir -p /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main && \
+    curl -L -o /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/postgresql-42.7.3.jar \
     https://jdbc.postgresql.org/download/postgresql-42.7.3.jar
 
-# Crear directorio para scripts
-RUN mkdir -p /opt/jboss/wildfly/customization
-
-# Copiar script de configuración
-COPY setup-wildfly.sh /opt/jboss/wildfly/customization/setup.sh
-RUN chmod +x /opt/jboss/wildfly/customization/setup.sh
+# Crear module.xml para PostgreSQL
+RUN echo '<?xml version="1.0" encoding="UTF-8"?>' > /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml && \
+    echo '<module xmlns="urn:jboss:module:1.9" name="org.postgresql">' >> /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml && \
+    echo '  <resources>' >> /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml && \
+    echo '    <resource-root path="postgresql-42.7.3.jar"/>' >> /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml && \
+    echo '  </resources>' >> /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml && \
+    echo '  <dependencies>' >> /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml && \
+    echo '    <module name="javax.api"/>' >> /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml && \
+    echo '    <module name="javax.transaction.api"/>' >> /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml && \
+    echo '  </dependencies>' >> /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml && \
+    echo '</module>' >> /opt/jboss/wildfly/modules/system/layers/base/org/postgresql/main/module.xml
 
 # Copiar el WAR desde el builder
 COPY --from=builder /app/target/mock-dnic.war /opt/jboss/wildfly/standalone/deployments/
 
+# Variables de entorno con valores por defecto
+ENV DATABASE_HOST=179.31.2.178 \
+    DATABASE_PORT=5432 \
+    DATABASE_NAME=postgres \
+    DATABASE_USER=webadmin \
+    DATABASE_PASSWORD=V79FHjyEho
+
 # Volver al usuario jboss
 USER jboss
 
-# Exponer puerto (Railway asigna dinámicamente pero WildFly usa 8080 internamente)
+# Exponer puerto
 EXPOSE 8080
 
-# Script de inicio que configura y ejecuta WildFly
-CMD ["/bin/bash", "-c", "/opt/jboss/wildfly/customization/setup.sh && /opt/jboss/wildfly/bin/standalone.sh -b 0.0.0.0"]
+# Iniciar WildFly normalmente
+CMD ["/opt/jboss/wildfly/bin/standalone.sh", "-b", "0.0.0.0"]
