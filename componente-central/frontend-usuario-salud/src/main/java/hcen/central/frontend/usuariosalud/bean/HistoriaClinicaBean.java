@@ -1,5 +1,6 @@
 package hcen.central.frontend.usuariosalud.bean;
 
+import hcen.central.frontend.usuariosalud.dto.ApiResponse;
 import hcen.central.frontend.usuariosalud.dto.HistoriaClinicaDocumentoDTO;
 import jakarta.annotation.PostConstruct;
 import jakarta.faces.application.FacesMessage;
@@ -69,20 +70,33 @@ public class HistoriaClinicaBean implements Serializable {
             LOGGER.info("Respuesta del backend: HTTP " + response.getStatus());
 
             if (response.getStatus() == 200) {
-                documentos = response.readEntity(new GenericType<List<HistoriaClinicaDocumentoDTO>>() {});
+                // Deserializar ApiResponse que envuelve la lista de documentos
+                ApiResponse<List<HistoriaClinicaDocumentoDTO>> apiResponse =
+                    response.readEntity(new GenericType<ApiResponse<List<HistoriaClinicaDocumentoDTO>>>() {});
 
-                if (documentos == null) {
-                    documentos = new ArrayList<>();
-                }
+                if (apiResponse != null && apiResponse.isSuccess()) {
+                    documentos = apiResponse.getData();
 
-                LOGGER.info("Documentos obtenidos: " + documentos.size());
+                    if (documentos == null) {
+                        documentos = new ArrayList<>();
+                    }
 
-                if (documentos.isEmpty()) {
-                    addMessage(FacesMessage.SEVERITY_INFO, "Sin documentos",
-                            "Aún no hay registros en su historia clínica.");
+                    LOGGER.info("Documentos obtenidos: " + documentos.size());
+
+                    if (documentos.isEmpty()) {
+                        addMessage(FacesMessage.SEVERITY_INFO, "Sin documentos",
+                                "Aún no hay registros en su historia clínica.");
+                    } else {
+                        addMessage(FacesMessage.SEVERITY_INFO, "Documentos cargados",
+                                "Se encontraron " + documentos.size() + " documento(s) clínico(s).");
+                    }
                 } else {
-                    addMessage(FacesMessage.SEVERITY_INFO, "Documentos cargados",
-                            "Se encontraron " + documentos.size() + " documento(s) clínico(s).");
+                    mensajeError = "Error en la respuesta del servidor";
+                    if (apiResponse != null && apiResponse.getError() != null) {
+                        mensajeError = apiResponse.getError();
+                    }
+                    LOGGER.warning(mensajeError);
+                    addMessage(FacesMessage.SEVERITY_ERROR, "Error", mensajeError);
                 }
             } else if (response.getStatus() == 404) {
                 documentos = new ArrayList<>();
@@ -125,9 +139,9 @@ public class HistoriaClinicaBean implements Serializable {
             int serverPort = context.getExternalContext().getRequestServerPort();
 
             if (serverPort == 80 || serverPort == 443) {
-                backendUrl = "http://" + serverName + "/hcen-central";
+                backendUrl = "http://" + serverName + "/";
             } else {
-                backendUrl = "http://" + serverName + ":" + serverPort + "/hcen-central";
+                backendUrl = "http://" + serverName + ":" + serverPort + "/";
             }
 
             LOGGER.warning("No se configuró hcen.backendUrl en web.xml, usando fallback: " + backendUrl);
