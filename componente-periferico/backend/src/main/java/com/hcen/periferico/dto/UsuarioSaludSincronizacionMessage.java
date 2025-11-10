@@ -1,29 +1,46 @@
 package com.hcen.periferico.dto;
 
-import com.hcen.periferico.enums.TipoDocumento;
-
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
  * DTO para mensajes JMS de sincronización de usuarios de salud.
- * Enviado desde componente periférico al central.
  *
- * Contiene solo los datos mínimos necesarios:
- * - cédula del usuario
- * - tipo de documento
+ * Este mensaje se envía desde el componente periférico al componente central
+ * a través de la cola "UsuarioSaludRegistrado" para registrar un nuevo usuario.
+ *
+ * NOTA: A diferencia de la implementación anterior, este DTO NO necesita estar
+ * en el mismo package en ambos componentes. Se serializa como JSON en TextMessage,
+ * lo que permite mayor flexibilidad y desacoplamiento.
+ *
+ * Flujo:
+ * 1. Periférico registra usuario local
+ * 2. Periférico envía este mensaje como JSON a la cola
+ * 3. Central parsea el JSON y registra usuario en BD nacional
+ * 4. Central envía confirmación JSON (UsuarioSaludConfirmacionMessage)
+ *
+ * @author Sistema HCEN
+ * @version 2.0 - Migrado a JSON
  */
-public class UsuarioSaludSincronizacionMessage implements Serializable {
+public class UsuarioSaludSincronizacionMessage {
 
-    private static final long serialVersionUID = 1L;
-
+    /**
+     * Cédula de identidad del usuario (identificador único nacional)
+     */
     private String cedula;
-    private TipoDocumento tipoDocumento;
+
+    /**
+     * Tipo de documento como String (DO, PA, etc.)
+     */
+    private String tipoDocumento;
+
+    /**
+     * Timestamp de creación del mensaje (para auditoría)
+     */
     private LocalDateTime timestamp;
 
     /**
-     * Constructor por defecto (requerido para deserialización JMS)
+     * Constructor por defecto (requerido para deserialización JSON)
      */
     public UsuarioSaludSincronizacionMessage() {
         this.timestamp = LocalDateTime.now();
@@ -31,8 +48,11 @@ public class UsuarioSaludSincronizacionMessage implements Serializable {
 
     /**
      * Constructor con parámetros
+     *
+     * @param cedula Cédula del usuario
+     * @param tipoDocumento Tipo de documento (DO, PA, etc.)
      */
-    public UsuarioSaludSincronizacionMessage(String cedula, TipoDocumento tipoDocumento) {
+    public UsuarioSaludSincronizacionMessage(String cedula, String tipoDocumento) {
         this.cedula = cedula;
         this.tipoDocumento = tipoDocumento;
         this.timestamp = LocalDateTime.now();
@@ -40,13 +60,17 @@ public class UsuarioSaludSincronizacionMessage implements Serializable {
 
     /**
      * Valida que el mensaje contenga los datos mínimos requeridos
+     *
+     * @return true si el mensaje es válido
      */
     public boolean isValid() {
         return cedula != null && !cedula.trim().isEmpty() &&
-               tipoDocumento != null;
+               tipoDocumento != null && !tipoDocumento.trim().isEmpty();
     }
 
-    // Getters y Setters
+    // ============================================================
+    // GETTERS Y SETTERS
+    // ============================================================
 
     public String getCedula() {
         return cedula;
@@ -56,11 +80,11 @@ public class UsuarioSaludSincronizacionMessage implements Serializable {
         this.cedula = cedula;
     }
 
-    public TipoDocumento getTipoDocumento() {
+    public String getTipoDocumento() {
         return tipoDocumento;
     }
 
-    public void setTipoDocumento(TipoDocumento tipoDocumento) {
+    public void setTipoDocumento(String tipoDocumento) {
         this.tipoDocumento = tipoDocumento;
     }
 
@@ -72,13 +96,17 @@ public class UsuarioSaludSincronizacionMessage implements Serializable {
         this.timestamp = timestamp;
     }
 
+    // ============================================================
+    // MÉTODOS UTILITARIOS
+    // ============================================================
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         UsuarioSaludSincronizacionMessage that = (UsuarioSaludSincronizacionMessage) o;
         return Objects.equals(cedula, that.cedula) &&
-               tipoDocumento == that.tipoDocumento;
+               Objects.equals(tipoDocumento, that.tipoDocumento);
     }
 
     @Override
@@ -90,7 +118,7 @@ public class UsuarioSaludSincronizacionMessage implements Serializable {
     public String toString() {
         return "UsuarioSaludSincronizacionMessage{" +
                 "cedula='" + cedula + '\'' +
-                ", tipoDocumento=" + tipoDocumento +
+                ", tipoDocumento='" + tipoDocumento + '\'' +
                 ", timestamp=" + timestamp +
                 '}';
     }

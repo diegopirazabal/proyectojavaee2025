@@ -11,7 +11,10 @@ import jakarta.ejb.MessageDriven;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.MessageListener;
-import jakarta.jms.ObjectMessage;
+import jakarta.jms.TextMessage;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,19 +26,21 @@ import java.util.logging.Logger;
  * en el sistema nacional HCEN.
  *
  * Flujo:
- * 1. Recibe mensaje con datos del usuario (UsuarioSaludSincronizacionMessage)
- * 2. Registra el usuario usando UsuarioSaludService (idempotente)
- * 3. Envía confirmación exitosa o de error a cola "UsuarioSaludConfirmaciones"
- * 4. Si ocurre excepción, ActiveMQ reintentará automáticamente (max 5 veces)
+ * 1. Recibe mensaje JSON con datos del usuario (UsuarioSaludSincronizacionMessage)
+ * 2. Deserializa JSON usando JSON-B
+ * 3. Registra el usuario usando UsuarioSaludService (idempotente)
+ * 4. Envía confirmación exitosa o de error a cola "UsuarioSaludConfirmaciones"
+ * 5. Si ocurre excepción, ActiveMQ reintentará automáticamente (max 5 veces)
  *
  * Características:
  * - Transaccional: CMT (Container Managed Transaction) por defecto
  * - Concurrente: Puede haber múltiples instancias procesando mensajes en paralelo (max 5)
  * - Idempotente: Si el usuario ya existe, devuelve el existente sin error
  * - Sin tenant_id: El central NO maneja multi-tenancy para usuarios
+ * - Formato JSON: Procesa TextMessage con JSON-B para deserialización
  *
  * @author Sistema HCEN
- * @version 1.0
+ * @version 2.0 - Migrado a JSON
  */
 @MessageDriven(
     name = "UsuarioSaludRegistradoListener",
@@ -84,29 +89,36 @@ public class UsuarioSaludRegistradoListener implements MessageListener {
         String messageId = null;
         UsuarioSaludSincronizacionMessage userMessage = null;
 
-        try {
+        try (Jsonb jsonb = JsonbBuilder.create()) {
             // Obtener ID del mensaje para trazabilidad
             messageId = message.getJMSMessageID();
 
-            LOGGER.log(Level.INFO, "Procesando mensaje de usuario: {0}", messageId);
+            LOGGER.log(Level.INFO, "Procesando mensaje JSON de usuario: {0}", messageId);
 
             // Validar tipo de mensaje
-            if (!(message instanceof ObjectMessage)) {
-                LOGGER.log(Level.SEVERE, "Mensaje recibido no es ObjectMessage: {0}", message.getClass());
-                throw new IllegalArgumentException("Tipo de mensaje inválido");
+            if (!(message instanceof TextMessage)) {
+                LOGGER.log(Level.SEVERE, "Mensaje recibido no es TextMessage: {0}", message.getClass());
+                throw new IllegalArgumentException("Tipo de mensaje inválido, se esperaba TextMessage");
             }
 
-            ObjectMessage objectMessage = (ObjectMessage) message;
+            TextMessage textMessage = (TextMessage) message;
 
-            // Deserializar mensaje
-            Object payload = objectMessage.getObject();
-            if (!(payload instanceof UsuarioSaludSincronizacionMessage)) {
-                LOGGER.log(Level.SEVERE, "Payload no es UsuarioSaludSincronizacionMessage: {0}",
-                        payload != null ? payload.getClass() : "null");
-                throw new IllegalArgumentException("Payload inválido");
+            // Obtener JSON del mensaje
+            String jsonPayload = textMessage.getText();
+            if (jsonPayload == null || jsonPayload.trim().isEmpty()) {
+                LOGGER.log(Level.SEVERE, "Mensaje recibido sin contenido JSON");
+                throw new IllegalArgumentException("Mensaje vacío");
             }
 
-            userMessage = (UsuarioSaludSincronizacionMessage) payload;
+            LOGGER.log(Level.FINE, "JSON recibido: {0}", jsonPayload);
+
+            // Deserializar JSON a DTO
+            try {
+                userMessage = jsonb.fromJson(jsonPayload, UsuarioSaludSincronizacionMessage.class);
+            } catch (JsonbException e) {
+                LOGGER.log(Level.SEVERE, "Error al deserializar JSON: " + jsonPayload, e);
+                throw new IllegalArgumentException("JSON inválido: " + e.getMessage(), e);
+            }
 
             // Validar mensaje
             if (!userMessage.isValid()) {

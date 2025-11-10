@@ -1,18 +1,18 @@
 package com.hcen.periferico.dto;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
  * DTO para mensajes JMS de confirmación de sincronización de usuarios.
- * Enviado desde componente central al periférico.
+ * Recibido desde componente central al periférico.
  *
  * Indica si la sincronización fue exitosa o falló, incluyendo mensaje de error si aplica.
+ * Se serializa como JSON en TextMessage para mayor flexibilidad.
+ *
+ * @version 2.0 - Migrado a JSON
  */
-public class UsuarioSaludConfirmacionMessage implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class UsuarioSaludConfirmacionMessage {
 
     private String cedula;
     private boolean exito;

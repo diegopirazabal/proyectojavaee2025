@@ -1,30 +1,28 @@
 package hcen.central.inus.dto;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
  * DTO para mensajes JMS de sincronización de usuarios de salud.
  *
- * Este mensaje se envía desde el componente periférico al componente central
+ * Este mensaje se recibe desde el componente periférico
  * a través de la cola "UsuarioSaludRegistrado" para registrar un nuevo usuario.
  *
- * IMPORTANTE: Este DTO debe existir en AMBOS componentes (periférico y central)
- * con el MISMO package (hcen.central.inus.dto) para que la deserialización JMS funcione.
+ * NOTA: Se serializa como JSON en TextMessage, lo que permite mayor flexibilidad
+ * y desacoplamiento entre componentes. No necesita estar en el mismo package
+ * que el DTO del periférico.
  *
  * Flujo:
  * 1. Periférico registra usuario local
- * 2. Periférico envía este mensaje a la cola
- * 3. Central consume mensaje y registra usuario en BD nacional
- * 4. Central envía confirmación (UsuarioSaludConfirmacionMessage)
+ * 2. Periférico envía este mensaje como JSON a la cola
+ * 3. Central parsea el JSON y registra usuario en BD nacional
+ * 4. Central envía confirmación JSON (UsuarioSaludConfirmacionMessage)
  *
  * @author Sistema HCEN
- * @version 1.0
+ * @version 2.0 - Migrado a JSON
  */
-public class UsuarioSaludSincronizacionMessage implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class UsuarioSaludSincronizacionMessage {
 
     /**
      * Cédula de identidad del usuario (identificador único nacional)

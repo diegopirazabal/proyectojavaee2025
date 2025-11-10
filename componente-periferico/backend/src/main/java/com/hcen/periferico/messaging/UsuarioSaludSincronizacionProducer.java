@@ -1,10 +1,13 @@
 package com.hcen.periferico.messaging;
 
-import hcen.central.inus.dto.UsuarioSaludSincronizacionMessage;
+import com.hcen.periferico.dto.UsuarioSaludSincronizacionMessage;
 import com.hcen.periferico.enums.TipoDocumento;
 import jakarta.annotation.Resource;
 import jakarta.ejb.Stateless;
 import jakarta.jms.*;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,9 +23,10 @@ import java.util.logging.Logger;
  * - Persistente: Los mensajes sobreviven reinicios del servidor
  * - Asíncrono: No bloquea el registro del usuario
  * - Idempotente: El central maneja duplicados sin error
+ * - Formato JSON: Usa TextMessage con JSON-B para serialización
  *
  * @author Sistema HCEN
- * @version 1.0
+ * @version 2.0 - Migrado a JSON
  */
 @Stateless
 public class UsuarioSaludSincronizacionProducer {
@@ -80,7 +84,8 @@ public class UsuarioSaludSincronizacionProducer {
 
         String messageId = null;
 
-        try (JMSContext context = connectionFactory.createContext()) {
+        try (JMSContext context = connectionFactory.createContext();
+             Jsonb jsonb = JsonbBuilder.create()) {
 
             // Crear productor JMS
             JMSProducer producer = context.createProducer();
@@ -92,28 +97,42 @@ public class UsuarioSaludSincronizacionProducer {
             // Establecer prioridad normal (4 = default)
             producer.setPriority(4);
 
-            // Crear ObjectMessage con el DTO
-            ObjectMessage objectMessage = context.createObjectMessage(mensaje);
+            // Serializar DTO a JSON
+            String jsonPayload = jsonb.toJson(mensaje);
+
+            // Crear TextMessage con JSON
+            TextMessage textMessage = context.createTextMessage(jsonPayload);
 
             // Agregar propiedades personalizadas para filtrado/monitoreo
-            objectMessage.setStringProperty("cedula", cedula);
-            objectMessage.setStringProperty("tipoDocumento", tipoDocumento.name());
-            objectMessage.setStringProperty("tipo", "USUARIO");
+            textMessage.setStringProperty("cedula", cedula);
+            textMessage.setStringProperty("tipoDocumento", tipoDocumento.name());
+            textMessage.setStringProperty("tipo", "USUARIO");
+            textMessage.setStringProperty("contentType", "application/json");
 
             // Enviar mensaje a la cola
-            producer.send(usuarioSaludRegistradoQueue, objectMessage);
+            producer.send(usuarioSaludRegistradoQueue, textMessage);
 
             // Obtener ID del mensaje asignado por ActiveMQ
-            messageId = objectMessage.getJMSMessageID();
+            messageId = textMessage.getJMSMessageID();
 
-            LOGGER.log(Level.INFO, "Usuario {0} enviado exitosamente a cola. MessageID: {1}",
+            LOGGER.log(Level.INFO, "Usuario {0} enviado exitosamente a cola como JSON. MessageID: {1}",
                     new Object[]{cedula, messageId});
 
+        } catch (JsonbException e) {
+            LOGGER.log(Level.SEVERE, "Error al serializar usuario " + cedula + " a JSON", e);
+            JMSException jmsException = new JMSException("Error al serializar mensaje a JSON");
+            jmsException.setLinkedException(e);
+            throw jmsException;
         } catch (JMSRuntimeException e) {
             LOGGER.log(Level.SEVERE, "Error al enviar usuario " + cedula + " a cola de sincronización", e);
             JMSException jmsException = new JMSException("Error al enviar usuario a cola JMS");
             jmsException.setLinkedException(e);
             throw jmsException; // Propagar excepción para rollback de transacción
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error inesperado al enviar usuario " + cedula, e);
+            JMSException jmsException = new JMSException("Error inesperado en sincronización");
+            jmsException.initCause(e);
+            throw jmsException;
         }
 
         return messageId;
@@ -131,7 +150,8 @@ public class UsuarioSaludSincronizacionProducer {
 
         int enviados = 0;
 
-        try (JMSContext context = connectionFactory.createContext()) {
+        try (JMSContext context = connectionFactory.createContext();
+             Jsonb jsonb = JsonbBuilder.create()) {
 
             JMSProducer producer = context.createProducer();
             producer.setDeliveryMode(DeliveryMode.PERSISTENT);
@@ -145,17 +165,22 @@ public class UsuarioSaludSincronizacionProducer {
                 }
 
                 try {
-                    ObjectMessage objectMessage = context.createObjectMessage(mensaje);
+                    // Serializar mensaje a JSON
+                    String jsonPayload = jsonb.toJson(mensaje);
 
-                    objectMessage.setStringProperty("cedula", mensaje.getCedula());
-                    objectMessage.setStringProperty("tipoDocumento", mensaje.getTipoDocumento());  // Ya es String
-                    objectMessage.setStringProperty("tipo", "USUARIO");
+                    // Crear TextMessage con JSON
+                    TextMessage textMessage = context.createTextMessage(jsonPayload);
 
-                    producer.send(usuarioSaludRegistradoQueue, objectMessage);
+                    textMessage.setStringProperty("cedula", mensaje.getCedula());
+                    textMessage.setStringProperty("tipoDocumento", mensaje.getTipoDocumento());  // Ya es String
+                    textMessage.setStringProperty("tipo", "USUARIO");
+                    textMessage.setStringProperty("contentType", "application/json");
+
+                    producer.send(usuarioSaludRegistradoQueue, textMessage);
 
                     enviados++;
 
-                } catch (JMSException e) {
+                } catch (JMSException | JsonbException e) {
                     LOGGER.log(Level.SEVERE, "Error al enviar mensaje: " + mensaje, e);
                     // Continuar con siguiente mensaje
                 }
@@ -163,6 +188,8 @@ public class UsuarioSaludSincronizacionProducer {
 
         } catch (JMSRuntimeException e) {
             LOGGER.log(Level.SEVERE, "Error al crear contexto JMS para envío batch", e);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error inesperado en envío batch", e);
         }
 
         LOGGER.log(Level.INFO, "Enviados {0} de {1} usuarios a cola de sincronización",

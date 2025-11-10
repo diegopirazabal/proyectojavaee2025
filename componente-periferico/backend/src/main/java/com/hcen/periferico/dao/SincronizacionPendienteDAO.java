@@ -59,7 +59,7 @@ public class SincronizacionPendienteDAO {
             "SELECT s FROM SincronizacionPendiente s " +
             "WHERE s.usuarioCedula = :cedula " +
             "AND s.estado IN ('PENDIENTE', 'ERROR') " +
-            "ORDER BY s.fechaEnvio DESC",
+            "ORDER BY s.fecEnvioCola DESC",
             SincronizacionPendiente.class
         );
         query.setParameter("cedula", cedula);

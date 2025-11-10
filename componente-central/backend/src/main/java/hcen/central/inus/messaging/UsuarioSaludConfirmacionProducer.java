@@ -4,6 +4,9 @@ import hcen.central.inus.dto.UsuarioSaludConfirmacionMessage;
 import jakarta.annotation.Resource;
 import jakarta.ejb.Stateless;
 import jakarta.jms.*;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,9 +22,10 @@ import java.util.logging.Logger;
  * - Persistente: Los mensajes sobreviven reinicios del servidor
  * - Asíncrono: No bloquea el procesamiento del usuario
  * - Más simple que documentos: No hay historiaId ni tenantId
+ * - Formato JSON: Usa TextMessage con JSON-B para serialización
  *
  * @author Sistema HCEN
- * @version 1.0
+ * @version 2.0 - Migrado a JSON
  */
 @Stateless
 public class UsuarioSaludConfirmacionProducer {
@@ -104,7 +108,8 @@ public class UsuarioSaludConfirmacionProducer {
 
         String messageId = null;
 
-        try (JMSContext context = connectionFactory.createContext()) {
+        try (JMSContext context = connectionFactory.createContext();
+             Jsonb jsonb = JsonbBuilder.create()) {
 
             // Crear productor JMS
             JMSProducer producer = context.createProducer();
@@ -115,32 +120,48 @@ public class UsuarioSaludConfirmacionProducer {
             // Prioridad normal
             producer.setPriority(4);
 
-            // Crear ObjectMessage con el DTO
-            ObjectMessage objectMessage = context.createObjectMessage(confirmacion);
+            // Serializar confirmación a JSON
+            String jsonPayload = jsonb.toJson(confirmacion);
+
+            // Crear TextMessage con JSON
+            TextMessage textMessage = context.createTextMessage(jsonPayload);
 
             // Agregar propiedades personalizadas para filtrado/monitoreo
-            objectMessage.setStringProperty("cedula", confirmacion.getCedula());
-            objectMessage.setStringProperty("exito", String.valueOf(confirmacion.isExito()));
-            objectMessage.setStringProperty("tipo", "USUARIO");
+            textMessage.setStringProperty("cedula", confirmacion.getCedula());
+            textMessage.setStringProperty("exito", String.valueOf(confirmacion.isExito()));
+            textMessage.setStringProperty("tipo", "USUARIO");
+            textMessage.setStringProperty("contentType", "application/json");
 
             if (confirmacion.getMessageIdOriginal() != null) {
-                objectMessage.setStringProperty("messageIdOriginal", confirmacion.getMessageIdOriginal());
+                textMessage.setStringProperty("messageIdOriginal", confirmacion.getMessageIdOriginal());
             }
 
             // Enviar mensaje a la cola
-            producer.send(usuarioSaludConfirmacionesQueue, objectMessage);
+            producer.send(usuarioSaludConfirmacionesQueue, textMessage);
 
             // Obtener ID del mensaje asignado por ActiveMQ
-            messageId = objectMessage.getJMSMessageID();
+            messageId = textMessage.getJMSMessageID();
 
             LOGGER.log(Level.INFO,
-                    "Confirmación enviada exitosamente para usuario {0}. MessageID: {1}, Éxito: {2}",
+                    "Confirmación JSON enviada exitosamente para usuario {0}. MessageID: {1}, Éxito: {2}",
                     new Object[]{confirmacion.getCedula(), messageId, confirmacion.isExito()});
 
+        } catch (JsonbException e) {
+            LOGGER.log(Level.SEVERE,
+                    "Error al serializar confirmación para usuario " + confirmacion.getCedula() + " a JSON", e);
+            JMSException jmsException = new JMSException("Error al serializar confirmación a JSON");
+            jmsException.setLinkedException(e);
+            throw jmsException;
         } catch (JMSException e) {
             LOGGER.log(Level.SEVERE,
                     "Error al enviar confirmación para usuario " + confirmacion.getCedula(), e);
             throw e; // Propagar excepción para rollback de transacción
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE,
+                    "Error inesperado al enviar confirmación para usuario " + confirmacion.getCedula(), e);
+            JMSException jmsException = new JMSException("Error inesperado en confirmación");
+            jmsException.initCause(e);
+            throw jmsException;
         }
 
         return messageId;

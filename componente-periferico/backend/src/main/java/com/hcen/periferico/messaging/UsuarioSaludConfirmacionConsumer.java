@@ -8,8 +8,10 @@ import jakarta.ejb.EJB;
 import jakarta.ejb.MessageDriven;
 import jakarta.jms.Message;
 import jakarta.jms.MessageListener;
-import jakarta.jms.ObjectMessage;
-import java.util.Optional;
+import jakarta.jms.TextMessage;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,18 +22,20 @@ import java.util.logging.Logger;
  * enviadas desde el componente central después de registrar un usuario de salud.
  *
  * Flujo:
- * 1. Recibe confirmación (UsuarioSaludConfirmacionMessage)
- * 2. Actualiza sincronizacion_pendiente: estado = RESUELTA (si éxito) o ERROR (si falló)
- * 3. Si excepción: ActiveMQ reintenta automáticamente
+ * 1. Recibe confirmación JSON (UsuarioSaludConfirmacionMessage)
+ * 2. Deserializa JSON usando JSON-B
+ * 3. Actualiza sincronizacion_pendiente: estado = RESUELTA (si éxito) o ERROR (si falló)
+ * 4. Si excepción: ActiveMQ reintenta automáticamente
  *
  * Características:
  * - Transaccional: CMT (Container Managed Transaction)
  * - Idempotente: Puede procesar misma confirmación múltiples veces sin problemas
  * - Tolerante a fallos: Si no encuentra auditoría, loguea pero no falla
  * - Más simple que documentos: No hay ID central para actualizar en entidades
+ * - Formato JSON: Procesa TextMessage con JSON-B para deserialización
  *
  * @author Sistema HCEN
- * @version 1.0
+ * @version 2.0 - Migrado a JSON
  */
 @MessageDriven(
     name = "UsuarioSaludConfirmacionConsumer",
@@ -72,29 +76,36 @@ public class UsuarioSaludConfirmacionConsumer implements MessageListener {
         String messageId = null;
         UsuarioSaludConfirmacionMessage confirmacion = null;
 
-        try {
+        try (Jsonb jsonb = JsonbBuilder.create()) {
             // Obtener ID del mensaje para trazabilidad
             messageId = message.getJMSMessageID();
 
-            LOGGER.log(Level.INFO, "Procesando confirmación de usuario: {0}", messageId);
+            LOGGER.log(Level.INFO, "Procesando confirmación JSON de usuario: {0}", messageId);
 
             // Validar tipo de mensaje
-            if (!(message instanceof ObjectMessage)) {
-                LOGGER.log(Level.SEVERE, "Mensaje recibido no es ObjectMessage: {0}", message.getClass());
-                throw new IllegalArgumentException("Tipo de mensaje inválido");
+            if (!(message instanceof TextMessage)) {
+                LOGGER.log(Level.SEVERE, "Mensaje recibido no es TextMessage: {0}", message.getClass());
+                throw new IllegalArgumentException("Tipo de mensaje inválido, se esperaba TextMessage");
             }
 
-            ObjectMessage objectMessage = (ObjectMessage) message;
+            TextMessage textMessage = (TextMessage) message;
 
-            // Deserializar mensaje
-            Object payload = objectMessage.getObject();
-            if (!(payload instanceof UsuarioSaludConfirmacionMessage)) {
-                LOGGER.log(Level.SEVERE, "Payload no es UsuarioSaludConfirmacionMessage: {0}",
-                        payload != null ? payload.getClass() : "null");
-                throw new IllegalArgumentException("Payload inválido");
+            // Obtener JSON del mensaje
+            String jsonPayload = textMessage.getText();
+            if (jsonPayload == null || jsonPayload.trim().isEmpty()) {
+                LOGGER.log(Level.SEVERE, "Mensaje recibido sin contenido JSON");
+                throw new IllegalArgumentException("Mensaje vacío");
             }
 
-            confirmacion = (UsuarioSaludConfirmacionMessage) payload;
+            LOGGER.log(Level.FINE, "JSON confirmación recibido: {0}", jsonPayload);
+
+            // Deserializar JSON a DTO
+            try {
+                confirmacion = jsonb.fromJson(jsonPayload, UsuarioSaludConfirmacionMessage.class);
+            } catch (JsonbException e) {
+                LOGGER.log(Level.SEVERE, "Error al deserializar JSON de confirmación: " + jsonPayload, e);
+                throw new IllegalArgumentException("JSON inválido: " + e.getMessage(), e);
+            }
 
             // Validar mensaje
             if (!confirmacion.isValid()) {
