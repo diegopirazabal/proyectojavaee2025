@@ -1,0 +1,25 @@
+# Directorios de build
+target/
+WEB-INF/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test y mock data (opcional, descomenta si no necesitas en producción)
+# mockdata/
+
+# Git
+.git/
+.gitignore
