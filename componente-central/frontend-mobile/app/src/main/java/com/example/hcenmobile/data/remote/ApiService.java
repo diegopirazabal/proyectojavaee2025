@@ -2,6 +2,7 @@ package com.example.hcenmobile.data.remote;
 
 import com.example.hcenmobile.data.remote.dto.ApiResponse;
 import com.example.hcenmobile.data.remote.dto.FCMTokenDTO;
+import com.example.hcenmobile.data.remote.dto.HistoriaClinicaDocumentoDTO;
 import com.example.hcenmobile.data.remote.dto.NotificacionDTO;
 
 import java.util.List;
@@ -58,8 +59,9 @@ public interface ApiService {
     Call<ApiResponse<Object>> getUserInfo(@Query("userId") String userId);
 
     /**
-     * Obtiene la historia clínica del usuario (para futuro)
+     * Obtiene los documentos registrados en la historia clínica central para un usuario.
      */
-    @GET("historia-clinica/{userId}")
-    Call<ApiResponse<Object>> getHistoriaClinica(@Path("userId") String userId);
+    @GET("historia-clinica/{userId}/documentos")
+    Call<ApiResponse<List<HistoriaClinicaDocumentoDTO>>> getHistoriaClinicaDocumentos(
+            @Path("userId") String userId);
 }

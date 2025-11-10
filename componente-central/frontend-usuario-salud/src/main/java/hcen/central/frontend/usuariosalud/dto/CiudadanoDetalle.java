@@ -1,4 +1,4 @@
-package com.hcen.periferico.usuariosalud.dto;
+package hcen.central.frontend.usuariosalud.dto;
 
 import java.io.Serializable;
 import java.time.LocalDate;

@@ -33,8 +33,16 @@
 
     <!-- Historia Clínica -->
     <string name="historia_placeholder_title">Historia Clínica</string>
-    <string name="historia_placeholder_message">Esta funcionalidad se encuentra en implementación</string>
-    <string name="historia_placeholder_subtitle">Próximamente podrá visualizar su historia clínica completa</string>
+    <string name="historia_empty_title">Sin documentos clínicos</string>
+    <string name="historia_empty_message">Aún no hay registros en su historia clínica.</string>
+    <string name="historia_error_title">No pudimos cargar su historia clínica</string>
+    <string name="historia_error_message">Ocurrió un problema al consultar los documentos. Intente nuevamente más tarde.</string>
+    <string name="historia_retry_button">Reintentar</string>
+    <string name="historia_profesional_label">Profesional: %1$s</string>
+    <string name="historia_fecha_label">Fecha: %1$s</string>
+    <string name="historia_motivo_indefinido">Motivo no disponible</string>
+    <string name="historia_profesional_indefinido">Profesional sin identificar</string>
+    <string name="historia_error_sin_documentos">El componente central no devolvió documentos para su usuario.</string>
 
     <!-- Logout -->
     <string name="action_logout">Cerrar sesión</string>

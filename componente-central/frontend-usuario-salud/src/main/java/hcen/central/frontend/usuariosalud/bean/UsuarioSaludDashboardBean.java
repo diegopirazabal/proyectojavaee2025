@@ -1,8 +1,8 @@
-package com.hcen.periferico.usuariosalud.bean;
+package hcen.central.frontend.usuariosalud.bean;
 
-import com.hcen.periferico.usuariosalud.dto.CiudadanoDetalle;
-import com.hcen.periferico.usuariosalud.service.DnicServiceClient;
-import com.hcen.periferico.usuariosalud.service.DocumentoNoEncontradoException;
+import hcen.central.frontend.usuariosalud.dto.CiudadanoDetalle;
+import hcen.central.frontend.usuariosalud.service.DnicServiceClient;
+import hcen.central.frontend.usuariosalud.service.DocumentoNoEncontradoException;
 import jakarta.annotation.PostConstruct;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.ExternalContext;
@@ -46,7 +46,7 @@ public class UsuarioSaludDashboardBean implements Serializable {
     public void init() {
         ciudadano = new CiudadanoDetalle();
         ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
-        
+
         // Verificar autenticación OIDC mediante cookie JWT
         HttpServletRequest request = (HttpServletRequest) externalContext.getRequest();
         String jwtToken = getJwtFromCookie(request);
@@ -62,16 +62,16 @@ public class UsuarioSaludDashboardBean implements Serializable {
             }
             return;
         }
-        
+
         if (hasJwtCookie) {
             LOGGER.info("Cookie JWT encontrada, usuario autenticado");
         } else {
             LOGGER.info("Sesión local autenticada sin cookie JWT, permitiendo acceso");
         }
-        
+
         // Verificar sesión HTTP para datos de userInfo (opcional, puede no existir en este WAR)
         HttpSession session = (HttpSession) externalContext.getSession(false);
-        
+
         // Intentar obtener datos de la sesión OIDC primero
         if (session != null) {
             // Mostrar advertencia de menor de edad si viene en el JWT
@@ -94,7 +94,7 @@ public class UsuarioSaludDashboardBean implements Serializable {
                     // Usar reflexión para obtener la cédula sin depender de la clase OIDCUserInfo
                     String cedula = (String) userInfoObj.getClass().getMethod("getNumeroDocumento").invoke(userInfoObj);
                     if (cedula != null && !cedula.isBlank()) {
-                        docType = "CI";
+                        docType = "do";
                         docNumber = cedula;
                         LOGGER.info("Cédula obtenida de sesión OIDC: " + cedula);
                     }
@@ -103,12 +103,19 @@ public class UsuarioSaludDashboardBean implements Serializable {
                 }
             }
         }
-        
+
         // Si no hay datos de OIDC, intentar obtener de parámetros de URL
         if (docType == null || docType.isBlank()) {
             Map<String, String> params = externalContext.getRequestParameterMap();
             docType = params.getOrDefault("docType", "");
             docNumber = params.getOrDefault("docNumber", "");
+        }
+
+        // Si todavía no hay datos, usar los del LoginBean (usuario autenticado actual)
+        if ((docType == null || docType.isBlank()) && loginBean != null && loginBean.getCedulaUsuarioActual() != null) {
+            docType = "OTRO";  // Usar el tipo de documento por defecto
+            docNumber = loginBean.getCedulaUsuarioActual();
+            LOGGER.info("Usando cédula del usuario autenticado: " + docNumber);
         }
 
         if (!docType.isBlank() && !docNumber.isBlank()) {
@@ -202,7 +209,7 @@ public class UsuarioSaludDashboardBean implements Serializable {
     public void setDocNumber(String docNumber) {
         this.docNumber = docNumber;
     }
-    
+
     /**
      * Extrae el JWT de la cookie jwt_token
      */

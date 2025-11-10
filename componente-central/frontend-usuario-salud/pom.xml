@@ -5,7 +5,7 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.hcen.periferico.frontend</groupId>
+    <groupId>hcen.central.frontend</groupId>
     <artifactId>frontend-usuario-salud</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>war</packaging>
