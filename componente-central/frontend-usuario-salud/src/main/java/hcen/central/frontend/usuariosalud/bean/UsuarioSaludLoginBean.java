@@ -1,4 +1,4 @@
-package com.hcen.periferico.usuariosalud.bean;
+package hcen.central.frontend.usuariosalud.bean;
 
 import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.application.FacesMessage;
@@ -27,12 +27,14 @@ public class UsuarioSaludLoginBean implements Serializable {
     private String username;
     private String password;
     private boolean loggedIn;
+    private String cedulaUsuarioActual;
 
     public String login() {
         FacesContext context = FacesContext.getCurrentInstance();
 
         if (credencialesValidas()) {
             loggedIn = true;
+            cedulaUsuarioActual = DEFAULT_DOC_NUMBER;
             context.getExternalContext().getFlash().setKeepMessages(true);
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
                     "Bienvenido", "Consulta habilitada para usuario temporal"));
@@ -51,6 +53,7 @@ public class UsuarioSaludLoginBean implements Serializable {
         loggedIn = false;
         username = null;
         password = null;
+        cedulaUsuarioActual = null;
         external.invalidateSession();
         context.getExternalContext().getFlash().setKeepMessages(true);
         context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
@@ -68,6 +71,8 @@ public class UsuarioSaludLoginBean implements Serializable {
         } else if (!loggedIn && hasOidcSession()) {
             // Marcar como logueado si hay cookie JWT válida
             loggedIn = true;
+            // Intentar obtener cédula de OIDC
+            obtenerCedulaDeOIDC();
         }
     }
 
@@ -100,6 +105,10 @@ public class UsuarioSaludLoginBean implements Serializable {
         this.password = password;
     }
 
+    public String getCedulaUsuarioActual() {
+        return cedulaUsuarioActual;
+    }
+
     private boolean credencialesValidas() {
         return TEMP_USERNAME.equals(username) && TEMP_PASSWORD.equals(password);
     }
@@ -125,7 +134,7 @@ public class UsuarioSaludLoginBean implements Serializable {
     private boolean hasOidcSession() {
         try {
             ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
-            
+
             // Primero verificar cookie JWT (más confiable entre WARs)
             HttpServletRequest request = (HttpServletRequest) external.getRequest();
             if (request.getCookies() != null) {
@@ -135,7 +144,7 @@ public class UsuarioSaludLoginBean implements Serializable {
                     }
                 }
             }
-            
+
             // Fallback: verificar userInfo en sesión HTTP (mismo WAR)
             HttpSession session = (HttpSession) external.getSession(false);
             return session != null && session.getAttribute("userInfo") != null;
@@ -143,17 +152,37 @@ public class UsuarioSaludLoginBean implements Serializable {
             return false;
         }
     }
-    
+
+    private void obtenerCedulaDeOIDC() {
+        try {
+            ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
+            HttpSession session = (HttpSession) external.getSession(false);
+
+            if (session != null) {
+                Object userInfoObj = session.getAttribute("userInfo");
+                if (userInfoObj != null) {
+                    String cedula = (String) userInfoObj.getClass().getMethod("getNumeroDocumento").invoke(userInfoObj);
+                    if (cedula != null && !cedula.isBlank()) {
+                        cedulaUsuarioActual = cedula;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Si no se puede obtener de OIDC, usar valor por defecto
+            cedulaUsuarioActual = DEFAULT_DOC_NUMBER;
+        }
+    }
+
     public String getOidcLoginUrl() {
         // redirect_uri DEBE ser fija y estar registrada en gub.uy
         ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
         String serverName = external.getRequestServerName();
-        
+
         // Determinar si es producción o desarrollo
         boolean isProduction = "hcen-uy.web.elasticloud.uy".equals(serverName);
         String redirectUri;
         String baseUrl;
-        
+
         if (isProduction) {
             // Producción
             baseUrl = "https://hcen-uy.web.elasticloud.uy";
@@ -163,7 +192,7 @@ public class UsuarioSaludLoginBean implements Serializable {
             baseUrl = "http://localhost:8080/hcen-central";
             redirectUri = "http://localhost:8080/hcen-central/api/auth/callback";
         }
-        
+
         return baseUrl + "/api/auth/login?redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8) + "&origin=usuario-salud";
     }
 }

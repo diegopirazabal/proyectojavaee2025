@@ -41,4 +41,10 @@
         <session-timeout>30</session-timeout>
     </session-config>
 
+    <!-- URL del backend central para consumir endpoints REST -->
+    <context-param>
+        <param-name>hcen.backendUrl</param-name>
+        <param-value>http://localhost:8080/hcen-central</param-value>
+    </context-param>
+
 </web-app>

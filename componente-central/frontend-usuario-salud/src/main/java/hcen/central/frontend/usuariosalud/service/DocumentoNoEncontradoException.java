@@ -1,4 +1,4 @@
-package com.hcen.periferico.usuariosalud.service;
+package hcen.central.frontend.usuariosalud.service;
 
 public class DocumentoNoEncontradoException extends Exception {
 

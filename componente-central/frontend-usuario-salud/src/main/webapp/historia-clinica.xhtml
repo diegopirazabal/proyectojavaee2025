@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="jakarta.faces.facelets">
+
+<f:metadata>
+    <f:event type="preRenderView" listener="#{usuarioSaludLoginBean.checkAuthentication}"/>
+</f:metadata>
+
+<ui:composition template="/WEB-INF/templates/template.xhtml">
+    <ui:define name="content">
+
+        <style>
+            .historia-container {
+                max-width: 900px;
+                margin: 0 auto;
+            }
+            .historia-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 2rem;
+            }
+            .historia-header h1 {
+                color: #333;
+                margin: 0;
+            }
+            .documento-card {
+                background: white;
+                border: 1px solid #e0e0e0;
+                border-left: 4px solid #2196F3;
+                border-radius: 8px;
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+                transition: box-shadow 0.2s;
+                cursor: pointer;
+            }
+            .documento-card:hover {
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            .documento-motivo {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 0.5rem;
+            }
+            .documento-info {
+                color: #666;
+                margin: 0.25rem 0;
+            }
+            .documento-info strong {
+                color: #333;
+            }
+            .empty-state, .error-state {
+                text-align: center;
+                padding: 4rem 2rem;
+            }
+            .empty-state i, .error-state i {
+                font-size: 4rem;
+                color: #ccc;
+                margin-bottom: 1rem;
+            }
+            .error-state i {
+                color: #f44336;
+            }
+            .empty-state h3, .error-state h3 {
+                color: #333;
+                margin-bottom: 0.5rem;
+            }
+            .empty-state p, .error-state p {
+                color: #666;
+            }
+        </style>
+
+        <div class="historia-container">
+            <div class="historia-header">
+                <div>
+                    <h1>Mi Historia Clínica</h1>
+                    <p style="color: #666; margin: 0.5rem 0 0 0;">Consulta tus documentos clínicos y registro de atenciones</p>
+                </div>
+                <h:form>
+                    <p:commandButton value="Refrescar"
+                                     icon="pi pi-refresh"
+                                     action="#{historiaClinicaBean.refrescar}"
+                                     update="@form :historiaForm"
+                                     process="@this"/>
+                </h:form>
+            </div>
+
+            <h:form id="historiaForm">
+                <!-- Loading State -->
+                <p:outputPanel rendered="#{historiaClinicaBean.loading}" styleClass="empty-state">
+                    <p:progressBar mode="indeterminate" style="height: 6px; width: 200px; margin: 2rem auto;"/>
+                    <p>Cargando documentos...</p>
+                </p:outputPanel>
+
+                <!-- Error State -->
+                <p:outputPanel rendered="#{not historiaClinicaBean.loading and not empty historiaClinicaBean.mensajeError}" styleClass="error-state">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    <h3>No pudimos cargar su historia clínica</h3>
+                    <p>#{historiaClinicaBean.mensajeError}</p>
+                    <p:commandButton value="Reintentar"
+                                     icon="pi pi-refresh"
+                                     action="#{historiaClinicaBean.refrescar}"
+                                     update="@form"
+                                     process="@this"
+                                     style="margin-top: 1rem;"/>
+                </p:outputPanel>
+
+                <!-- Empty State -->
+                <p:outputPanel rendered="#{not historiaClinicaBean.loading and empty historiaClinicaBean.mensajeError and not historiaClinicaBean.hasDocumentos}" styleClass="empty-state">
+                    <i class="pi pi-file-o"></i>
+                    <h3>Sin documentos clínicos</h3>
+                    <p>Aún no hay registros en su historia clínica.</p>
+                </p:outputPanel>
+
+                <!-- Success State: Lista de Documentos -->
+                <p:outputPanel rendered="#{not historiaClinicaBean.loading and historiaClinicaBean.hasDocumentos}">
+                    <p:dataList value="#{historiaClinicaBean.documentos}"
+                                var="doc"
+                                type="none"
+                                emptyMessage="No se encontraron documentos">
+                        <div class="documento-card" onclick="PF('detalleDialog').show();">
+                            <h:commandLink action="#{historiaClinicaBean.seleccionarDocumento(doc)}"
+                                           styleClass="documento-motivo"
+                                           style="text-decoration: none; color: inherit;">
+                                <f:ajax render=":detalleForm" execute="@this"/>
+                                #{doc.motivoDisplay}
+                            </h:commandLink>
+                            <p class="documento-info">
+                                <strong>Fecha:</strong> #{doc.fechaFormateada}
+                            </p>
+                            <p class="documento-info">
+                                <strong>Profesional:</strong> #{doc.profesionalDisplay}
+                            </p>
+                            <p class="documento-info">
+                                <strong>Clínica:</strong> #{doc.clinicaDisplay}
+                            </p>
+                        </div>
+                    </p:dataList>
+                </p:outputPanel>
+            </h:form>
+
+            <!-- Dialog para ver detalles del documento -->
+            <h:form id="detalleForm">
+                <p:dialog header="Detalle del Documento"
+                          widgetVar="detalleDialog"
+                          modal="true"
+                          responsive="true"
+                          width="600"
+                          styleClass="detalle-dialog">
+                    <p:outputPanel rendered="#{historiaClinicaBean.documentoSeleccionado != null}">
+                        <h:panelGrid columns="2" styleClass="ui-noborder" style="width: 100%;">
+                            <h:outputLabel value="Motivo de Consulta:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.motivoDisplay}"/>
+
+                            <h:outputLabel value="Fecha del Documento:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.fechaFormateada}"/>
+
+                            <h:outputLabel value="Profesional:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.profesionalDisplay}"/>
+
+                            <h:outputLabel value="Clínica:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.clinicaDisplay}"/>
+
+                            <h:outputLabel value="ID Historia:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.historiaId}" style="font-family: monospace; font-size: 0.9rem;"/>
+
+                            <h:outputLabel value="ID Documento:" style="font-weight: 600;"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.documentoId}" style="font-family: monospace; font-size: 0.9rem;"/>
+                        </h:panelGrid>
+
+                        <p:separator style="margin: 1.5rem 0;"/>
+
+                        <p style="color: #666; font-size: 0.9rem; text-align: center; margin: 0;">
+                            <i class="pi pi-info-circle"></i>
+                            Para ver el contenido completo del documento, contacte con su clínica.
+                        </p>
+                    </p:outputPanel>
+
+                    <f:facet name="footer">
+                        <p:commandButton value="Cerrar"
+                                         icon="pi pi-times"
+                                         onclick="PF('detalleDialog').hide();"
+                                         type="button"/>
+                    </f:facet>
+                </p:dialog>
+            </h:form>
+        </div>
+    </ui:define>
+</ui:composition>
+</html>

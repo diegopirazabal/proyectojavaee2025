@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="jakarta.faces.facelets">
+
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Portal de Salud HCEN</title>
+    <h:outputStylesheet name="primeicons/primeicons.css" library="primefaces"/>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .layout-wrapper {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .layout-topbar {
+            background-color: #2196F3;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .topbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .topbar-logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+        }
+        .topbar-menu {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        .topbar-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .topbar-menu a:hover {
+            opacity: 0.8;
+        }
+        .layout-main {
+            flex: 1;
+            max-width: 1200px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        @media (max-width: 768px) {
+            .topbar-menu {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: flex-end;
+            }
+            .topbar-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+    </style>
+</h:head>
+
+<h:body>
+    <div class="layout-wrapper">
+        <!-- Topbar con menú de navegación -->
+        <div class="layout-topbar">
+            <div class="topbar-content">
+                <h:link outcome="/dashboard" styleClass="topbar-logo">
+                    <i class="pi pi-heart"></i> Portal de Salud HCEN
+                </h:link>
+                <div class="topbar-menu">
+                    <h:link outcome="/dashboard" value="Inicio"/>
+                    <h:link outcome="/historia-clinica" value="Mi Historia Clínica"/>
+                    <h:link outcome="/perfil" value="Mi Perfil"/>
+                    <h:form style="display: inline;">
+                        <h:commandLink action="#{usuarioSaludLoginBean.logout}" value="Cerrar Sesión"
+                                       style="color: white; text-decoration: none;"/>
+                    </h:form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="layout-main">
+            <p:messages id="messages" showDetail="true" closable="true"/>
+            <ui:insert name="content"/>
+        </div>
+    </div>
+</h:body>
+</html>

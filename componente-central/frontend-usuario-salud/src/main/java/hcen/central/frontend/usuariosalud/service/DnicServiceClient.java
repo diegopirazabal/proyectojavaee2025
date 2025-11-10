@@ -1,6 +1,6 @@
-package com.hcen.periferico.usuariosalud.service;
+package hcen.central.frontend.usuariosalud.service;
 
-import com.hcen.periferico.usuariosalud.dto.CiudadanoDetalle;
+import hcen.central.frontend.usuariosalud.dto.CiudadanoDetalle;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
