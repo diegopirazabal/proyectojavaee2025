@@ -9,16 +9,12 @@ import jakarta.ejb.Startup;
 @DataSourceDefinition(
         name = "java:app/jdbc/MockDnicDS",
         className = "org.postgresql.xa.PGXADataSource",
+        serverName = "179.31.2.178",
+        portNumber = 5432,
+        databaseName = "postgres",
         user = "webadmin",
-        password = "V79FHjyEho",
-        properties = {
-                "serverName=179.31.2.178",
-                "portNumber=5432",
-                "databaseName=postgres",
-                "sslMode=disable"
-        }
+        password = "V79FHjyEho"
 )
 public class MockDnicDataSourceConfig {
-
-    // Datasource declaratively registered for the mock DNIC service.
+    // Datasource configurado para PostgreSQL externo
 }
