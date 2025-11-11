@@ -47,4 +47,10 @@
         <param-value>https://hcen-uy.web.elasticloud.uy</param-value>
     </context-param>
 
+    <!-- Solo para entornos controlados: permite consumir HTTPS con certificados autofirmados -->
+    <context-param>
+        <param-name>hcen.trustAllCertificates</param-name>
+        <param-value>false</param-value>
+    </context-param>
+
 </web-app>

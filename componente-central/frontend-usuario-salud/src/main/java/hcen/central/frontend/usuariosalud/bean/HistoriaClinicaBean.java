@@ -15,10 +15,17 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.io.Serializable;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.security.cert.X509Certificate;
 
 /**
  * Backing bean para la página de historia clínica.
@@ -62,7 +69,7 @@ public class HistoriaClinicaBean implements Serializable {
 
         LOGGER.info("Consultando historia clínica en: " + endpoint);
 
-        try (Client client = ClientBuilder.newClient()) {
+        try (Client client = createBackendClient()) {
             Response response = client.target(endpoint)
                     .request(MediaType.APPLICATION_JSON)
                     .get();
@@ -113,6 +120,56 @@ public class HistoriaClinicaBean implements Serializable {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error de conexión", mensajeError);
         } finally {
             loading = false;
+        }
+    }
+
+    private Client createBackendClient() {
+        FacesContext facesContext = FacesContext.getCurrentInstance();
+        String trustAllParam = facesContext.getExternalContext()
+                .getInitParameter("hcen.trustAllCertificates");
+        boolean trustAll = Boolean.parseBoolean(trustAllParam);
+
+        if (!trustAll) {
+            return ClientBuilder.newClient();
+        }
+
+        try {
+            TrustManager[] trustManagers = new TrustManager[]{
+                    new X509TrustManager() {
+                        @Override
+                        public void checkClientTrusted(X509Certificate[] chain, String authType) {
+                            // No validation
+                        }
+
+                        @Override
+                        public void checkServerTrusted(X509Certificate[] chain, String authType) {
+                            // No validation
+                        }
+
+                        @Override
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[0];
+                        }
+                    }
+            };
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustManagers, new SecureRandom());
+
+            HostnameVerifier permissiveVerifier = new HostnameVerifier() {
+                @Override
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            };
+
+            return ClientBuilder.newBuilder()
+                    .sslContext(sslContext)
+                    .hostnameVerifier(permissiveVerifier)
+                    .build();
+        } catch (Exception ex) {
+            LOGGER.log(Level.WARNING, "No se pudo desactivar la validación SSL, usando configuración por defecto", ex);
+            return ClientBuilder.newClient();
         }
     }
 
