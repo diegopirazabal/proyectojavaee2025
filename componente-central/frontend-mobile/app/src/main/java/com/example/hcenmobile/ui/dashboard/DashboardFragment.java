@@ -9,6 +9,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -117,6 +119,33 @@ public class DashboardFragment extends Fragment {
 
         if (hasError && hasData && isAdded()) {
             Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        setActionBarVisibility(false);
+    }
+
+    @Override
+    public void onPause() {
+        setActionBarVisibility(true);
+        super.onPause();
+    }
+
+    private void setActionBarVisibility(boolean show) {
+        if (!isAdded()) {
+            return;
+        }
+        AppCompatActivity activity = (AppCompatActivity) requireActivity();
+        ActionBar actionBar = activity.getSupportActionBar();
+        if (actionBar != null) {
+            if (show) {
+                actionBar.show();
+            } else {
+                actionBar.hide();
+            }
         }
     }
 
