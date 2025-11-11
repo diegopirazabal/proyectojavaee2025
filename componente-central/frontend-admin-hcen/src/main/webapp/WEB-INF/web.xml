@@ -35,11 +35,6 @@
         <param-value>saga</param-value>
     </context-param>
 
-     <context-param>
-         <param-name>jakarta.faces.STATE_SAVING_METHOD</param-name>
-         <param-value>client</param-value>
-     </context-param>
-
     <!-- Welcome Files -->
     <welcome-file-list>
         <welcome-file>login.xhtml</welcome-file>
