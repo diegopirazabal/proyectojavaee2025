@@ -50,7 +50,7 @@
     <!-- Solo para entornos controlados: permite consumir HTTPS con certificados autofirmados -->
     <context-param>
         <param-name>hcen.trustAllCertificates</param-name>
-        <param-value>false</param-value>
+        <param-value>true</param-value>
     </context-param>
 
 </web-app>
