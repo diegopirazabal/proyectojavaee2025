@@ -9,12 +9,19 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f8f9fa;
     line-height: 1.6;
+    overflow-x: hidden;
 }
 
 .dashboard-container {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+}
+
+.full-bleed {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
 }
 
 /* Header Styles */
@@ -26,9 +33,10 @@ body {
 }
 
 .header-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 1.5rem !important;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -43,6 +51,21 @@ body {
 .logo-section span {
     font-size: 0.9rem;
     opacity: 0.8;
+}
+
+.nav-actions {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+}
+
+.nav-actions-form {
+    display: flex !important;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
 }
 
 .user-section {
@@ -73,21 +96,29 @@ body {
 /* Main Content */
 .dashboard-main {
     flex: 1;
-    padding: 2rem 0;
+    padding: 2rem 2rem;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
 }
 
 .dashboard-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
+    width: 100vw !important;
+    max-width: none !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    padding: 0 2rem !important;
 }
 
 /* Dashboard Grid */
 .dashboard-grid {
+    width: 100%;
+    margin: 0;
+    padding: 0;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
-    margin-top: 1rem;
+    margin-top: 0;
 }
 
 /* Dashboard Cards */
@@ -105,7 +136,7 @@ body {
 }
 
 .card-header {
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #1f2a44, #0f1625);
     color: white;
     padding: 1rem 1.5rem;
     display: flex;
@@ -165,21 +196,46 @@ body {
 
 /* Action Buttons */
 .action-button {
-    width: 100% !important;
-    margin-bottom: 0.5rem !important;
-    background: linear-gradient(135deg, #27ae60, #229954) !important;
+    width: auto !important;
+    min-width: 140px;
+    margin-bottom: 0 !important;
+    background: linear-gradient(135deg, #4b6cb7, #182848) !important;
     border: none !important;
     color: white !important;
-    padding: 0.8rem !important;
-    border-radius: 5px !important;
-    font-weight: 500 !important;
-    transition: all 0.3s ease !important;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 999px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.2px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    box-shadow: 0 10px 25px rgba(24,40,72,0.25) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 .action-button:hover {
-    background: linear-gradient(135deg, #229954, #1e8449) !important;
     transform: translateY(-1px) !important;
-    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3) !important;
+    box-shadow: 0 14px 30px rgba(24,40,72,0.35) !important;
+}
+
+.nav-action-button {
+    background: transparent !important;
+    border: 1px solid rgba(255,255,255,0.5) !important;
+    color: white !important;
+    padding: 0.45rem 0.9rem !important;
+    border-radius: 999px !important;
+    width: auto !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.nav-action-button:hover {
+    background: rgba(255,255,255,0.15) !important;
+    border-color: rgba(255,255,255,0.8) !important;
+    transform: translateY(-1px) !important;
 }
 
 /* Messages */
@@ -207,6 +263,98 @@ body {
 
 .form-grid .value {
     margin-bottom: 0.8rem;
+}
+
+/* Modern Dialog */
+.modern-dialog.ui-dialog {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+    overflow: hidden;
+}
+
+.modern-dialog .ui-dialog-titlebar {
+    background: linear-gradient(135deg, #4b6cb7, #182848);
+    color: #fff;
+    border: none;
+    padding: 1rem 1.5rem;
+}
+
+.modern-dialog-form {
+    padding: 1.5rem;
+}
+
+.modern-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.modern-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.modern-label {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.modern-input.ui-inputfield,
+.modern-input.ui-inputtextarea {
+    border: 1px solid #d8e0ed !important;
+    border-radius: 10px !important;
+    padding: 0.6rem 0.85rem !important;
+    font-size: 0.95rem !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    background-color: #fefefe !important;
+    box-shadow: none !important;
+}
+
+.modern-input.ui-inputfield:focus,
+.modern-input.ui-inputtextarea:focus {
+    border-color: #4b6cb7 !important;
+    box-shadow: 0 0 0 2px rgba(75,108,183,0.15) !important;
+}
+
+.modern-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.primary-cta {
+    background: linear-gradient(135deg, #4b6cb7, #182848) !important;
+    border: none !important;
+    color: #fff !important;
+    padding: 0.65rem 1.4rem !important;
+    border-radius: 999px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 8px 20px rgba(24,40,72,0.25) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.primary-cta:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 12px 24px rgba(24,40,72,0.3) !important;
+}
+
+.ghost-button {
+    background: transparent !important;
+    border: 1px solid rgba(24,40,72,0.3) !important;
+    color: #182848 !important;
+    padding: 0.65rem 1.2rem !important;
+    border-radius: 999px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}
+
+.ghost-button:hover {
+    border-color: rgba(24,40,72,0.6) !important;
+    background: rgba(24,40,72,0.05) !important;
 }
 
 /* Footer */
