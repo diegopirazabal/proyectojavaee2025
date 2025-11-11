@@ -37,4 +37,15 @@
     <color name="oidc_button_start">#1d976c</color>
     <color name="oidc_button_end">#2cc197</color>
     <color name="footer_text">#95a5a6</color>
+
+    <!-- Historia Clínica -->
+    <color name="historia_card_gradient_start">#F4F8FF</color>
+    <color name="historia_card_gradient_end">#FFFFFFFF</color>
+    <color name="historia_card_stroke">#E1E8FF</color>
+    <color name="historia_card_title">#0F1E3D</color>
+    <color name="historia_card_subtitle">#4B5D73</color>
+    <color name="historia_chip_bg">#E8F1FF</color>
+    <color name="historia_chip_text">#1C3A66</color>
+    <color name="historia_icon_bg">#FFFFFFFF</color>
+    <color name="historia_icon_tint">#2D6CDF</color>
 </resources>

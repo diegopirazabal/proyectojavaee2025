@@ -43,6 +43,7 @@
     <string name="historia_motivo_indefinido">Motivo no disponible</string>
     <string name="historia_profesional_indefinido">Profesional sin identificar</string>
     <string name="historia_error_sin_documentos">El componente central no devolvió documentos para su usuario.</string>
+    <string name="historia_header_subtitle">Documentos clínicos recientes</string>
 
     <!-- Logout -->
     <string name="action_logout">Cerrar sesión</string>
@@ -51,4 +52,5 @@
     <string name="logout_success">Sesión cerrada exitosamente</string>
     <string name="button_cancel">Cancelar</string>
     <string name="button_logout">Cerrar sesión</string>
+    <string name="navigation_logout_label"></string>
 </resources>
