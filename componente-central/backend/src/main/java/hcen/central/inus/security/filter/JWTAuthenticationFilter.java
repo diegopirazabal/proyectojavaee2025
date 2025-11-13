@@ -49,7 +49,9 @@ public class JWTAuthenticationFilter implements Filter {
             "/api/usuarios-salud",            // Listado de usuarios (usado por AdminHCEN)
             "/api/usuarios/registrar",        // Registro de usuario desde clínicas periféricas
             "/api/usuarios/verificar",        // Verificación de existencia de usuario (se usa /verificar/{cedula})
-            "/api/historia-clinica/documentos"  // Sincronización de documentos desde clínicas periféricas
+            "/api/historia-clinica/documentos",  // Sincronización de documentos desde clínicas periféricas
+            "/api/politicas-acceso/validar",
+            "/api/notifications/solicitudes-acceso"
     );
 
     @Override

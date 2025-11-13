@@ -35,9 +35,6 @@ public class UsuarioSalud {
     @JoinColumn(name = "historia_clinica_id")
     private historia_clinica historiaClinica;
 
-    @OneToMany(mappedBy = "usuarioSalud", cascade = CascadeType.ALL)
-    private List<politica_acceso> politicasAcceso = new ArrayList<>();
-
     @Convert(converter = TipoDocumentoAttributeConverter.class)
     @Column(name = "tipo_documento", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'DO'")
     private TipoDocumento tipoDeDocumento;
@@ -107,24 +104,6 @@ public class UsuarioSalud {
 
     public historia_clinica getHistoriaClinica() {
         return historiaClinica;
-    }
-
-    public List<politica_acceso> getPoliticasAcceso() {
-        return politicasAcceso;
-    }
-
-    public void setPoliticasAcceso(List<politica_acceso> politicasAcceso) {
-        this.politicasAcceso = politicasAcceso;
-    }
-
-    public void agregarPoliticaAcceso(politica_acceso politica) {
-        this.politicasAcceso.add(politica);
-        politica.setUsuarioSalud(this);
-    }
-
-    public void removerPoliticaAcceso(politica_acceso politica) {
-        this.politicasAcceso.remove(politica);
-        politica.setUsuarioSalud(null);
     }
     
     public String getCedula() { return cedula; }

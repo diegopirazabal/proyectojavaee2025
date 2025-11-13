@@ -4,6 +4,7 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import hcen.central.inus.config.FirebaseInitializer;
+import hcen.central.inus.dto.SolicitudAccesoNotificacionDTO;
 import hcen.central.notifications.entity.FCMToken;
 import hcen.central.notifications.service.fcm_token_service;
 import jakarta.ejb.EJB;
@@ -119,5 +120,66 @@ public class notification_service {
             return "desconocido";
         }
         return value.replaceAll("[^A-Za-z0-9-_.~]", "-");
+    }
+
+    /**
+     * Envía una notificación de solicitud de acceso a documento clínico
+     * El profesional solicita permiso para ver un documento del paciente
+     *
+     * @param solicitud DTO con toda la información de la solicitud
+     * @return true si la notificación fue enviada exitosamente
+     */
+    public boolean enviarNotificacionSolicitudAcceso(SolicitudAccesoNotificacionDTO solicitud) {
+        if (!firebaseInitializer.isReady()) {
+            LOGGER.warning("Firebase not initialized; skipping access request notification.");
+            return false;
+        }
+
+        try {
+            String topic = "user-" + sanitizeTopicSegment(solicitud.getCedulaPaciente());
+
+            // Construir mensaje de notificación
+            String titulo = "Solicitud de Acceso a Documento";
+            String cuerpo = String.format(
+                "%s (CI %d) de %s solicita acceso a su documento del %s",
+                solicitud.getProfesionalNombre(),
+                solicitud.getProfesionalCi(),
+                solicitud.getNombreClinica(),
+                solicitud.getFechaDocumento()
+            );
+
+            Message message = Message.builder()
+                .setTopic(topic)
+                .setNotification(Notification.builder()
+                    .setTitle(titulo)
+                    .setBody(cuerpo)
+                    .build())
+                // Datos adicionales para la app móvil
+                .putData("tipo", "SOLICITUD_ACCESO")
+                .putData("documentoId", solicitud.getDocumentoId())
+                .putData("profesionalCi", solicitud.getProfesionalCi().toString())
+                .putData("profesionalNombre", solicitud.getProfesionalNombre())
+                .putData("especialidad", solicitud.getEspecialidad() != null ? solicitud.getEspecialidad() : "")
+                .putData("tenantId", solicitud.getTenantId())
+                .putData("nombreClinica", solicitud.getNombreClinica())
+                .putData("fechaDocumento", solicitud.getFechaDocumento())
+                .putData("motivoConsulta", solicitud.getMotivoConsulta())
+                .putData("diagnostico", solicitud.getDiagnostico() != null ? solicitud.getDiagnostico() : "")
+                .putData("timestamp", String.valueOf(System.currentTimeMillis()))
+                .build();
+
+            FirebaseMessaging messaging = firebaseInitializer.getMessaging();
+            String response = messaging.send(message);
+            LOGGER.info(String.format(
+                "Notificación de solicitud de acceso enviada a %s. FCM response: %s",
+                solicitud.getCedulaPaciente(), response));
+            return true;
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE,
+                String.format("Error al enviar notificación de solicitud de acceso a %s",
+                    solicitud.getCedulaPaciente()), e);
+            return false;
+        }
     }
 }

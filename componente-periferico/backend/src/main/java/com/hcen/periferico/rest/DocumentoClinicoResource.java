@@ -378,6 +378,126 @@ public class DocumentoClinicoResource {
         }
     }
 
+    /**
+     * Valida si un profesional tiene permiso para acceder a un documento
+     * Llama al componente central para verificar las políticas de acceso
+     */
+    @POST
+    @Path("/{id}/validar-acceso")
+    public Response validarAccesoDocumento(
+            @PathParam("id") String documentoIdStr,
+            @QueryParam("tenantId") String tenantIdStr,
+            ValidarAccesoRequest request) {
+        try {
+            if (documentoIdStr == null || documentoIdStr.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("El ID del documento es requerido"))
+                        .build();
+            }
+            if (tenantIdStr == null || tenantIdStr.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("El tenantId es requerido"))
+                        .build();
+            }
+            if (request == null || request.getCiProfesional() == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("El CI del profesional es requerido"))
+                        .build();
+            }
+
+            UUID documentoId = UUID.fromString(documentoIdStr);
+            UUID tenantId = UUID.fromString(tenantIdStr);
+
+            boolean tienePermiso = documentoService.validarAccesoDocumento(
+                    documentoId,
+                    request.getCiProfesional(),
+                    tenantId,
+                    request.getEspecialidad()
+            );
+
+            return Response.ok(new ValidarAccesoResponse(tienePermiso)).build();
+
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("Parámetros inválidos: " + e.getMessage()))
+                    .build();
+        } catch (Exception e) {
+            System.err.println("Error al validar acceso a documento: " + e.getMessage());
+            e.printStackTrace();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Error al validar acceso: " + e.getMessage()))
+                    .build();
+        }
+    }
+
+    /**
+     * Solicita acceso a un documento enviando notificación al paciente
+     * Solo permite una solicitud cada 24 horas por profesional-documento
+     */
+    @POST
+    @Path("/{id}/solicitar-acceso")
+    public Response solicitarAccesoDocumento(
+            @PathParam("id") String documentoIdStr,
+            @QueryParam("tenantId") String tenantIdStr,
+            SolicitarAccesoRequest request) {
+        try {
+            if (documentoIdStr == null || documentoIdStr.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("El ID del documento es requerido"))
+                        .build();
+            }
+            if (tenantIdStr == null || tenantIdStr.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("El tenantId es requerido"))
+                        .build();
+            }
+            if (request == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("Los datos de la solicitud son requeridos"))
+                        .build();
+            }
+            if (request.getCiProfesional() == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("El CI del profesional es requerido"))
+                        .build();
+            }
+            if (request.getNombreProfesional() == null || request.getNombreProfesional().isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("El nombre del profesional es requerido"))
+                        .build();
+            }
+
+            UUID documentoId = UUID.fromString(documentoIdStr);
+            UUID tenantId = UUID.fromString(tenantIdStr);
+
+            DocumentoClinicoService.ResultadoSolicitudAcceso resultado = documentoService.solicitarAccesoDocumento(
+                    documentoId,
+                    request.getCiProfesional(),
+                    request.getNombreProfesional(),
+                    request.getEspecialidad(),
+                    tenantId
+            );
+
+            // Retornar siempre 200 OK con el mensaje apropiado
+            // No se considera error si ya existe una solicitud reciente
+            return Response.ok(new SolicitarAccesoResponse(
+                    resultado.isExitoso(),
+                    resultado.getMensaje()))
+                    .build();
+
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("Parámetros inválidos: " + e.getMessage()))
+                    .build();
+        } catch (Exception e) {
+            System.err.println("Error al solicitar acceso a documento: " + e.getMessage());
+            e.printStackTrace();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Error al enviar solicitud: " + e.getMessage()))
+                    .build();
+        }
+    }
+
     // ============ CLASES AUXILIARES ============
 
     public static class DocumentoRequest {
@@ -478,5 +598,60 @@ public class DocumentoClinicoResource {
         public void setPageSize(int pageSize) { this.pageSize = pageSize; }
         public long getTotalPages() { return totalPages; }
         public void setTotalPages(long totalPages) { this.totalPages = totalPages; }
+    }
+
+    // Request para validar acceso
+    public static class ValidarAccesoRequest {
+        private Integer ciProfesional;
+        private String especialidad;
+
+        public Integer getCiProfesional() { return ciProfesional; }
+        public void setCiProfesional(Integer ciProfesional) { this.ciProfesional = ciProfesional; }
+        public String getEspecialidad() { return especialidad; }
+        public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }
+    }
+
+    // Response de validar acceso
+    public static class ValidarAccesoResponse {
+        private boolean tienePermiso;
+
+        public ValidarAccesoResponse() {}
+        public ValidarAccesoResponse(boolean tienePermiso) {
+            this.tienePermiso = tienePermiso;
+        }
+
+        public boolean isTienePermiso() { return tienePermiso; }
+        public void setTienePermiso(boolean tienePermiso) { this.tienePermiso = tienePermiso; }
+    }
+
+    // Request para solicitar acceso
+    public static class SolicitarAccesoRequest {
+        private Integer ciProfesional;
+        private String nombreProfesional;
+        private String especialidad;
+
+        public Integer getCiProfesional() { return ciProfesional; }
+        public void setCiProfesional(Integer ciProfesional) { this.ciProfesional = ciProfesional; }
+        public String getNombreProfesional() { return nombreProfesional; }
+        public void setNombreProfesional(String nombreProfesional) { this.nombreProfesional = nombreProfesional; }
+        public String getEspecialidad() { return especialidad; }
+        public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }
+    }
+
+    // Response para solicitar acceso
+    public static class SolicitarAccesoResponse {
+        private boolean exitoso;
+        private String mensaje;
+
+        public SolicitarAccesoResponse() {}
+        public SolicitarAccesoResponse(boolean exitoso, String mensaje) {
+            this.exitoso = exitoso;
+            this.mensaje = mensaje;
+        }
+
+        public boolean isExitoso() { return exitoso; }
+        public void setExitoso(boolean exitoso) { this.exitoso = exitoso; }
+        public String getMensaje() { return mensaje; }
+        public void setMensaje(String mensaje) { this.mensaje = mensaje; }
     }
 }

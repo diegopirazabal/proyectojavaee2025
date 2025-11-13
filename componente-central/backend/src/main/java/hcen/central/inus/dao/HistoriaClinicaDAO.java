@@ -27,6 +27,15 @@ public class HistoriaClinicaDAO {
         return em.merge(historia);
     }
 
+    public Optional<historia_clinica> findById(UUID id) {
+        try {
+            historia_clinica historia = em.find(historia_clinica.class, id);
+            return Optional.ofNullable(historia);
+        } catch (NoResultException ex) {
+            return Optional.empty();
+        }
+    }
+
     public Optional<historia_clinica> findByUsuario(UsuarioSalud usuario) {
         TypedQuery<historia_clinica> query = em.createQuery(
             "SELECT h FROM historia_clinica h WHERE h.usuarioCedula = :cedula",

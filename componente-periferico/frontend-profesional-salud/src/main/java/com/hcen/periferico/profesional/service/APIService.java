@@ -441,4 +441,84 @@ public class APIService implements Serializable {
         }
         return map;
     }
+
+    // ========== MÉTODOS PARA VALIDACIÓN DE PERMISOS DE ACCESO ==========
+
+    /**
+     * Valida si un profesional tiene permiso para acceder a un documento clínico
+     */
+    public boolean validarAccesoDocumento(UUID documentoId, UUID tenantId, Integer ciProfesional, String especialidad) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            String url = getBackendUrl() + "/documentos/" + documentoId + "/validar-acceso?tenantId=" + tenantId;
+            HttpPost request = new HttpPost(url);
+
+            JsonObject json = Json.createObjectBuilder()
+                .add("ciProfesional", ciProfesional)
+                .add("especialidad", especialidad != null ? especialidad : "")
+                .build();
+
+            request.setEntity(new StringEntity(json.toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    try (JsonReader reader = Json.createReader(new StringReader(responseBody))) {
+                        JsonObject responseJson = reader.readObject();
+                        return responseJson.getBoolean("tienePermiso", false);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al validar acceso a documento: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false; // Por seguridad, denegar acceso si hay error
+    }
+
+    /**
+     * Solicita acceso a un documento clínico enviando notificación al paciente
+     */
+    public void solicitarAccesoDocumento(UUID documentoId, UUID tenantId, Integer ciProfesional,
+                                         String nombreProfesional, String especialidad) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            String url = getBackendUrl() + "/documentos/" + documentoId + "/solicitar-acceso?tenantId=" + tenantId;
+            HttpPost request = new HttpPost(url);
+
+            JsonObject json = Json.createObjectBuilder()
+                .add("ciProfesional", ciProfesional)
+                .add("nombreProfesional", nombreProfesional)
+                .add("especialidad", especialidad != null ? especialidad : "")
+                .build();
+
+            request.setEntity(new StringEntity(json.toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    // Parsear la respuesta JSON para verificar si fue exitoso
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    try (JsonReader reader = Json.createReader(new java.io.StringReader(responseBody))) {
+                        JsonObject responseJson = reader.readObject();
+                        boolean exitoso = responseJson.getBoolean("exitoso", false);
+                        String mensaje = responseJson.getString("mensaje", "");
+
+                        if (!exitoso) {
+                            // La solicitud fue rechazada (probablemente por cooldown de 24h)
+                            throw new IllegalStateException(mensaje);
+                        }
+                        // Si fue exitoso, continuar normalmente
+                        System.out.println("Solicitud de acceso enviada correctamente: " + mensaje);
+                    }
+                } else {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    throw new RuntimeException("Error al solicitar acceso: " + responseBody);
+                }
+            }
+        } catch (IllegalStateException e) {
+            throw e; // Re-lanzar para que el bean lo maneje
+        } catch (Exception e) {
+            System.err.println("Error al solicitar acceso a documento: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error al enviar solicitud de acceso: " + e.getMessage());
+        }
+    }
 }

@@ -130,13 +130,27 @@
                         <h:outputText value="#{doc.nombreCompletoProfesional}"/>
                     </p:column>
 
-                    <p:column headerText="Acciones" style="width: 120px;">
+                    <p:column headerText="Acciones" style="width: 150px;">
+                        <!-- Botón Ver (si tiene permiso) -->
                         <p:commandButton icon="pi pi-eye"
                                         styleClass="p-button-info"
                                         onclick="PF('dlgVerDocumento').show();"
                                         action="#{documentoClinicoBean.seleccionarDocumento(doc)}"
                                         update=":verDocumentoPanel"
-                                        title="Ver detalles"/>
+                                        title="Ver detalles"
+                                        rendered="#{doc.tienePermiso}"/>
+
+                        <!-- Botón Solicitar Acceso (si no tiene permiso) -->
+                        <p:commandButton icon="pi pi-lock"
+                                        styleClass="p-button-warning"
+                                        action="#{documentoClinicoBean.solicitarAcceso(doc)}"
+                                        update=":documentosForm:messages,:documentosForm:documentosTable"
+                                        title="Solicitar acceso al paciente"
+                                        rendered="#{!doc.tienePermiso}">
+                            <p:confirm header="Solicitar Acceso"
+                                      message="¿Desea solicitar acceso a este documento? El paciente recibirá una notificación en su dispositivo móvil."
+                                      icon="pi pi-exclamation-triangle"/>
+                        </p:commandButton>
                     </p:column>
                 </p:dataTable>
             </p:panel>
@@ -336,6 +350,14 @@
             </div>
         </h:form>
     </p:dialog>
+
+    <!-- Confirmation Dialog -->
+    <p:confirmDialog global="true" showEffect="fade" hideEffect="fade">
+        <h:form>
+            <p:commandButton value="Sí" type="button" styleClass="ui-confirmdialog-yes" icon="pi pi-check"/>
+            <p:commandButton value="No" type="button" styleClass="ui-confirmdialog-no" icon="pi pi-times"/>
+        </h:form>
+    </p:confirmDialog>
 
 </h:body>
 </html>

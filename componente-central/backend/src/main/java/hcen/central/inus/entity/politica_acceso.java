@@ -1,77 +1,107 @@
 package hcen.central.inus.entity;
 
-import hcen.central.inus.enums.PoliticaAlcance;
-import hcen.central.inus.enums.PoliticaEstado;
-import hcen.central.inus.enums.TipoAcceso;
-import hcen.central.inus.enums.TipoEntidad;
+import hcen.central.inus.enums.EstadoPermiso;
+import hcen.central.inus.enums.TipoPermiso;
 import jakarta.persistence.*;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Entidad que representa una política de acceso a un documento clínico.
+ * Un usuario/paciente puede otorgar permisos temporales a profesionales de salud
+ * para acceder a documentos específicos de su historia clínica.
+ */
 @Entity
-@Table(name = "politica_acceso")
-public class politica_acceso {
+@Table(name = "POLITICA_ACCESO")
+public class politica_acceso implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "ID", columnDefinition = "UUID")
     private UUID id;
 
-    @ManyToOne
-    @JoinColumns(
-        value = {
-            @JoinColumn(name = "usuario_salud_id", referencedColumnName = "id"),
-            @JoinColumn(name = "usuario_salud_cedula", referencedColumnName = "cedula")
-        },
-        foreignKey = @ForeignKey(
-            name = "fk_politica_usuario_salud",
-            foreignKeyDefinition = "FOREIGN KEY (usuario_salud_id, usuario_salud_cedula) REFERENCES usuario_salud(id, cedula)"
-        )
-    )
-    private UsuarioSalud usuarioSalud;
+    /**
+     * Historia clínica del paciente que otorga el permiso
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "HISTORIA_CLINICA_ID", nullable = false)
+    private historia_clinica historiaClinica;
 
-    @Column(name = "entidad_autorizada", length = 100)
-    private String entidadAutorizada; //entidadAutorizada guarda el identificador de la entidad a la que se le otorga el permiso.
+    /**
+     * UUID del documento clínico específico al que se otorga acceso
+     */
+    @Column(name = "DOCUMENTO_ID", columnDefinition = "UUID", nullable = false)
+    private UUID documentoId;
 
+    /**
+     * Tipo de permiso: específico para un profesional, por especialidad, o por clínica
+     */
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_entidad", length = 20)
-    private TipoEntidad tipoEntidad;
+    @Column(name = "TIPO_PERMISO", length = 30, nullable = false)
+    private TipoPermiso tipoPermiso;
 
-    @Column(name = "especialidad", length = 100)
+    /**
+     * Cédula del profesional específico (solo si tipoPermiso = PROFESIONAL_ESPECIFICO)
+     */
+    @Column(name = "CI_PROFESIONAL")
+    private Integer ciProfesional;
+
+    /**
+     * UUID de la clínica del profesional solicitante (tenant_id en componente periférico)
+     */
+    @Column(name = "TENANT_ID", columnDefinition = "UUID", nullable = false)
+    private UUID tenantId;
+
+    /**
+     * Especialidad médica (solo si tipoPermiso = POR_ESPECIALIDAD)
+     */
+    @Column(name = "ESPECIALIDAD", length = 100)
     private String especialidad;
 
-    @Column(name = "fecha_vencimiento")
-    private LocalDateTime fechaVencimiento;
+    /**
+     * Fecha y hora en que se otorgó el permiso
+     */
+    @Column(name = "FECHA_OTORGAMIENTO", nullable = false)
+    private LocalDateTime fechaOtorgamiento;
 
-    @Column(name = "documento_especifico_id", columnDefinition = "UUID")
-    private UUID documentoEspecificoId;
+    /**
+     * Fecha y hora de expiración del permiso (por defecto +15 días desde otorgamiento)
+     */
+    @Column(name = "FECHA_EXPIRACION", nullable = false)
+    private LocalDateTime fechaExpiracion;
 
-    @Column(name = "fechaCreacion")
-    private LocalDateTime fechaCreacion;
-
+    /**
+     * Estado actual del permiso
+     */
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipoAcceso", length = 20, nullable = false)
-    private TipoAcceso tipoAcceso;
+    @Column(name = "ESTADO", length = 20, nullable = false)
+    private EstadoPermiso estado;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "alcance", length = 20, nullable = false)
-    private PoliticaAlcance politicaAlcance;
+    /**
+     * Motivo por el cual se revocó el permiso (solo si estado = REVOCADO)
+     */
+    @Column(name = "MOTIVO_REVOCACION", length = 255)
+    private String motivoRevocacion;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "estado", length = 20, nullable = false)
-    private PoliticaEstado politicaEstado;
+    /**
+     * Fecha y hora en que se revocó el permiso
+     */
+    @Column(name = "FECHA_REVOCACION")
+    private LocalDateTime fechaRevocacion;
 
     // Constructores
+
     public politica_acceso() {
-        this.fechaCreacion = LocalDateTime.now();
-        this.tipoAcceso = TipoAcceso.LECTURA;
-        this.politicaAlcance = PoliticaAlcance.TODOS;
-        this.politicaEstado = PoliticaEstado.ACTIVO;
-        this.tipoEntidad = TipoEntidad.TODOS;
+        this.fechaOtorgamiento = LocalDateTime.now();
+        this.estado = EstadoPermiso.ACTIVO;
     }
 
     // Getters y Setters
+
     public UUID getId() {
         return id;
     }
@@ -80,62 +110,44 @@ public class politica_acceso {
         this.id = id;
     }
 
-
-
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
+    public historia_clinica getHistoriaClinica() {
+        return historiaClinica;
     }
 
-    public void setFechaCreacion(LocalDateTime fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
+    public void setHistoriaClinica(historia_clinica historiaClinica) {
+        this.historiaClinica = historiaClinica;
     }
 
-    public TipoAcceso getTipoAcceso() {
-        return tipoAcceso;
+    public UUID getDocumentoId() {
+        return documentoId;
     }
 
-    public void setTipoAcceso(TipoAcceso tipoAcceso) {
-        this.tipoAcceso = tipoAcceso;
+    public void setDocumentoId(UUID documentoId) {
+        this.documentoId = documentoId;
     }
 
-    public PoliticaAlcance getPoliticaAlcance() {
-        return politicaAlcance;
+    public TipoPermiso getTipoPermiso() {
+        return tipoPermiso;
     }
 
-    public void setPoliticaAlcance(PoliticaAlcance politicaAlcance) {
-        this.politicaAlcance = politicaAlcance;
+    public void setTipoPermiso(TipoPermiso tipoPermiso) {
+        this.tipoPermiso = tipoPermiso;
     }
 
-    public PoliticaEstado getPoliticaEstado() {
-        return politicaEstado;
+    public Integer getCiProfesional() {
+        return ciProfesional;
     }
 
-    public void setPoliticaEstado(PoliticaEstado politicaEstado) {
-        this.politicaEstado = politicaEstado;
+    public void setCiProfesional(Integer ciProfesional) {
+        this.ciProfesional = ciProfesional;
     }
 
-    public UsuarioSalud getUsuarioSalud() {
-        return usuarioSalud;
+    public UUID getTenantId() {
+        return tenantId;
     }
 
-    public void setUsuarioSalud(UsuarioSalud usuarioSalud) {
-        this.usuarioSalud = usuarioSalud;
-    }
-
-    public String getEntidadAutorizada() {
-        return entidadAutorizada;
-    }
-
-    public void setEntidadAutorizada(String entidadAutorizada) {
-        this.entidadAutorizada = entidadAutorizada;
-    }
-
-    public TipoEntidad getTipoEntidad() {
-        return tipoEntidad;
-    }
-
-    public void setTipoEntidad(TipoEntidad tipoEntidad) {
-        this.tipoEntidad = tipoEntidad;
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getEspecialidad() {
@@ -146,62 +158,118 @@ public class politica_acceso {
         this.especialidad = especialidad;
     }
 
-    public LocalDateTime getFechaVencimiento() {
-        return fechaVencimiento;
+    public LocalDateTime getFechaOtorgamiento() {
+        return fechaOtorgamiento;
     }
 
-    public void setFechaVencimiento(LocalDateTime fechaVencimiento) {
-        this.fechaVencimiento = fechaVencimiento;
+    public void setFechaOtorgamiento(LocalDateTime fechaOtorgamiento) {
+        this.fechaOtorgamiento = fechaOtorgamiento;
     }
 
-    public UUID getDocumentoEspecificoId() {
-        return documentoEspecificoId;
+    public LocalDateTime getFechaExpiracion() {
+        return fechaExpiracion;
     }
 
-    public void setDocumentoEspecificoId(UUID documentoEspecificoId) {
-        this.documentoEspecificoId = documentoEspecificoId;
+    public void setFechaExpiracion(LocalDateTime fechaExpiracion) {
+        this.fechaExpiracion = fechaExpiracion;
+    }
+
+    public EstadoPermiso getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoPermiso estado) {
+        this.estado = estado;
+    }
+
+    public String getMotivoRevocacion() {
+        return motivoRevocacion;
+    }
+
+    public void setMotivoRevocacion(String motivoRevocacion) {
+        this.motivoRevocacion = motivoRevocacion;
+    }
+
+    public LocalDateTime getFechaRevocacion() {
+        return fechaRevocacion;
+    }
+
+    public void setFechaRevocacion(LocalDateTime fechaRevocacion) {
+        this.fechaRevocacion = fechaRevocacion;
     }
 
     // Métodos de utilidad
-    public boolean estaActiva() {
-        return PoliticaEstado.ACTIVO.equals(this.politicaEstado);
+
+    /**
+     * Verifica si el permiso está activo y no ha expirado
+     */
+    public boolean estaActivo() {
+        return EstadoPermiso.ACTIVO.equals(this.estado) &&
+               this.fechaExpiracion != null &&
+               this.fechaExpiracion.isAfter(LocalDateTime.now());
     }
 
-    public void activarPolitica() {
-        this.politicaEstado = PoliticaEstado.ACTIVO;
+    /**
+     * Verifica si el permiso ha expirado por tiempo
+     */
+    public boolean estaExpirado() {
+        return this.fechaExpiracion != null &&
+               this.fechaExpiracion.isBefore(LocalDateTime.now());
     }
 
-    public void desactivarPolitica() {
-        this.politicaEstado = PoliticaEstado.INACTIVO;
+    /**
+     * Verifica si el permiso fue revocado por el paciente
+     */
+    public boolean estaRevocado() {
+        return EstadoPermiso.REVOCADO.equals(this.estado);
     }
 
-    public boolean tieneAccesoEscritura() {
-        return TipoAcceso.ESCRITURA.equals(this.tipoAcceso) ||
-                TipoAcceso.TODOS.equals(this.tipoAcceso);
+    /**
+     * Verifica si el permiso es para un profesional específico
+     */
+    public boolean esProfesionalEspecifico() {
+        return TipoPermiso.PROFESIONAL_ESPECIFICO.equals(this.tipoPermiso);
     }
 
-    public boolean tieneAccesoLectura() {
-        return TipoAcceso.LECTURA.equals(this.tipoAcceso) ||
-                TipoAcceso.TODOS.equals(this.tipoAcceso);
+    /**
+     * Verifica si el permiso es por especialidad
+     */
+    public boolean esPorEspecialidad() {
+        return TipoPermiso.POR_ESPECIALIDAD.equals(this.tipoPermiso);
     }
 
-    public boolean esParaProfesional() {
-        return TipoEntidad.PROFESIONAL.equals(this.tipoEntidad);
+    /**
+     * Verifica si el permiso es para toda la clínica
+     */
+    public boolean esPorClinica() {
+        return TipoPermiso.POR_CLINICA.equals(this.tipoPermiso);
     }
 
-    public boolean esParaClinica() {
-        return TipoEntidad.CLINICA.equals(this.tipoEntidad);
+    /**
+     * Revoca el permiso antes de su fecha de expiración
+     */
+    public void revocar(String motivo) {
+        this.estado = EstadoPermiso.REVOCADO;
+        this.motivoRevocacion = motivo;
+        this.fechaRevocacion = LocalDateTime.now();
     }
 
-    public boolean esParaEspecialidad() {
-        return TipoEntidad.ESPECIALIDAD.equals(this.tipoEntidad);
+    /**
+     * Marca el permiso como expirado (llamado automáticamente al alcanzar fecha de expiración)
+     */
+    public void marcarComoExpirado() {
+        if (estaExpirado() && EstadoPermiso.ACTIVO.equals(this.estado)) {
+            this.estado = EstadoPermiso.EXPIRADO;
+        }
     }
 
     @PrePersist
     protected void onCreate() {
-        if (this.fechaCreacion == null) {
-            this.fechaCreacion = LocalDateTime.now();
+        if (this.fechaOtorgamiento == null) {
+            this.fechaOtorgamiento = LocalDateTime.now();
+        }
+        if (this.estado == null) {
+            this.estado = EstadoPermiso.ACTIVO;
         }
     }
-
 }

@@ -1,6 +1,7 @@
 package com.hcen.periferico.profesional.bean;
 
 import com.hcen.periferico.profesional.dto.documento_clinico_dto;
+import com.hcen.periferico.profesional.dto.documento_con_permiso_dto;
 import com.hcen.periferico.profesional.dto.usuario_salud_dto;
 import com.hcen.periferico.profesional.service.APIService;
 import jakarta.annotation.PostConstruct;
@@ -33,7 +34,7 @@ public class DocumentoClinicoBean implements Serializable {
     private SessionBean sessionBean;
 
     // Listas
-    private List<documento_clinico_dto> documentos;
+    private List<documento_con_permiso_dto> documentos;
     private List<usuario_salud_dto> pacientes;
 
     // Catálogos (codigueras)
@@ -119,7 +120,30 @@ public class DocumentoClinicoBean implements Serializable {
                 return;
             }
 
-            documentos = apiService.getDocumentosPorPaciente(cedulaPacienteSeleccionado, UUID.fromString(tenantId));
+            // Cargar documentos desde el backend
+            List<documento_clinico_dto> docs = apiService.getDocumentosPorPaciente(cedulaPacienteSeleccionado, UUID.fromString(tenantId));
+
+            // Validar permisos para cada documento
+            Integer ciProfesional = sessionBean.getProfesionalCi();
+            String especialidad = sessionBean.getEspecialidad();
+
+            documentos = docs.stream()
+                .map(doc -> {
+                    boolean tienePermiso = false;
+                    try {
+                        tienePermiso = apiService.validarAccesoDocumento(
+                            UUID.fromString(doc.getId()),
+                            UUID.fromString(tenantId),
+                            ciProfesional,
+                            especialidad
+                        );
+                    } catch (Exception e) {
+                        // Si hay error al validar, por seguridad negamos acceso
+                        System.err.println("Error al validar acceso al documento " + doc.getId() + ": " + e.getMessage());
+                    }
+                    return new documento_con_permiso_dto(doc, tienePermiso);
+                })
+                .collect(Collectors.toList());
 
             // Buscar el paciente seleccionado para mostrar su nombre
             for (usuario_salud_dto paciente : pacientes) {
@@ -255,6 +279,48 @@ public class DocumentoClinicoBean implements Serializable {
     }
 
     /**
+     * Solicita acceso a un documento clínico bloqueado
+     * Envía notificación al paciente vía FCM
+     */
+    public void solicitarAcceso(documento_con_permiso_dto documento) {
+        try {
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                return;
+            }
+
+            Integer ciProfesional = sessionBean.getProfesionalCi();
+            String nombreProfesional = sessionBean.getNombreProfesional();
+            String especialidad = sessionBean.getEspecialidad();
+
+            if (ciProfesional == null) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el CI del profesional");
+                return;
+            }
+
+            // Llamar al backend para solicitar acceso
+            apiService.solicitarAccesoDocumento(
+                UUID.fromString(documento.getId()),
+                UUID.fromString(tenantId),
+                ciProfesional,
+                nombreProfesional != null ? nombreProfesional : "Profesional",
+                especialidad != null ? especialidad : ""
+            );
+
+            addMessage(FacesMessage.SEVERITY_INFO,
+                "Solicitud de acceso enviada al paciente. Recibirá una notificación en su dispositivo móvil.");
+
+        } catch (IllegalStateException e) {
+            // Error de cooldown de 24 horas
+            addMessage(FacesMessage.SEVERITY_WARN, e.getMessage());
+        } catch (Exception e) {
+            addMessage(FacesMessage.SEVERITY_ERROR, "Error al solicitar acceso: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Se ejecuta antes de renderizar la vista para asegurar que las listas estén cargadas
      * cuando el profesional inicia sesión desde la pantalla principal.
      */
@@ -349,11 +415,11 @@ public class DocumentoClinicoBean implements Serializable {
 
     // ============ GETTERS Y SETTERS ============
 
-    public List<documento_clinico_dto> getDocumentos() {
+    public List<documento_con_permiso_dto> getDocumentos() {
         return documentos;
     }
 
-    public void setDocumentos(List<documento_clinico_dto> documentos) {
+    public void setDocumentos(List<documento_con_permiso_dto> documentos) {
         this.documentos = documentos;
     }
 
