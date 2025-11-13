@@ -1,5 +1,6 @@
 package com.example.hcenmobile.ui.notifications;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -19,8 +20,18 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.hcenmobile.R;
+import com.example.hcenmobile.data.model.Notificacion;
+import com.example.hcenmobile.data.remote.ApiService;
+import com.example.hcenmobile.data.remote.RetrofitClient;
+import com.example.hcenmobile.data.remote.dto.ApiResponse;
+import com.example.hcenmobile.data.remote.dto.RechazarSolicitudRequest;
+import com.example.hcenmobile.data.remote.dto.SolicitudAccesoDTO;
 import com.example.hcenmobile.databinding.FragmentNotificationsBinding;
 import com.example.hcenmobile.util.Constants;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class NotificationsFragment extends Fragment {
 
@@ -49,12 +60,25 @@ public class NotificationsFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        adapter = new NotificacionesAdapter(notificacion -> {
-            // Marcar como leída cuando se toca
-            viewModel.marcarComoLeida(notificacion.getId());
-            Toast.makeText(requireContext(),
-                "Notificación de: " + notificacion.getRemitente(),
-                Toast.LENGTH_SHORT).show();
+        adapter = new NotificacionesAdapter(new NotificacionesAdapter.OnNotificacionListener() {
+            @Override
+            public void onNotificacionClick(Notificacion notificacion) {
+                // Marcar como leída cuando se toca
+                viewModel.marcarComoLeida(notificacion.getId());
+                Toast.makeText(requireContext(),
+                        "Notificación de: " + notificacion.getRemitente(),
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onApproveClick(SolicitudAccesoDTO solicitud) {
+                mostrarDialogAprobacion(solicitud);
+            }
+
+            @Override
+            public void onRejectClick(SolicitudAccesoDTO solicitud) {
+                mostrarDialogRechazo(solicitud);
+            }
         });
 
         binding.recyclerViewNotifications.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -130,6 +154,85 @@ public class NotificationsFragment extends Fragment {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Muestra el dialog para aprobar una solicitud de acceso
+     * Permite al usuario seleccionar el tipo de permiso a otorgar
+     */
+    private void mostrarDialogAprobacion(SolicitudAccesoDTO solicitud) {
+        ApprovalDialogFragment dialog = ApprovalDialogFragment.newInstance(solicitud);
+        dialog.setOnApprovalListener(new ApprovalDialogFragment.OnApprovalListener() {
+            @Override
+            public void onApprovalSuccess() {
+                // Recargar notificaciones después de aprobar
+                sincronizarNotificaciones();
+                Toast.makeText(requireContext(),
+                        "Permiso otorgado exitosamente",
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onApprovalError(String message) {
+                Toast.makeText(requireContext(),
+                        "Error: " + message,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+        dialog.show(getParentFragmentManager(), "approval_dialog");
+    }
+
+    /**
+     * Muestra un dialog de confirmación para rechazar una solicitud de acceso
+     */
+    private void mostrarDialogRechazo(SolicitudAccesoDTO solicitud) {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Rechazar Solicitud")
+                .setMessage("¿Está seguro que desea rechazar la solicitud de acceso de " +
+                        solicitud.getProfesionalNombre() + "?")
+                .setPositiveButton("Rechazar", (dialog, which) -> {
+                    rechazarSolicitud(solicitud);
+                })
+                .setNegativeButton("Cancelar", null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+    /**
+     * Rechaza una solicitud de acceso llamando al API
+     */
+    private void rechazarSolicitud(SolicitudAccesoDTO solicitud) {
+        RechazarSolicitudRequest request = new RechazarSolicitudRequest(solicitud.getId());
+
+        ApiService apiService = RetrofitClient.getInstance().getApiService();
+        Call<ApiResponse<Void>> call = apiService.rechazarSolicitud(request);
+
+        call.enqueue(new Callback<ApiResponse<Void>>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<Void>> call,
+                                   @NonNull Response<ApiResponse<Void>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Toast.makeText(requireContext(),
+                            "Solicitud rechazada",
+                            Toast.LENGTH_SHORT).show();
+                    // Recargar notificaciones
+                    sincronizarNotificaciones();
+                } else {
+                    String errorMsg = "Error al rechazar solicitud";
+                    if (response.body() != null && response.body().getError() != null) {
+                        errorMsg = response.body().getError();
+                    }
+                    Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<Void>> call, @NonNull Throwable t) {
+                Toast.makeText(requireContext(),
+                        "Error de conexión: " + t.getMessage(),
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     @Override

@@ -51,7 +51,7 @@ public class JWTAuthenticationFilter implements Filter {
             "/api/usuarios/verificar",        // Verificación de existencia de usuario (se usa /verificar/{cedula})
             "/api/historia-clinica/documentos",  // Sincronización de documentos desde clínicas periféricas
             "/api/politicas-acceso/validar",
-            "/api/notifications/solicitudes-acceso"
+            "/api/notifications/solicitudes-acceso",
             "/api/historia-clinica/documentos",  // Sincronización de documentos desde clínicas periféricas
             "/api/politicas-acceso/pendientes",
             "/api/politicas-acceso/activas",

@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <!-- Indicador de estado (izquierda) -->
+        <View
+            android:id="@+id/indicator"
+            android:layout_width="4dp"
+            android:layout_height="0dp"
+            android:background="@android:color/holo_orange_light"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <!-- Ícono de solicitud -->
+        <TextView
+            android:id="@+id/icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:text="🔐"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:layout_marginStart="12dp"
+            app:layout_constraintStart_toEndOf="@id/indicator"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Título (profesional) -->
+        <TextView
+            android:id="@+id/profesional_nombre"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Dr. Juan Pérez"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintStart_toEndOf="@id/icon"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/icon" />
+
+        <!-- Clínica -->
+        <TextView
+            android:id="@+id/clinica_nombre"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Clínica San José"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="2dp"
+            app:layout_constraintStart_toEndOf="@id/icon"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/profesional_nombre" />
+
+        <!-- Separador -->
+        <View
+            android:id="@+id/divider"
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:background="#E0E0E0"
+            android:layout_marginTop="12dp"
+            app:layout_constraintStart_toStartOf="@id/icon"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/clinica_nombre" />
+
+        <!-- Información del documento -->
+        <TextView
+            android:id="@+id/documento_info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="📄 Documento del 15/11/2025"
+            android:textSize="13sp"
+            android:textColor="@android:color/black"
+            android:layout_marginTop="8dp"
+            app:layout_constraintStart_toStartOf="@id/icon"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/divider" />
+
+        <!-- Motivo de consulta -->
+        <TextView
+            android:id="@+id/motivo_consulta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Control de rutina"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginTop="4dp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            app:layout_constraintStart_toStartOf="@id/icon"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/documento_info" />
+
+        <!-- Fecha de solicitud -->
+        <TextView
+            android:id="@+id/fecha_solicitud"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hace 2 horas"
+            android:textSize="11sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginTop="8dp"
+            app:layout_constraintStart_toStartOf="@id/icon"
+            app:layout_constraintTop_toBottomOf="@id/motivo_consulta" />
+
+        <!-- Badge de estado (si está aprobada/rechazada) -->
+        <TextView
+            android:id="@+id/estado_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓ Aprobada"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:background="@android:color/holo_green_light"
+            android:padding="4dp"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/motivo_consulta" />
+
+        <!-- Botones de acción (solo visibles si está pendiente) -->
+        <LinearLayout
+            android:id="@+id/action_buttons"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="12dp"
+            app:layout_constraintStart_toStartOf="@id/icon"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/fecha_solicitud">
+
+            <Button
+                android:id="@+id/btn_reject"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Rechazar"
+                android:textSize="12sp"
+                android:textColor="@android:color/holo_red_dark"
+                android:layout_marginEnd="8dp"
+                android:minWidth="90dp" />
+
+            <Button
+                android:id="@+id/btn_approve"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Aprobar"
+                android:textSize="12sp"
+                android:backgroundTint="@android:color/holo_green_dark"
+                android:minWidth="90dp" />
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.cardview.widget.CardView>
