@@ -53,7 +53,7 @@ public class JWTAuthenticationFilter implements Filter {
             "/api/politicas-acceso/pendientes",
             "/api/politicas-acceso/activas",
             "/api/politicas-acceso/aprobar-solicitud",
-            "/api/politicas-acceso/",
+            "/api/politicas-acceso/"
     );
 
     @Override
