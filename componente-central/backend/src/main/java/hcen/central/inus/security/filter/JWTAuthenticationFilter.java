@@ -52,6 +52,11 @@ public class JWTAuthenticationFilter implements Filter {
             "/api/historia-clinica/documentos",  // Sincronización de documentos desde clínicas periféricas
             "/api/politicas-acceso/validar",
             "/api/notifications/solicitudes-acceso"
+            "/api/historia-clinica/documentos",  // Sincronización de documentos desde clínicas periféricas
+            "/api/politicas-acceso/pendientes",
+            "/api/politicas-acceso/activas",
+            "/api/politicas-acceso/aprobar-solicitud",
+            "/api/politicas-acceso/"
     );
 
     @Override
