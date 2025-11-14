@@ -29,8 +29,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.net.ssl.SSLParameters;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSession;
 import java.security.cert.X509Certificate;
 import java.security.SecureRandom;
 
@@ -68,27 +66,23 @@ public class CentralAPIClient {
             TrustManager[] trustAllCerts = new TrustManager[] {
                 new X509TrustManager() {
                     public X509Certificate[] getAcceptedIssuers() {
-                        return null;
+                        return new X509Certificate[0];
                     }
                     public void checkClientTrusted(X509Certificate[] certs, String authType) {}
                     public void checkServerTrusted(X509Certificate[] certs, String authType) {}
                 }
             };
-            
-            // HostnameVerifier que acepta todos los hostnames
-            HostnameVerifier allHostsValid = new HostnameVerifier() {
-                public boolean verify(String hostname, SSLSession session) {
-                    return true;
-                }
-            };
-            
+
             // Configurar SSLContext con el TrustManager que acepta todo
-            SSLContext sslContext = SSLContext.getInstance("SSL");
+            SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, trustAllCerts, new SecureRandom());
             
             // Configurar SSL parameters para deshabilitar endpoint identification
             SSLParameters sslParams = new SSLParameters();
             sslParams.setEndpointIdentificationAlgorithm(null);
+
+            // Deshabilitar la verificación de hostname del HttpClient (solo para dev)
+            System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");
             
             LOGGER.warning("CentralAPIClient configurado con SSL bypass - SIN VALIDACIÓN DE CERTIFICADOS (solo para desarrollo)");
             
