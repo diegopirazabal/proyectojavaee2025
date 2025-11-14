@@ -39,6 +39,8 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -47,6 +49,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 @ApplicationScoped
 public class api_service {
@@ -720,17 +725,43 @@ public class api_service {
         return body;
     }
 
-    private CloseableHttpClient createHttpClient() {
-        SSLConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactoryBuilder.create()
-                .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                .build();
+    private static final X509TrustManager TRUST_ALL_MANAGER = new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            // no-op to accept any client cert
+        }
 
-        return HttpClients.custom()
-                .setConnectionManager(
-                        PoolingHttpClientConnectionManagerBuilder.create()
-                                .setSSLSocketFactory(sslSocketFactory)
-                                .build())
-                .build();
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            // no-op to accept any server cert
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    };
+
+    private CloseableHttpClient createHttpClient() {
+        try {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[]{TRUST_ALL_MANAGER}, null);
+
+            SSLConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactoryBuilder.create()
+                    .setSslContext(sslContext)
+                    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                    .build();
+
+            return HttpClients.custom()
+                    .setConnectionManager(
+                            PoolingHttpClientConnectionManagerBuilder.create()
+                                    .setSSLSocketFactory(sslSocketFactory)
+                                    .build())
+                    .build();
+        } catch (GeneralSecurityException e) {
+            LOGGER.log(Level.WARNING, "Falling back to default HttpClient without relaxed SSL", e);
+            return HttpClients.createDefault();
+        }
     }
 
     private String resolveBackendUrl() {

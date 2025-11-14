@@ -1,5 +1,8 @@
 package hcen.central.notifications.api;
 
+import hcen.central.inus.dao.UsuarioSaludDAO;
+import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.security.jwt.JWTTokenProvider;
 import hcen.central.notifications.dto.ApiResponse;
 import hcen.central.notifications.dto.FCMTokenRequest;
 import hcen.central.notifications.dto.FCMUnregisterRequest;
@@ -9,6 +12,7 @@ import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
@@ -33,6 +37,12 @@ public class fcm_resource {
     @EJB
     private fcm_token_service fcmTokenService;
 
+    @EJB
+    private UsuarioSaludDAO usuarioSaludDAO;
+
+    @EJB
+    private JWTTokenProvider jwtTokenProvider;
+
     /**
      * POST /api/fcm/register
      * Registrar o actualizar token FCM del dispositivo
@@ -43,7 +53,10 @@ public class fcm_resource {
      */
     @POST
     @Path("/register")
-    public Response registerToken(FCMTokenRequest request, @Context SecurityContext securityContext) {
+    public Response registerToken(
+            FCMTokenRequest request,
+            @Context SecurityContext securityContext,
+            @Context HttpHeaders headers) {
         try {
             // Validar request
             if (request == null) {
@@ -64,14 +77,13 @@ public class fcm_resource {
                         .build();
             }
 
-            // TODO: Extraer usuarioId del JWT token
-            // Por ahora usamos un ID hardcodeado para desarrollo
-            // En producción, esto debe obtenerse del SecurityContext o del JWT
-            // Ejemplo: Long usuarioId = extractUserIdFromJWT(securityContext);
-            Long usuarioId = 1L; // TEMPORAL - Reemplazar con extracción del JWT
+            Long usuarioId = extractUsuarioId(securityContext, headers);
 
             logger.info("Registrando token FCM para usuario " + usuarioId +
                        " desde dispositivo " + request.getDeviceId());
+
+            // Invalidar tokens previos del usuario para forzar un registro limpio por sesión
+            fcmTokenService.deactivateAllTokensForUser(usuarioId);
 
             // Registrar el token
             FCMToken savedToken = fcmTokenService.registerToken(
@@ -88,6 +100,12 @@ public class fcm_resource {
             return Response.ok(
                     ApiResponse.success(null, "Token FCM registrado exitosamente")
             ).build();
+
+        } catch (SecurityException e) {
+            logger.warning("Usuario no autorizado para registrar token FCM: " + e.getMessage());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ApiResponse.error("Usuario no autenticado"))
+                    .build();
 
         } catch (IllegalArgumentException e) {
             logger.warning("Error de validación al registrar token FCM: " + e.getMessage());
@@ -110,7 +128,10 @@ public class fcm_resource {
      */
     @POST
     @Path("/unregister")
-    public Response unregisterToken(FCMUnregisterRequest request) {
+    public Response unregisterToken(
+            FCMUnregisterRequest request,
+            @Context SecurityContext securityContext,
+            @Context HttpHeaders headers) {
         try {
             // Validar request
             if (request == null || request.getToken() == null || request.getToken().trim().isEmpty()) {
@@ -119,7 +140,8 @@ public class fcm_resource {
                         .build();
             }
 
-            logger.info("Eliminando token FCM");
+            Long usuarioId = extractUsuarioId(securityContext, headers);
+            logger.info("Eliminando token FCM para usuario " + usuarioId);
 
             // Eliminar el token
             boolean deleted = fcmTokenService.unregisterToken(request.getToken());
@@ -137,6 +159,12 @@ public class fcm_resource {
                 ).build();
             }
 
+        } catch (SecurityException e) {
+            logger.warning("Usuario no autorizado para eliminar token FCM: " + e.getMessage());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ApiResponse.error("Usuario no autenticado"))
+                    .build();
+
         } catch (IllegalArgumentException e) {
             logger.warning("Error de validación al eliminar token FCM: " + e.getMessage());
             return Response.status(Response.Status.BAD_REQUEST)
@@ -152,13 +180,26 @@ public class fcm_resource {
         }
     }
 
-    /**
-     * Método helper para extraer el usuario ID del JWT
-     * TODO: Implementar extracción real del JWT
-     */
-    private Long extractUserIdFromJWT(SecurityContext securityContext) {
-        // Implementación pendiente - debe extraer el ID del usuario del JWT
-        // Por ejemplo, usando JWTTokenProvider o similar
-        throw new UnsupportedOperationException("Extracción de usuario del JWT no implementada aún");
+    private Long extractUsuarioId(SecurityContext securityContext, HttpHeaders headers) {
+        String cedula = null;
+        if (securityContext != null && securityContext.getUserPrincipal() != null) {
+            cedula = securityContext.getUserPrincipal().getName();
+        } else if (headers != null) {
+            String authHeader = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring("Bearer ".length()).trim();
+                cedula = jwtTokenProvider.validateAccessToken(token).getSubject();
+            }
+        }
+
+        if (cedula == null || cedula.isBlank()) {
+            throw new SecurityException("Token JWT requerido");
+        }
+
+        final String cedulaFinal = cedula;
+        return usuarioSaludDAO.findByCedula(cedulaFinal)
+                .map(UsuarioSalud::getId)
+                .orElseThrow(() ->
+                    new SecurityException("Usuario no encontrado para cédula " + cedulaFinal));
     }
 }

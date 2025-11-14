@@ -43,9 +43,9 @@ public class JWTAuthenticationFilter implements Filter {
             "/api/auth/callback",
             "/api/auth/refresh",
             "/api/auth/token",                // Autenticación de clientes
+            "/api/notifications/broadcast-test",  // Envío de notificación de prueba desde AdminHCEN
             "/api/fcm/register",              // Registro de token FCM desde mobile
             "/api/fcm/unregister",            // Eliminación de token FCM
-            "/api/notifications/broadcast-test",  // Envío de notificación de prueba desde AdminHCEN
             "/api/usuarios-salud",            // Listado de usuarios (usado por AdminHCEN)
             "/api/usuarios/registrar",        // Registro de usuario desde clínicas periféricas
             "/api/usuarios/verificar",        // Verificación de existencia de usuario (se usa /verificar/{cedula})

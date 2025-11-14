@@ -312,7 +312,7 @@ public class DocumentoClinicoBean implements Serializable {
                 "Solicitud de acceso enviada al paciente. Recibirá una notificación en su dispositivo móvil.");
 
         } catch (IllegalStateException e) {
-            // Error de cooldown de 24 horas
+            // Error de cooldown de 1 minuto
             addMessage(FacesMessage.SEVERITY_WARN, e.getMessage());
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al solicitar acceso: " + e.getMessage());
