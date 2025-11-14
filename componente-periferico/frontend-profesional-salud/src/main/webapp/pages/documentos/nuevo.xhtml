@@ -1,16 +1,13 @@
-<?xml version='1.0' encoding='UTF-8' ?>
+﻿<?xml version='1.0' encoding='UTF-8' ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
-      xmlns:f="jakarta.faces.core"
-      xmlns:ui="jakarta.faces.facelets">
+      xmlns:f="jakarta.faces.core">
 
 <h:head>
     <title>Nuevo Documento Clínico</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-
     <style>
         :root {
             --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
@@ -56,58 +53,153 @@
             gap: .5rem;
             flex-wrap: wrap;
         }
-
     </style>
 </h:head>
 
 <h:body>
 
-    <!-- MENÚ SUPERIOR -->
-    <h:form id="menuForm">
-        <p:menubar styleClass="app-menubar">
-            <p:menuitem value="Dashboard" outcome="/pages/dashboard.xhtml" icon="pi pi-home"/>
-            <p:menuitem value="Historia Clínica" outcome="/pages/historia/buscar.xhtml" icon="pi pi-book"/>
-            <p:menuitem value="Documentos Clínicos" outcome="/pages/documentos.xhtml" icon="pi pi-file"/>
+    <f:metadata>
+        <f:viewAction action="#{documentoClinicoBean.prepararVista}"/>
+    </f:metadata>
 
-            <f:facet name="options">
-                <p:outputLabel value="#{sessionBean.nombreProfesional}"
-                               style="color:white; margin-right:1rem;"/>
+    <h:form id="menuForm">
+        <div style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        background-color: var(--primary-color);
+        padding: 0.7rem 1.2rem;
+        border-bottom: 3px solid var(--secondary-color);
+    ">
+
+            <!-- BOTONES DE NAVEGACIÓN -->
+            <div style="display:flex; gap:0.5rem;">
+                <p:commandButton value="Dashboard"
+                                 icon="pi pi-home"
+                                 action="/pages/dashboard.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+
+                <p:commandButton value="Historia Clínica"
+                                 icon="pi pi-book"
+                                 action="/pages/historia/buscar.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+
+                <p:commandButton value="Documentos Clínicos"
+                                 icon="pi pi-file"
+                                 action="/pages/documentos.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+            </div>
+
+            <!-- USUARIO + CERRAR SESIÓN -->
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span style="color:white; font-weight:500;">
+                #{sessionBean.nombreProfesional}
+            </span>
+
                 <p:commandButton value="Cerrar Sesión"
-                                 action="#{sessionBean.logout}"
                                  icon="pi pi-sign-out"
+                                 action="#{sessionBean.logout}"
                                  styleClass="btn-secundario"/>
-            </f:facet>
-        </p:menubar>
+            </div>
+
+        </div>
     </h:form>
 
-    <!-- CONTENIDO -->
     <div class="container">
 
         <h2>Nuevo Documento Clínico</h2>
 
         <h:form id="formDoc">
-
             <p:panel header="Registrar Documento" styleClass="panel-secundario">
 
                 <p:messages id="messages" showDetail="true"/>
 
-                <p:outputLabel value="Tipo:" for="tipo"/>
-                <p:selectOneMenu id="tipo" value="#{documentosBean.tipo}" style="width:100%;">
-                    <f:selectItem itemLabel="Seleccione un tipo" itemValue=""/>
-                    <f:selectItem itemLabel="Consulta" itemValue="Consulta"/>
-                    <f:selectItem itemLabel="Evolución" itemValue="Evolución"/>
-                    <f:selectItem itemLabel="Procedimiento" itemValue="Procedimiento"/>
+                <p:outputLabel value="Paciente" for="paciente"/>
+                <p:selectOneMenu id="paciente"
+                                 value="#{documentoClinicoBean.newDocumento.usuarioSaludCedula}"
+                                 filter="true" filterMatchMode="contains"
+                                 style="width:100%;">
+                    <f:selectItem itemLabel="Seleccione un paciente" itemValue=""/>
+                    <f:selectItems value="#{documentoClinicoBean.pacientes}"
+                                   var="pac"
+                                   itemLabel="#{pac.cedula} - #{pac.nombreCompleto}"
+                                   itemValue="#{pac.cedula}"/>
                 </p:selectOneMenu>
 
-                <p:outputLabel value="Detalle:" for="detalle"/>
-                <p:inputTextarea id="detalle" value="#{documentosBean.detalle}"
-                                 autoResize="true" style="width:100%; min-height:150px;"/>
+                <p:outputLabel value="Profesional" for="profesional"/>
+                <p:inputText id="profesional"
+                             readonly="true"
+                             value="#{documentoClinicoBean.newDocumento.profesionalCi}"
+                             style="width:100%;"/>
+
+                <p:outputLabel value="Motivo de consulta" for="motivo"/>
+                <p:autoComplete id="motivo"
+                                value="#{documentoClinicoBean.motivoConsultaAutoComplete}"
+                                completeMethod="#{documentoClinicoBean.completeMotivo}"
+                                dropdown="true"
+                                forceSelection="true"
+                                minQueryLength="2"
+                                style="width:100%;"/>
+
+                <p:outputLabel value="Descripción del diagnóstico" for="descripcion"/>
+                <p:inputTextarea id="descripcion"
+                                 value="#{documentoClinicoBean.newDocumento.descripcionDiagnostico}"
+                                 autoResize="true"
+                                 style="width:100%; min-height:120px;"/>
+
+                <p:outputLabel value="Fecha del diagnóstico" for="fechaDiag"/>
+                <p:datePicker id="fechaDiag"
+                              value="#{documentoClinicoBean.newDocumento.fechaInicioDiagnostico}"
+                              pattern="yyyy-MM-dd"
+                              showIcon="true"
+                              style="width:100%;"/>
+
+                <p:outputLabel value="Estado del problema" for="estado"/>
+                <p:selectOneMenu id="estado"
+                                 value="#{documentoClinicoBean.newDocumento.codigoEstadoProblema}"
+                                 style="width:100%;">
+                    <f:selectItem itemLabel="Seleccione un estado" itemValue=""/>
+                    <f:selectItems value="#{documentoClinicoBean.estadosProblemaList}"
+                                   var="estado"
+                                   itemLabel="#{estado.value}"
+                                   itemValue="#{estado.key}"/>
+                </p:selectOneMenu>
+
+                <p:outputLabel value="Grado de certeza" for="certeza"/>
+                <p:selectOneMenu id="certeza"
+                                 value="#{documentoClinicoBean.newDocumento.codigoGradoCerteza}"
+                                 style="width:100%;">
+                    <f:selectItem itemLabel="Seleccione un grado" itemValue=""/>
+                    <f:selectItems value="#{documentoClinicoBean.gradosCertezaList}"
+                                   var="certeza"
+                                   itemLabel="#{certeza.value}"
+                                   itemValue="#{certeza.key}"/>
+                </p:selectOneMenu>
+
+                <p:outputLabel value="Fecha próxima consulta" for="fechaProxima"/>
+                <p:datePicker id="fechaProxima"
+                              value="#{documentoClinicoBean.newDocumento.fechaProximaConsulta}"
+                              pattern="yyyy-MM-dd"
+                              showIcon="true"
+                              style="width:100%;"/>
+
+                <p:outputLabel value="Indicaciones / próxima consulta" for="indicaciones"/>
+                <p:inputTextarea id="indicaciones"
+                                 value="#{documentoClinicoBean.newDocumento.descripcionProximaConsulta}"
+                                 autoResize="true"
+                                 style="width:100%; min-height:100px;"/>
+
+                <p:outputLabel value="Referencia de alta" for="referencia"/>
+                <p:inputTextarea id="referencia"
+                                 value="#{documentoClinicoBean.newDocumento.referenciaAlta}"
+                                 autoResize="true"
+                                 style="width:100%; min-height:80px;"/>
 
                 <div class="acciones">
                     <p:commandButton value="Guardar"
                                      icon="pi pi-check"
-                                     action="#{documentosBean.guardar}"
-                                     update=":formDoc:messages"
+                                     action="#{documentoClinicoBean.guardarDocumento}"
+                                     ajax="false"
                                      styleClass="btn-primario"/>
 
                     <p:button value="Cancelar"
@@ -117,7 +209,6 @@
                 </div>
 
             </p:panel>
-
         </h:form>
 
     </div>

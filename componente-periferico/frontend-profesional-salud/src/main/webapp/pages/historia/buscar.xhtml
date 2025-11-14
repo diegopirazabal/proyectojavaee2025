@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8' ?>
+﻿<?xml version='1.0' encoding='UTF-8' ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
@@ -8,9 +8,6 @@
 <h:head>
     <title>Buscar Historia Clínica</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-
-    <!-- Estilos Look & Feel -->
     <style>
         :root {
             --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
@@ -56,31 +53,33 @@
             gap: .5rem;
             flex-wrap: wrap;
         }
-
     </style>
 </h:head>
 
 <h:body>
 
-    <!-- MENÚ SUPERIOR -->
     <h:form id="menuForm">
-        <p:menubar styleClass="app-menubar">
-            <p:menuitem value="Dashboard" outcome="/pages/dashboard.xhtml" icon="pi pi-home"/>
-            <p:menuitem value="Historia Clínica" outcome="/pages/historia/buscar.xhtml" icon="pi pi-book"/>
-            <p:menuitem value="Documentos Clínicos" outcome="/pages/documentos.xhtml" icon="pi pi-file"/>
-
-            <f:facet name="options">
-                <p:outputLabel value="#{sessionBean.nombreProfesional}"
-                               style="color:white; margin-right:1rem;"/>
+        <div style="display:flex; align-items:center; justify-content:space-between;
+                    background-color: var(--primary-color);
+                    padding: 0.7rem 1.2rem; border-bottom: 3px solid var(--secondary-color);">
+            <div style="display:flex; gap:0.5rem;">
+                <p:button value="Dashboard" outcome="/pages/dashboard.xhtml" icon="pi pi-home"
+                          styleClass="btn-secundario"/>
+                <p:button value="Historia Clínica" outcome="/pages/historia/buscar.xhtml" icon="pi pi-book"
+                          styleClass="btn-secundario"/>
+                <p:button value="Documentos Clínicos" outcome="/pages/documentos.xhtml" icon="pi pi-file"
+                          styleClass="btn-secundario"/>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span style="color:white; font-weight:500;">#{sessionBean.nombreProfesional}</span>
                 <p:commandButton value="Cerrar Sesión"
-                                 action="#{sessionBean.logout}"
                                  icon="pi pi-sign-out"
+                                 action="#{sessionBean.logout}"
                                  styleClass="btn-secundario"/>
-            </f:facet>
-        </p:menubar>
+            </div>
+        </div>
     </h:form>
 
-    <!-- CONTENIDO -->
     <div class="container">
 
         <h2>Búsqueda de Historia Clínica</h2>
@@ -104,32 +103,35 @@
             </p:panel>
         </h:form>
 
-
-        <!-- RESULTADOS -->
         <h:form id="resultadoForm">
             <p:panel header="Historia Clínica" styleClass="panel-secundario"
                      rendered="#{not empty historiaClinicaBean.resultado}">
 
                 <p:dataTable id="tabla"
                              value="#{historiaClinicaBean.resultado}"
-                             var="item"
-                             paginator="true" rows="10"
+                             var="item" paginator="true" rows="10"
                              emptyMessage="No existen registros para este paciente">
 
                     <p:column headerText="Fecha">
-                        #{item.fecha}
+                        <h:outputText value="#{item.fechaInicioDiagnostico}">
+                            <f:convertDateTime pattern="yyyy-MM-dd"/>
+                        </h:outputText>
                     </p:column>
 
-                    <p:column headerText="Tipo">
-                        #{item.tipo}
+                    <p:column headerText="Motivo">
+                        #{item.nombreMotivoConsulta}
+                    </p:column>
+
+                    <p:column headerText="Profesional">
+                        #{item.nombreCompletoProfesional}
                     </p:column>
 
                     <p:column headerText="Acciones">
-                        <p:button value="Abrir"
-                                  icon="pi pi-search"
-                                  outcome="/pages/documentos/ver.xhtml">
-                            <f:param name="id" value="#{item.id}"/>
-                        </p:button>
+                        <p:commandButton value="Abrir"
+                                         icon="pi pi-search"
+                                         action="#{documentoClinicoBean.seleccionarDocumento(item)}"
+                                         ajax="false"
+                                         styleClass="btn-primario"/>
                     </p:column>
 
                 </p:dataTable>

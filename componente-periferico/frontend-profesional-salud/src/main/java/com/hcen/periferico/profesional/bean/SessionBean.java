@@ -117,7 +117,7 @@ public class SessionBean implements Serializable {
                 return null;
             }
         }
-        return "/pages/documentos.xhtml?faces-redirect=true";
+        return "/pages/dashboard.xhtml?faces-redirect=true";
     }
 
     public void login(profesional_salud_dto profesional) {

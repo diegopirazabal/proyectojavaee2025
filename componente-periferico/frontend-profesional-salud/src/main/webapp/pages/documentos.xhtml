@@ -76,20 +76,46 @@
 
     <!-- MENÚ SUPERIOR -->
     <h:form id="menuForm">
-        <p:menubar styleClass="app-menubar">
-            <p:menuitem value="Dashboard" outcome="/pages/dashboard.xhtml" icon="pi pi-home"/>
-            <p:menuitem value="Historia Clínica" outcome="/pages/historia/buscar.xhtml" icon="pi pi-book"/>
-            <p:menuitem value="Documentos Clínicos" outcome="/pages/documentos.xhtml" icon="pi pi-file"/>
+        <div style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        background-color: var(--primary-color);
+        padding: 0.7rem 1.2rem;
+        border-bottom: 3px solid var(--secondary-color);
+    ">
 
-            <f:facet name="options">
-                <p:outputLabel value="#{sessionBean.nombreProfesional}"
-                               style="color:white; margin-right:1rem;"/>
+            <!-- BOTONES DE NAVEGACIÓN -->
+            <div style="display:flex; gap:0.5rem;">
+                <p:commandButton value="Dashboard"
+                                 icon="pi pi-home"
+                                 action="/pages/dashboard.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+
+                <p:commandButton value="Historia Clínica"
+                                 icon="pi pi-book"
+                                 action="/pages/historia/buscar.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+
+                <p:commandButton value="Documentos Clínicos"
+                                 icon="pi pi-file"
+                                 action="/pages/documentos.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+            </div>
+
+            <!-- USUARIO + CERRAR SESIÓN -->
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span style="color:white; font-weight:500;">
+                #{sessionBean.nombreProfesional}
+            </span>
+
                 <p:commandButton value="Cerrar Sesión"
-                                 action="#{sessionBean.logout}"
                                  icon="pi pi-sign-out"
+                                 action="#{sessionBean.logout}"
                                  styleClass="btn-secundario"/>
-            </f:facet>
-        </p:menubar>
+            </div>
+
+        </div>
     </h:form>
 
     <!-- CONTENIDO -->
@@ -158,21 +184,22 @@
                     </p:column>
 
                     <p:column headerText="Acciones">
-                        <p:button value="Abrir"
-                                  icon="pi pi-search"
-                                  outcome="/pages/documentos/ver.xhtml">
-                            <f:param name="id" value="#{doc.id}"/>
-                        </p:button>
+                        <p:commandButton value="Abrir"
+                                         icon="pi pi-search"
+                                         action="#{documentoClinicoBean.seleccionarDocumento(doc)}"
+                                         ajax="false"
+                                         styleClass="btn-primario"/>
                     </p:column>
 
                 </p:dataTable>
 
 
                 <div class="acciones">
-                    <p:button value="Nuevo Documento"
-                              outcome="/pages/documentos/nuevo.xhtml"
-                              icon="pi pi-plus"
-                              styleClass="btn-primario"/>
+                    <p:commandButton value="Nuevo Documento"
+                                     icon="pi pi-plus"
+                                     action="#{documentoClinicoBean.prepararNuevoDocumento}"
+                                     ajax="false"
+                                     styleClass="btn-primario"/>
                 </div>
 
             </p:panel>

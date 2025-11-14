@@ -14,10 +14,9 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.primefaces.PrimeFaces;
 
 /**
- * Managed Bean para gestión de documentos clínicos ambulatorios.
+ * Managed Bean para gestiÃ³n de documentos clÃ­nicos ambulatorios.
  * Para uso exclusivo de profesionales de salud.
  */
 @Named
@@ -36,12 +35,12 @@ public class DocumentoClinicoBean implements Serializable {
     private List<documento_clinico_dto> documentos;
     private List<usuario_salud_dto> pacientes;
 
-    // Catálogos (codigueras)
+    // CatÃ¡logos (codigueras)
     private Map<String, String> motivosConsulta;
     private Map<String, String> estadosProblema;
     private Map<String, String> gradosCerteza;
 
-    // Documento en edición
+    // Documento en ediciÃ³n
     private documento_clinico_dto newDocumento;
     private documento_clinico_dto selectedDocumento;
 
@@ -51,7 +50,7 @@ public class DocumentoClinicoBean implements Serializable {
 
     // Autocompletado
     private String motivoConsultaAutoComplete; // Para el componente p:autoComplete (solo el nombre)
-    private Map<String, String> motivosCache; // Cache de nombre -> código para autocompletado
+    private Map<String, String> motivosCache; // Cache de nombre -> cÃ³digo para autocompletado
 
     @PostConstruct
     public void init() {
@@ -66,7 +65,7 @@ public class DocumentoClinicoBean implements Serializable {
     }
 
     /**
-     * Carga los catálogos de codigueras desde el backend
+     * Carga los catÃ¡logos de codigueras desde el backend
      */
     public void cargarCatalogos() {
         try {
@@ -74,7 +73,7 @@ public class DocumentoClinicoBean implements Serializable {
             estadosProblema = apiService.getEstadosProblema();
             gradosCerteza = apiService.getGradosCerteza();
         } catch (Exception e) {
-            addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar catálogos: " + e.getMessage());
+            addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar catÃ¡logos: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -86,7 +85,7 @@ public class DocumentoClinicoBean implements Serializable {
         try {
             String tenantId = sessionBean.getTenantId();
             if (tenantId == null || tenantId.isEmpty()) {
-                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clÃ­nica");
                 return;
             }
             List<usuario_salud_dto> resultado = apiService.getAllUsuarios(tenantId);
@@ -104,7 +103,7 @@ public class DocumentoClinicoBean implements Serializable {
     }
 
     /**
-     * Carga documentos de un paciente específico
+     * Carga documentos de un paciente especÃ­fico
      */
     public void cargarDocumentosPorPaciente() {
         if (cedulaPacienteSeleccionado == null || cedulaPacienteSeleccionado.trim().isEmpty()) {
@@ -115,7 +114,7 @@ public class DocumentoClinicoBean implements Serializable {
         try {
             String tenantId = sessionBean.getTenantId();
             if (tenantId == null || tenantId.isEmpty()) {
-                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clÃ­nica");
                 return;
             }
 
@@ -137,7 +136,7 @@ public class DocumentoClinicoBean implements Serializable {
     /**
      * Prepara el formulario para crear un nuevo documento
      */
-    public void prepararNuevoDocumento() {
+    public String prepararNuevoDocumento() {
         newDocumento = new documento_clinico_dto();
         motivoConsultaAutoComplete = null; // Reset del autocompletado
 
@@ -154,54 +153,53 @@ public class DocumentoClinicoBean implements Serializable {
 
         // Fecha de inicio por defecto: hoy
         newDocumento.setFechaInicioDiagnostico(LocalDate.now());
+        return "/pages/documentos/nuevo.xhtml?faces-redirect=true";
     }
 
     /**
-     * Guarda un nuevo documento clínico
+     * Guarda un nuevo documento clÃ­nico
      */
-    public void guardarDocumento() {
+    public String guardarDocumento() {
         try {
-            // Validaciones
             if (newDocumento.getUsuarioSaludCedula() == null || newDocumento.getUsuarioSaludCedula().trim().isEmpty()) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "Debe seleccionar un paciente");
-                return;
+                return null;
             }
             if (newDocumento.getProfesionalCi() == null) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el CI del profesional");
-                return;
+                return null;
             }
 
-            // Extraer código del motivo de consulta del autocompletado
             if (motivoConsultaAutoComplete == null || motivoConsultaAutoComplete.trim().isEmpty()) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "El motivo de consulta es obligatorio");
-                return;
+                return null;
             }
             String codigoMotivo = extraerCodigoDeAutoComplete(motivoConsultaAutoComplete);
             if (codigoMotivo == null) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "Formato de motivo de consulta inválido");
-                return;
+                return null;
             }
             newDocumento.setCodigoMotivoConsulta(codigoMotivo);
+
             if (newDocumento.getDescripcionDiagnostico() == null || newDocumento.getDescripcionDiagnostico().trim().isEmpty()) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "La descripción del diagnóstico es obligatoria");
-                return;
+                return null;
             }
             if (newDocumento.getFechaInicioDiagnostico() == null) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "La fecha de inicio del diagnóstico es obligatoria");
-                return;
+                return null;
             }
             if (newDocumento.getCodigoGradoCerteza() == null || newDocumento.getCodigoGradoCerteza().trim().isEmpty()) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "El grado de certeza es obligatorio");
-                return;
+                return null;
             }
 
             String tenantId = sessionBean.getTenantId();
             if (tenantId == null || tenantId.isEmpty()) {
                 addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
-                return;
+                return null;
             }
 
-            // Llamar al APIService
             documento_clinico_dto resultado = apiService.crearDocumento(
                 newDocumento.getUsuarioSaludCedula(),
                 newDocumento.getProfesionalCi(),
@@ -218,13 +216,9 @@ public class DocumentoClinicoBean implements Serializable {
 
             if (resultado != null) {
                 addMessage(FacesMessage.SEVERITY_INFO, "Documento clínico creado exitosamente");
-                cargarDocumentosPorPaciente(); // Recargar lista
-                newDocumento = new documento_clinico_dto(); // Reset form
-                PrimeFaces primeFaces = PrimeFaces.current();
-                if (primeFaces != null) {
-                    primeFaces.ajax().update("documentosForm");
-                    primeFaces.executeScript("PF('dlgNuevoDocumento').hide();");
-                }
+                cargarDocumentosPorPaciente();
+                newDocumento = new documento_clinico_dto();
+                return "/pages/documentos.xhtml?faces-redirect=true";
             } else {
                 addMessage(FacesMessage.SEVERITY_ERROR, "Error al crear el documento");
             }
@@ -232,31 +226,32 @@ public class DocumentoClinicoBean implements Serializable {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al guardar documento: " + e.getMessage());
             e.printStackTrace();
         }
+        return null;
     }
 
     /**
-     * Método provisional para forzar sincronización manual con el componente central
-     * Útil para debugging y testing sin tener que crear nuevos documentos
+     * MÃ©todo provisional para forzar sincronizaciÃ³n manual con el componente central
+     * Ãštil para debugging y testing sin tener que crear nuevos documentos
      */
     public void forzarSincronizacion() {
         try {
-            System.out.println("=== Forzando sincronización manual desde frontend ===");
+            System.out.println("=== Forzando sincronizaciÃ³n manual desde frontend ===");
             boolean exito = apiService.sincronizarPendientes();
 
             if (exito) {
-                addMessage(FacesMessage.SEVERITY_INFO, "Sincronización iniciada correctamente. Revisa los logs del servidor para ver el resultado.");
+                addMessage(FacesMessage.SEVERITY_INFO, "SincronizaciÃ³n iniciada correctamente. Revisa los logs del servidor para ver el resultado.");
             } else {
-                addMessage(FacesMessage.SEVERITY_WARN, "La sincronización se ejecutó pero hubo problemas. Revisa los logs del servidor.");
+                addMessage(FacesMessage.SEVERITY_WARN, "La sincronizaciÃ³n se ejecutÃ³ pero hubo problemas. Revisa los logs del servidor.");
             }
         } catch (Exception e) {
-            addMessage(FacesMessage.SEVERITY_ERROR, "Error al forzar sincronización: " + e.getMessage());
+            addMessage(FacesMessage.SEVERITY_ERROR, "Error al forzar sincronizaciÃ³n: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     /**
-     * Se ejecuta antes de renderizar la vista para asegurar que las listas estén cargadas
-     * cuando el profesional inicia sesión desde la pantalla principal.
+     * Se ejecuta antes de renderizar la vista para asegurar que las listas estÃ©n cargadas
+     * cuando el profesional inicia sesiÃ³n desde la pantalla principal.
      */
     public void prepararVista() {
         if (!sessionBean.isLoggedIn()) {
@@ -271,14 +266,19 @@ public class DocumentoClinicoBean implements Serializable {
     }
 
     /**
-     * Selecciona un documento para ver detalles
+     * Selecciona un documento para ver detalles y navega a la pÃ¡gina de visualizaciÃ³n.
      */
-    public void seleccionarDocumento(documento_clinico_dto documento) {
+    public String seleccionarDocumento(documento_clinico_dto documento) {
+        if (documento == null) {
+            addMessage(FacesMessage.SEVERITY_WARN, "No se pudo cargar el documento seleccionado");
+            return null;
+        }
         this.selectedDocumento = documento;
+        return "/pages/documentos/ver.xhtml?faces-redirect=true";
     }
 
     /**
-     * Método de autocompletado para motivos de consulta
+     * MÃ©todo de autocompletado para motivos de consulta
      * Llamado por p:autoComplete cuando el usuario escribe
      */
     public List<String> completeMotivo(String query) {
@@ -294,10 +294,10 @@ public class DocumentoClinicoBean implements Serializable {
                 String codigo = entry.getKey();
                 String nombre = entry.getValue();
 
-                // Guardar en cache para poder recuperar el código luego
+                // Guardar en cache para poder recuperar el cÃ³digo luego
                 motivosCache.put(nombre, codigo);
 
-                // Devolver solo el nombre (no el código)
+                // Devolver solo el nombre (no el cÃ³digo)
                 sugerencias.add(nombre);
             }
 
@@ -328,14 +328,14 @@ public class DocumentoClinicoBean implements Serializable {
     }
 
     /**
-     * Extrae el código a partir del nombre seleccionado en el autocompletado
-     * Busca en el cache de motivos que se llenó durante la búsqueda
+     * Extrae el cÃ³digo a partir del nombre seleccionado en el autocompletado
+     * Busca en el cache de motivos que se llenÃ³ durante la bÃºsqueda
      */
     private String extraerCodigoDeAutoComplete(String nombreSeleccionado) {
         if (nombreSeleccionado == null || nombreSeleccionado.trim().isEmpty()) {
             return null;
         }
-        // Buscar el código en el cache usando el nombre
+        // Buscar el cÃ³digo en el cache usando el nombre
         return motivosCache.get(nombreSeleccionado);
     }
 
@@ -429,3 +429,4 @@ public class DocumentoClinicoBean implements Serializable {
         this.motivoConsultaAutoComplete = motivoConsultaAutoComplete;
     }
 }
+
