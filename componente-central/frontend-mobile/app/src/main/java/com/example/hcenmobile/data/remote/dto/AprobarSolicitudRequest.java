@@ -28,6 +28,9 @@ public class AprobarSolicitudRequest {
     @SerializedName("tenantId")
     private String tenantId;
 
+    @SerializedName("fechaExpiracion")
+    private String fechaExpiracion;
+
     // Constructor vacío
     public AprobarSolicitudRequest() {
     }
@@ -101,5 +104,13 @@ public class AprobarSolicitudRequest {
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
+    }
+
+    public String getFechaExpiracion() {
+        return fechaExpiracion;
+    }
+
+    public void setFechaExpiracion(String fechaExpiracion) {
+        this.fechaExpiracion = fechaExpiracion;
     }
 }

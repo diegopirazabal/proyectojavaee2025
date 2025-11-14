@@ -5,6 +5,34 @@
     <string name="title_home">Inicio</string>
     <string name="title_dashboard">Historia Clínica</string>
     <string name="title_notifications">Notificaciones</string>
+    <string name="notifications_header_title">Notificaciones</string>
+    <string name="notifications_header_subtitle">Gestioná tus solicitudes y accesos recientes</string>
+    <string name="notifications_empty_message">No hay notificaciones</string>
+    <string name="notification_detail_info_title">Información de la solicitud</string>
+    <string name="notification_detail_profesional_format">Profesional: %1$s (CI: %2$s)</string>
+    <string name="notification_detail_default_profesional">Profesional</string>
+    <string name="notification_detail_remitente_format">Remitente: %1$s</string>
+    <string name="notification_detail_documento_format">Documento del %1$s</string>
+    <string name="notification_detail_motivo_placeholder">Motivo no especificado</string>
+    <string name="notification_detail_especialidad_placeholder">Especialidad no especificada</string>
+    <string name="notification_detail_date_title">Vigencia del permiso</string>
+    <string name="notification_detail_expiration_label">El permiso expirará el %1$s</string>
+    <string name="notification_detail_expiration_hint">Por defecto se otorga por 15 días</string>
+    <string name="notification_detail_date_button">Cambiar fecha</string>
+    <string name="notification_detail_actions_title">Acciones disponibles</string>
+    <string name="notification_detail_permission_professional">Dar permiso a este profesional</string>
+    <string name="notification_detail_permission_specialty">Dar permiso a profesionales de la clínica con esta especialidad</string>
+    <string name="notification_detail_permission_clinic">Dar permiso a todos los profesionales de la clínica</string>
+    <string name="notification_detail_deny">No dar permiso</string>
+    <string name="notification_detail_empty_state">Esta notificación no requiere acciones manuales.</string>
+    <string name="notification_detail_especialidad_missing">No hay una especialidad asociada a esta solicitud.</string>
+    <string name="notification_detail_error_missing_data">Faltan datos para procesar la solicitud.</string>
+    <string name="notification_detail_success_aprobar">Permiso otorgado correctamente.</string>
+    <string name="notification_detail_success_rechazar">Solicitud rechazada.</string>
+    <string name="notification_detail_error_general">No se pudo completar la acción. Intente nuevamente.</string>
+    <string name="notification_detail_picker_title">Seleccioná hasta cuándo querés otorgar acceso</string>
+    <string name="notification_detail_picker_invalid">Seleccioná una fecha válida.</string>
+    <string name="notification_detail_reject_confirmation">¿Estás seguro que no querés otorgar permiso?</string>
 
     <!-- Login -->
     <string name="login_title">HCEN</string>
