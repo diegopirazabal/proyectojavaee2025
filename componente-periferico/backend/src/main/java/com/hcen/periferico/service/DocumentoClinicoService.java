@@ -555,7 +555,14 @@ public class DocumentoClinicoService {
         );
 
         if (!notificacionEnviada) {
-            throw new RuntimeException("No se pudo enviar la notificación al paciente");
+            LOGGER.warning(String.format(
+                "No se pudo enviar la notificación de solicitud de acceso (documento=%s, profesional=%d, paciente=%s)",
+                documentoId, ciProfesional, cedulaPaciente));
+
+            return new ResultadoSolicitudAcceso(
+                false,
+                "No se pudo enviar la notificación al paciente. Por favor verifique los datos o intente nuevamente."
+            );
         }
 
         // Registrar solicitud en base de datos local para control de anti-spam
