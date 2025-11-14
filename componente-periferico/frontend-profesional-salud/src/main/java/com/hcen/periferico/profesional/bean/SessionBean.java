@@ -24,6 +24,9 @@ public class SessionBean implements Serializable {
     @Inject
     private APIService apiService;
 
+    @Inject
+    private LookAndFeelBean lookAndFeelBean;
+
     private profesional_salud_dto profesionalLogueado;
     private List<clinica_dto> clinicas;
 

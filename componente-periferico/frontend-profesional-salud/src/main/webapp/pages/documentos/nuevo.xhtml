@@ -1,60 +1,126 @@
+<?xml version='1.0' encoding='UTF-8' ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
-      xmlns:f="jakarta.faces.core">
+      xmlns:f="jakarta.faces.core"
+      xmlns:ui="jakarta.faces.facelets">
+
 <h:head>
-    <meta charset="UTF-8"/>
-    <title>Alta de documento</title>
+    <title>Nuevo Documento Clínico</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+
     <style>
-        .p-panel .p-panel-header{ background: #20c997 !important; color:#fff; }
-        .p-button, .p-button.p-button-success, .p-button.p-button-secondary{ background: #28a745 !important; border-color: #28a745 !important; }
+        :root {
+            --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
+            --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
+        }
+
+        .app-menubar {
+            background-color: var(--primary-color) !important;
+            border: none !important;
+        }
+
+        .app-menubar .p-menuitem-link,
+        .app-menubar .p-menuitem-text,
+        .app-menubar .pi {
+            color: #ffffff !important;
+        }
+
+        .panel-secundario .p-panel-header {
+            background-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-primario {
+            background: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-secundario {
+            background: var(--secondary-color) !important;
+            border-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .acciones {
+            margin-top: 1rem;
+            display: flex;
+            gap: .5rem;
+            flex-wrap: wrap;
+        }
+
     </style>
 </h:head>
+
 <h:body>
-<div style="max-width: 720px; margin: 2rem auto;">
-    <p:panel header="Alta de documento clínico">
+
+    <!-- MENÚ SUPERIOR -->
+    <h:form id="menuForm">
+        <p:menubar styleClass="app-menubar">
+            <p:menuitem value="Dashboard" outcome="/pages/dashboard.xhtml" icon="pi pi-home"/>
+            <p:menuitem value="Historia Clínica" outcome="/pages/historia/buscar.xhtml" icon="pi pi-book"/>
+            <p:menuitem value="Documentos Clínicos" outcome="/pages/documentos.xhtml" icon="pi pi-file"/>
+
+            <f:facet name="options">
+                <p:outputLabel value="#{sessionBean.nombreProfesional}"
+                               style="color:white; margin-right:1rem;"/>
+                <p:commandButton value="Cerrar Sesión"
+                                 action="#{sessionBean.logout}"
+                                 icon="pi pi-sign-out"
+                                 styleClass="btn-secundario"/>
+            </f:facet>
+        </p:menubar>
+    </h:form>
+
+    <!-- CONTENIDO -->
+    <div class="container">
+
+        <h2>Nuevo Documento Clínico</h2>
+
         <h:form id="formDoc">
-            <p:messages showDetail="false" closable="true"/>
 
-            <div class="p-fluid p-formgrid p-grid">
-                <div class="p-field p-col-12 p-md-6">
-                    <p:outputLabel for="cedula" value="Cédula del paciente"/>
-                    <p:inputText id="cedula" value="#{documentosBean.pacienteCedula}" required="true" requiredMessage="La cédula es requerida"/>
-                </div>
-                <div class="p-field p-col-12 p-md-6">
-                    <p:outputLabel for="tipo" value="Tipo de documento"/>
-                    <p:selectOneMenu id="tipo" value="#{documentosBean.tipo}" required="true" requiredMessage="El tipo es requerido">
-                        <f:selectItem itemLabel="-- Seleccione --" itemValue="" noSelectionOption="true"/>
-                        <f:selectItem itemLabel="Evolución" itemValue="EVOLUCION"/>
-                        <f:selectItem itemLabel="Laboratorio" itemValue="LAB"/>
-                        <f:selectItem itemLabel="Otro" itemValue="OTRO"/>
-                    </p:selectOneMenu>
+            <p:panel header="Registrar Documento" styleClass="panel-secundario">
+
+                <p:messages id="messages" showDetail="true"/>
+
+                <p:outputLabel value="Tipo:" for="tipo"/>
+                <p:selectOneMenu id="tipo" value="#{documentosBean.tipo}" style="width:100%;">
+                    <f:selectItem itemLabel="Seleccione un tipo" itemValue=""/>
+                    <f:selectItem itemLabel="Consulta" itemValue="Consulta"/>
+                    <f:selectItem itemLabel="Evolución" itemValue="Evolución"/>
+                    <f:selectItem itemLabel="Procedimiento" itemValue="Procedimiento"/>
+                </p:selectOneMenu>
+
+                <p:outputLabel value="Detalle:" for="detalle"/>
+                <p:inputTextarea id="detalle" value="#{documentosBean.detalle}"
+                                 autoResize="true" style="width:100%; min-height:150px;"/>
+
+                <div class="acciones">
+                    <p:commandButton value="Guardar"
+                                     icon="pi pi-check"
+                                     action="#{documentosBean.guardar}"
+                                     update=":formDoc:messages"
+                                     styleClass="btn-primario"/>
+
+                    <p:button value="Cancelar"
+                              outcome="/pages/documentos.xhtml"
+                              icon="pi pi-times"
+                              styleClass="btn-secundario"/>
                 </div>
 
-                <div class="p-field p-col-12">
-                    <p:outputLabel for="titulo" value="Título"/>
-                    <p:inputText id="titulo" value="#{documentosBean.titulo}" required="true" requiredMessage="El título es requerido"/>
-                </div>
+            </p:panel>
 
-                <div class="p-field p-col-12">
-                    <p:outputLabel for="contenido" value="Contenido"/>
-                    <p:inputTextarea id="contenido" value="#{documentosBean.contenido}" rows="8" autoResize="true"/>
-                </div>
-            </div>
-
-            <div class="p-mt-3" style="display:flex; gap:.5rem;">
-                <p:commandButton value="Guardar" icon="pi pi-save" styleClass="p-button-success" action="#{documentosBean.guardar}" update=":formDoc"/>
-                <p:button outcome="/pages/dashboard.xhtml" value="Cancelar" icon="pi pi-times" styleClass="p-button-success"/>
-            </div>
         </h:form>
-    </p:panel>
 
-    <div style="margin-top:1rem;">
-        <p:button outcome="/pages/dashboard.xhtml" value="Volver" icon="pi pi-arrow-left" styleClass="p-button-success"/>
     </div>
-</div>
+
 </h:body>
 </html>
-

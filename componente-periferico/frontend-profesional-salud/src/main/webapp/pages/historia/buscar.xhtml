@@ -1,43 +1,143 @@
+<?xml version='1.0' encoding='UTF-8' ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
       xmlns:f="jakarta.faces.core">
+
 <h:head>
-    <meta charset="UTF-8"/>
-    <title>Historia clínica</title>
+    <title>Buscar Historia Clínica</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+
+    <!-- Estilos Look & Feel -->
     <style>
-        .p-panel .p-panel-header{ background: #20c997 !important; color:#fff; }
-        .p-button, .p-button.p-button-success, .p-button.p-button-secondary{ background: #28a745 !important; border-color: #28a745 !important; }
+        :root {
+            --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
+            --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
+        }
+
+        .app-menubar {
+            background-color: var(--primary-color) !important;
+            border: none !important;
+        }
+
+        .app-menubar .p-menuitem-link,
+        .app-menubar .p-menuitem-text,
+        .app-menubar .pi {
+            color: #ffffff !important;
+        }
+
+        .panel-secundario .p-panel-header {
+            background-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-primario {
+            background: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-secundario {
+            background: var(--secondary-color) !important;
+            border-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .acciones {
+            margin-top: 1rem;
+            display: flex;
+            gap: .5rem;
+            flex-wrap: wrap;
+        }
+
     </style>
 </h:head>
-<h:body>
-<div style="max-width: 960px; margin: 2rem auto;">
-    <p:panel header="Búsqueda de historia clínica">
-        <h:form id="formHist">
-            <div class="p-fluid p-formgrid p-grid">
-                <div class="p-field p-col-12 p-md-6">
-                    <p:outputLabel for="cedula" value="Cédula del paciente"/>
-                    <p:inputText id="cedula" value="#{historiaBean.cedula}"/>
-                </div>
-                <div class="p-field p-col-12 p-md-6" style="display:flex; align-items:flex-end; gap:.5rem;">
-                    <p:commandButton value="Buscar" actionListener="#{historiaBean.buscar}" update=":formHist:tabla" icon="pi pi-search" styleClass="p-button-success"/>
-                    <p:button outcome="/pages/dashboard.xhtml" value="Volver" icon="pi pi-arrow-left" styleClass="p-button-success"/>
-                </div>
-            </div>
 
-            <p:dataTable id="tabla" value="#{historiaBean.documentos}" var="doc" emptyMessage="Sin resultados">
-                <p:column headerText="Título">#{doc.titulo}</p:column>
-                <p:column headerText="Tipo">#{doc.tipo}</p:column>
-                <p:column headerText="Origen">#{doc.origen}</p:column>
-                <p:column headerText="Acciones" style="width: 180px; text-align:center;">
-                    <p:commandButton value="Solicitar acceso" icon="pi pi-unlock" actionListener="#{historiaBean.solicitarAcceso(doc)}" update=":formHist" styleClass="p-button-success"/>
-                </p:column>
-            </p:dataTable>
+<h:body>
+
+    <!-- MENÚ SUPERIOR -->
+    <h:form id="menuForm">
+        <p:menubar styleClass="app-menubar">
+            <p:menuitem value="Dashboard" outcome="/pages/dashboard.xhtml" icon="pi pi-home"/>
+            <p:menuitem value="Historia Clínica" outcome="/pages/historia/buscar.xhtml" icon="pi pi-book"/>
+            <p:menuitem value="Documentos Clínicos" outcome="/pages/documentos.xhtml" icon="pi pi-file"/>
+
+            <f:facet name="options">
+                <p:outputLabel value="#{sessionBean.nombreProfesional}"
+                               style="color:white; margin-right:1rem;"/>
+                <p:commandButton value="Cerrar Sesión"
+                                 action="#{sessionBean.logout}"
+                                 icon="pi pi-sign-out"
+                                 styleClass="btn-secundario"/>
+            </f:facet>
+        </p:menubar>
+    </h:form>
+
+    <!-- CONTENIDO -->
+    <div class="container">
+
+        <h2>Búsqueda de Historia Clínica</h2>
+
+        <h:form id="buscarForm">
+            <p:panel header="Buscar por CI" styleClass="panel-secundario">
+
+                <p:messages id="messages" showDetail="true"/>
+
+                <p:outputLabel value="Cédula de identidad:" for="ci"/>
+                <p:inputText id="ci" value="#{historiaClinicaBean.ci}" style="width:100%;"/>
+
+                <div class="acciones">
+                    <p:commandButton value="Buscar"
+                                     icon="pi pi-search"
+                                     styleClass="btn-primario"
+                                     action="#{historiaClinicaBean.buscar}"
+                                     update=":resultadoForm:tabla :buscarForm:messages"/>
+                </div>
+
+            </p:panel>
         </h:form>
-    </p:panel>
-</div>
+
+
+        <!-- RESULTADOS -->
+        <h:form id="resultadoForm">
+            <p:panel header="Historia Clínica" styleClass="panel-secundario"
+                     rendered="#{not empty historiaClinicaBean.resultado}">
+
+                <p:dataTable id="tabla"
+                             value="#{historiaClinicaBean.resultado}"
+                             var="item"
+                             paginator="true" rows="10"
+                             emptyMessage="No existen registros para este paciente">
+
+                    <p:column headerText="Fecha">
+                        #{item.fecha}
+                    </p:column>
+
+                    <p:column headerText="Tipo">
+                        #{item.tipo}
+                    </p:column>
+
+                    <p:column headerText="Acciones">
+                        <p:button value="Abrir"
+                                  icon="pi pi-search"
+                                  outcome="/pages/documentos/ver.xhtml">
+                            <f:param name="id" value="#{item.id}"/>
+                        </p:button>
+                    </p:column>
+
+                </p:dataTable>
+
+            </p:panel>
+        </h:form>
+
+    </div>
+
 </h:body>
 </html>
-

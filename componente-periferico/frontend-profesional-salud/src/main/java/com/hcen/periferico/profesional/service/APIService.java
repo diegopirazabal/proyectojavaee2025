@@ -3,6 +3,7 @@ package com.hcen.periferico.profesional.service;
 import com.hcen.periferico.profesional.dto.clinica_dto;
 import com.hcen.periferico.profesional.dto.documento_clinico_dto;
 import com.hcen.periferico.profesional.dto.profesional_salud_dto;
+import com.hcen.periferico.profesional.dto.configuracion_clinica_dto;
 import com.hcen.periferico.profesional.dto.usuario_salud_dto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
@@ -113,6 +114,26 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return new ArrayList<>();
+    }
+
+    // ========== CONFIGURACIÓN CLÍNICA ==========
+
+    public configuracion_clinica_dto getConfiguracion(String tenantId) throws IOException {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(getBackendUrl() + "/configuracion/" + tenantId);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int status = response.getCode();
+                String responseBody = response.getEntity() != null
+                    ? new String(response.getEntity().getContent().readAllBytes())
+                    : "";
+
+                if (status == 200) {
+                    return parseConfiguracionFromJson(responseBody);
+                }
+                throw new IOException("Error al obtener configuración: HTTP " + status + " - " + responseBody);
+            }
+        }
     }
 
     // ========== USUARIOS SALUD ==========
@@ -358,6 +379,26 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return clinicas;
+    }
+
+    private configuracion_clinica_dto parseConfiguracionFromJson(String jsonString) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject jsonObject = reader.readObject();
+
+            configuracion_clinica_dto dto = new configuracion_clinica_dto();
+            dto.setId(jsonObject.isNull("id") ? null : jsonObject.getString("id"));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
+            dto.setColorPrimario(jsonObject.getString("colorPrimario", null));
+            dto.setColorSecundario(jsonObject.getString("colorSecundario", null));
+            dto.setLogoUrl(jsonObject.getString("logoUrl", null));
+            dto.setNombreSistema(jsonObject.getString("nombreSistema", null));
+            dto.setTema(jsonObject.getString("tema", null));
+            dto.setNodoPerifericoHabilitado(jsonObject.getBoolean("nodoPerifericoHabilitado", false));
+            return dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private documento_clinico_dto parseDocumentoFromJson(String jsonString) {
