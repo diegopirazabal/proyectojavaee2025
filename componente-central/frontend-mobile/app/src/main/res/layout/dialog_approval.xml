@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Otorgar Permiso de Acceso"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/dialog_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Seleccione el tipo de permiso que desea otorgar"
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Información del profesional y documento -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:elevation="2dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp"
+            android:background="#F5F5F5">
+
+            <TextView
+                android:id="@+id/profesional_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Dr. Juan Pérez (CI: 12345678)"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black" />
+
+            <TextView
+                android:id="@+id/clinica_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Clínica San José"
+                android:textSize="12sp"
+                android:textColor="@android:color/darker_gray"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/documento_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Documento del 15/11/2025"
+                android:textSize="12sp"
+                android:textColor="@android:color/darker_gray"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Radio buttons para selección de tipo de permiso -->
+    <RadioGroup
+        android:id="@+id/permission_type_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <RadioButton
+            android:id="@+id/radio_profesional_especifico"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Solo este profesional"
+            android:padding="12dp"
+            android:checked="true" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Permite acceso únicamente al profesional que realizó la solicitud"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:paddingStart="40dp"
+            android:paddingEnd="12dp"
+            android:layout_marginBottom="8dp" />
+
+        <RadioButton
+            android:id="@+id/radio_por_especialidad"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Todos los profesionales de esta especialidad"
+            android:padding="12dp" />
+
+        <TextView
+            android:id="@+id/especialidad_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Permite acceso a cualquier profesional de Cardiología en esta clínica"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:paddingStart="40dp"
+            android:paddingEnd="12dp"
+            android:layout_marginBottom="8dp" />
+
+        <RadioButton
+            android:id="@+id/radio_por_clinica"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Toda la clínica"
+            android:padding="12dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Permite acceso a todos los profesionales de la clínica"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:paddingStart="40dp"
+            android:paddingEnd="12dp"
+            android:layout_marginBottom="8dp" />
+    </RadioGroup>
+
+    <!-- Aviso de duración -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="⏱️ El permiso expirará en 15 días"
+        android:textSize="12sp"
+        android:textColor="@android:color/holo_orange_dark"
+        android:padding="8dp"
+        android:background="#FFF3E0"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Botones de acción -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/btn_cancel"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancelar"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btn_approve"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Otorgar Permiso"
+            android:backgroundTint="@android:color/holo_green_dark" />
+    </LinearLayout>
+
+</LinearLayout>

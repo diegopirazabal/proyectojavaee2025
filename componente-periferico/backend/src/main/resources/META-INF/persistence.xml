@@ -18,6 +18,7 @@
         <class>com.hcen.periferico.entity.configuracion_clinica</class>
         <class>com.hcen.periferico.entity.documento_clinico</class>
         <class>com.hcen.periferico.entity.politica_acceso</class>
+        <class>com.hcen.periferico.entity.solicitud_acceso_documento</class>
 
 
         <properties>

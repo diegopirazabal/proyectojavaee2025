@@ -26,6 +26,9 @@ public class notificacion {
     @Column(length = 30)
     private String estado;
 
+    @Column(name = "DATOS_ADICIONALES", columnDefinition = "TEXT")
+    private String datosAdicionales;
+
     // Usuario FK not null - Referencia a UsuarioSalud local con composite key
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumns(
@@ -49,6 +52,8 @@ public class notificacion {
     public void setFecCreacion(LocalDateTime fecCreacion) { this.fecCreacion = fecCreacion; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+    public String getDatosAdicionales() { return datosAdicionales; }
+    public void setDatosAdicionales(String datosAdicionales) { this.datosAdicionales = datosAdicionales; }
     public UsuarioSalud getUsuario() { return usuario; }
     public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
 
