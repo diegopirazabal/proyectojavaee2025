@@ -432,7 +432,7 @@ public class DocumentoClinicoResource {
 
     /**
      * Solicita acceso a un documento enviando notificación al paciente
-     * Solo permite una solicitud cada 24 horas por profesional-documento
+     * Solo permite una solicitud por minuto por profesional-documento
      */
     @POST
     @Path("/{id}/solicitar-acceso")

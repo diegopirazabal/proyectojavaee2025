@@ -490,7 +490,7 @@ public class DocumentoClinicoService {
 
     /**
      * Solicita acceso a un documento clínico enviando notificación al paciente
-     * Solo permite una solicitud cada 24 horas por profesional-documento
+     * Solo permite una solicitud por minuto por profesional-documento
      *
      * @param documentoId UUID del documento
      * @param ciProfesional CI del profesional solicitante
@@ -510,13 +510,13 @@ public class DocumentoClinicoService {
         // Validar que no existe una solicitud reciente
         if (!solicitudAccesoDAO.puedeVolverASolicitar(documentoId, ciProfesional, tenantId)) {
             LOGGER.info(String.format(
-                "Solicitud duplicada rechazada (24h): documento=%s, profesional=%d",
+                "Solicitud duplicada rechazada (cooldown 1m): documento=%s, profesional=%d",
                 documentoId, ciProfesional));
 
             return new ResultadoSolicitudAcceso(
                 false,
                 "Ya existe una solicitud de acceso reciente para este documento. " +
-                "Por favor espere 24 horas antes de volver a solicitar."
+                "Por favor espere 1 minuto antes de volver a solicitar."
             );
         }
 

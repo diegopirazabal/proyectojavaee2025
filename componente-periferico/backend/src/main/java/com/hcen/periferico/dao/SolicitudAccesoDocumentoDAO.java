@@ -15,7 +15,7 @@ import java.util.UUID;
 
 /**
  * DAO para gestión de solicitudes de acceso a documentos clínicos.
- * Permite controlar el anti-spam de solicitudes (máximo 1 cada 24 horas).
+ * Permite controlar el anti-spam de solicitudes (máximo 1 por minuto).
  */
 @Stateless
 public class SolicitudAccesoDocumentoDAO {
@@ -44,7 +44,7 @@ public class SolicitudAccesoDocumentoDAO {
 
     /**
      * Encuentra la última solicitud de un profesional para un documento específico
-     * Usado para controlar que no se envíen solicitudes duplicadas antes de 24 horas
+     * Usado para controlar que no se envíen solicitudes duplicadas antes de un minuto
      */
     public Optional<solicitud_acceso_documento> findUltimaSolicitud(
             UUID documentoId,
@@ -76,8 +76,8 @@ public class SolicitudAccesoDocumentoDAO {
      * Verifica si un profesional puede volver a solicitar acceso a un documento
      * Retorna true si:
      * - Nunca solicitó acceso antes
-     * - La última solicitud fue hace más de 24 horas
-     * - La última solicitud fue rechazada hace más de 24 horas
+     * - La última solicitud fue hace más de un minuto
+     * - La última solicitud fue rechazada hace más de un minuto
      */
     public boolean puedeVolverASolicitar(UUID documentoId, Integer profesionalCi, UUID tenantId) {
         Optional<solicitud_acceso_documento> ultimaSolicitud =
@@ -95,7 +95,7 @@ public class SolicitudAccesoDocumentoDAO {
             return false;
         }
 
-        // Para solicitudes pendientes o rechazadas, verificar 24 horas
+        // Para solicitudes pendientes o rechazadas, verificar el intervalo mínimo
         return solicitud.puedeVolverASolicitar();
     }
 

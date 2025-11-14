@@ -8,7 +8,7 @@ import java.util.UUID;
 /**
  * Entidad para auditoría de solicitudes de acceso a documentos clínicos.
  * Registra cuando un profesional solicita acceso a un documento que no puede ver.
- * Permite controlar que no se envíen solicitudes duplicadas en un período de 24 horas.
+ * Permite controlar que no se envíen solicitudes duplicadas en un período de 1 minuto.
  */
 @Entity
 @Table(name = "SOLICITUD_ACCESO_DOCUMENTO", indexes = {
@@ -144,14 +144,14 @@ public class solicitud_acceso_documento implements Serializable {
     // Métodos de utilidad
 
     /**
-     * Verifica si han pasado más de 24 horas desde la última solicitud
+     * Verifica si ha pasado al menos un minuto desde la última solicitud
      */
     public boolean puedeVolverASolicitar() {
         if (this.fechaSolicitud == null) {
             return true;
         }
-        LocalDateTime hace24Horas = LocalDateTime.now().minusHours(24);
-        return this.fechaSolicitud.isBefore(hace24Horas);
+        LocalDateTime haceUnMinuto = LocalDateTime.now().minusMinutes(1);
+        return this.fechaSolicitud.isBefore(haceUnMinuto);
     }
 
     /**
