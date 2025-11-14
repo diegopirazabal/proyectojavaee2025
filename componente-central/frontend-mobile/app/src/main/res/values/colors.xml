@@ -48,4 +48,10 @@
     <color name="historia_chip_text">#1C3A66</color>
     <color name="historia_icon_bg">#FFFFFFFF</color>
     <color name="historia_icon_tint">#2D6CDF</color>
+
+    <!-- Notificaciones -->
+    <color name="notifications_header_gradient_start">#EEF3FF</color>
+    <color name="notifications_header_gradient_end">#FFFFFFFF</color>
+    <color name="notifications_header_title">#0F1E3D</color>
+    <color name="notifications_header_subtitle">#4B5D73</color>
 </resources>

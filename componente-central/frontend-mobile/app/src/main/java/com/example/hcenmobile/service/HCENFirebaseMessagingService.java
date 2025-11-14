@@ -15,10 +15,12 @@ import androidx.core.app.NotificationCompat;
 import com.example.hcenmobile.MainActivity;
 import com.example.hcenmobile.R;
 import com.example.hcenmobile.data.model.Notificacion;
+import com.example.hcenmobile.data.remote.dto.SolicitudAccesoDTO;
 import com.example.hcenmobile.data.repository.NotificacionRepository;
 import com.example.hcenmobile.util.Constants;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import com.google.gson.Gson;
 
 import java.util.Date;
 import java.util.Map;
@@ -29,6 +31,7 @@ import java.util.Map;
 public class HCENFirebaseMessagingService extends FirebaseMessagingService {
 
     private static final String TAG = "HCENFCMService";
+    private final Gson gson = new Gson();
 
     @Override
     public void onCreate() {
@@ -46,9 +49,9 @@ public class HCENFirebaseMessagingService extends FirebaseMessagingService {
         Log.d(TAG, "Notificación recibida de: " + remoteMessage.getFrom());
 
         // Procesar datos de la notificación
-        if (remoteMessage.getData().size() > 0) {
+        if (!remoteMessage.getData().isEmpty()) {
             Log.d(TAG, "Datos del mensaje: " + remoteMessage.getData());
-            handleDataMessage(remoteMessage.getData());
+            handleDataMessage(remoteMessage);
         }
 
         // Procesar notificación visual
@@ -78,15 +81,39 @@ public class HCENFirebaseMessagingService extends FirebaseMessagingService {
     /**
      * Procesa los datos de la notificación y los guarda en la BD local
      */
-    private void handleDataMessage(Map<String, String> data) {
+    private void handleDataMessage(RemoteMessage remoteMessage) {
         try {
+            Map<String, String> data = remoteMessage.getData();
+            RemoteMessage.Notification notificationPayload = remoteMessage.getNotification();
+
             // Extraer datos de la notificación
-            String notifId = data.get("notificationId");
-            String tipo = data.get("tipo");
-            String titulo = data.get("titulo");
-            String mensaje = data.get("mensaje");
-            String remitente = data.get("remitente");
-            String datosAdicionales = data.get("datosAdicionales");
+            String notifId = firstNonEmpty(data.get("notificacionId"), data.get("notificationId"));
+            String tipo = firstNonEmpty(data.get("tipo"), Constants.NOTIF_TYPE_ACCESS_GRANTED);
+
+            String titulo = firstNonEmpty(
+                    data.get("titulo"),
+                    notificationPayload != null ? notificationPayload.getTitle() : null,
+                    buildTituloFallback(tipo)
+            );
+
+            String mensaje = firstNonEmpty(
+                    data.get("mensaje"),
+                    notificationPayload != null ? notificationPayload.getBody() : null,
+                    buildMensajeFallback(tipo, data)
+            );
+
+            String remitente = firstNonEmpty(
+                    data.get("remitente"),
+                    data.get("nombreClinica"),
+                    data.get("profesionalNombre")
+            );
+
+            String datosAdicionales = buildDatosAdicionales(
+                    data,
+                    tipo,
+                    notifId,
+                    mensaje
+            );
 
             // Crear objeto Notificacion y guardarlo en BD
             Notificacion notificacion = new Notificacion();
@@ -108,6 +135,99 @@ public class HCENFirebaseMessagingService extends FirebaseMessagingService {
         } catch (Exception e) {
             Log.e(TAG, "Error al procesar notificación", e);
         }
+    }
+
+    private String buildDatosAdicionales(Map<String, String> data, String tipo, String notifId, String mensaje) {
+        String datosAdicionales = data.get("datosAdicionales");
+        if (!isNullOrEmpty(datosAdicionales)) {
+            return datosAdicionales;
+        }
+
+        if (isAccessRequestType(tipo)) {
+            try {
+                SolicitudAccesoDTO solicitud = new SolicitudAccesoDTO();
+                solicitud.setId(notifId);
+                solicitud.setTipo(tipo);
+                solicitud.setMensaje(mensaje);
+                solicitud.setEstado("PENDIENTE");
+                solicitud.setFechaCreacion(data.get("timestamp"));
+                solicitud.setDocumentoId(data.get("documentoId"));
+                solicitud.setProfesionalNombre(data.get("profesionalNombre"));
+                solicitud.setEspecialidad(data.get("especialidad"));
+                solicitud.setTenantId(data.get("tenantId"));
+                solicitud.setNombreClinica(data.get("nombreClinica"));
+                solicitud.setFechaDocumento(data.get("fechaDocumento"));
+                solicitud.setMotivoConsulta(data.get("motivoConsulta"));
+                solicitud.setDiagnostico(data.get("diagnostico"));
+
+                String profesionalCi = data.get("profesionalCi");
+                if (!isNullOrEmpty(profesionalCi)) {
+                    try {
+                        solicitud.setProfesionalCi(Integer.parseInt(profesionalCi));
+                    } catch (NumberFormatException e) {
+                        Log.w(TAG, "No se pudo parsear profesionalCi: " + profesionalCi, e);
+                    }
+                }
+
+                return gson.toJson(solicitud);
+            } catch (Exception e) {
+                Log.e(TAG, "Error al construir datos adicionales para solicitud de acceso", e);
+            }
+        }
+
+        return datosAdicionales;
+    }
+
+    private boolean isAccessRequestType(String tipo) {
+        return "SOLICITUD_ACCESO".equalsIgnoreCase(tipo)
+                || Constants.NOTIF_TYPE_ACCESS_REQUEST.equalsIgnoreCase(tipo);
+    }
+
+    private String buildTituloFallback(String tipo) {
+        if (isAccessRequestType(tipo)) {
+            return "Solicitud de acceso a documento";
+        } else if (Constants.NOTIF_TYPE_HISTORY_ACCESSED.equalsIgnoreCase(tipo)) {
+            return "Se accedió a su historia clínica";
+        } else if (Constants.NOTIF_TYPE_ACCESS_GRANTED.equalsIgnoreCase(tipo)) {
+            return "Nuevo acceso registrado";
+        }
+        return "Nueva notificación HCEN";
+    }
+
+    private String buildMensajeFallback(String tipo, Map<String, String> data) {
+        if (isAccessRequestType(tipo)) {
+            String profesional = firstNonEmpty(data.get("profesionalNombre"), "Un profesional de salud");
+            String ci = data.get("profesionalCi");
+            String clinica = firstNonEmpty(data.get("nombreClinica"), "una institución");
+            String fechaDocumento = firstNonEmpty(data.get("fechaDocumento"), "su historia clínica");
+
+            StringBuilder builder = new StringBuilder();
+            builder.append(profesional);
+            if (!isNullOrEmpty(ci)) {
+                builder.append(" (CI ").append(ci).append(")");
+            }
+            builder.append(" de ").append(clinica).append(" solicita acceso a ");
+            builder.append(fechaDocumento);
+
+            return builder.toString();
+        }
+        return "";
+    }
+
+    private String firstNonEmpty(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            if (!isNullOrEmpty(value)) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private boolean isNullOrEmpty(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     /**

@@ -48,6 +48,9 @@ public interface NotificacionDao {
     @Query("UPDATE notificaciones SET leida = 1")
     void marcarTodasComoLeidas();
 
+    @Query("DELETE FROM notificaciones WHERE id = :id")
+    void eliminarPorId(long id);
+
     @Query("DELETE FROM notificaciones")
     void deleteAll();
 

@@ -37,8 +37,8 @@ public class NotificacionesAdapter extends RecyclerView.Adapter<RecyclerView.Vie
 
     public interface OnNotificacionListener {
         void onNotificacionClick(Notificacion notificacion);
-        void onApproveClick(SolicitudAccesoDTO solicitud);
-        void onRejectClick(SolicitudAccesoDTO solicitud);
+        void onApproveClick(Notificacion notificacion);
+        void onRejectClick(Notificacion notificacion);
     }
 
     public NotificacionesAdapter(OnNotificacionListener listener) {
@@ -87,8 +87,26 @@ public class NotificacionesAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     }
 
     public void setNotificaciones(List<Notificacion> notificaciones) {
-        this.notificaciones = notificaciones;
+        if (notificaciones != null) {
+            this.notificaciones = new ArrayList<>(notificaciones);
+        } else {
+            this.notificaciones = new ArrayList<>();
+        }
         notifyDataSetChanged();
+    }
+
+    public Notificacion getNotificacionAt(int position) {
+        if (position >= 0 && position < notificaciones.size()) {
+            return notificaciones.get(position);
+        }
+        return null;
+    }
+
+    public void removeNotificacionAt(int position) {
+        if (position >= 0 && position < notificaciones.size()) {
+            notificaciones.remove(position);
+            notifyItemRemoved(position);
+        }
     }
 
     // ============ VIEW HOLDERS ============
@@ -205,16 +223,15 @@ public class NotificacionesAdapter extends RecyclerView.Adapter<RecyclerView.Vie
                     estadoBadge.setVisibility(View.GONE);
                     actionButtons.setVisibility(View.VISIBLE);
 
-                    SolicitudAccesoDTO finalSolicitud = solicitud;
                     btnApprove.setOnClickListener(v -> {
                         if (listener != null) {
-                            listener.onApproveClick(finalSolicitud);
+                            listener.onApproveClick(notificacion);
                         }
                     });
 
                     btnReject.setOnClickListener(v -> {
                         if (listener != null) {
-                            listener.onRejectClick(finalSolicitud);
+                            listener.onRejectClick(notificacion);
                         }
                     });
                 } else {
