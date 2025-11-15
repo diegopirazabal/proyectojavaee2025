@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+
+<h:head>
+    <title>HCEN - Reportes</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/dashboard.css"/>
+</h:head>
+
+<h:body>
+    <f:view>
+        <f:metadata>
+            <f:event type="preRenderView" listener="#{login_bean.checkAuthentication}"/>
+        </f:metadata>
+    </f:view>
+
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header full-bleed">
+            <div class="header-content">
+                <div class="logo-section">
+                    <h1>HCEN</h1>
+                    <span>Reportes Operativos</span>
+                </div>
+
+                <div class="nav-actions">
+                    <h:form id="reportsNavbarForm" styleClass="nav-actions-form">
+                        <p:commandButton value="Volver al Dashboard"
+                                         styleClass="nav-action-button"
+                                         icon="pi pi-home"
+                                         action="dashboard?faces-redirect=true"
+                                         process="@this"/>
+                        <p:commandButton value="Gestionar Usuarios"
+                                         styleClass="nav-action-button"
+                                         icon="pi pi-users"
+                                         action="usuarios?faces-redirect=true"
+                                         process="@this"/>
+                    </h:form>
+                </div>
+
+                <div class="user-section">
+                    <p:outputPanel rendered="#{login_bean.loggedIn}">
+                        <span class="welcome-text">#{login_bean.loggedAdmin.fullName}</span>
+                        <h:form style="display: inline;">
+                            <p:commandButton value="Cerrar Sesión"
+                                             action="#{login_bean.logout}"
+                                             styleClass="logout-button"
+                                             icon="pi pi-sign-out"/>
+                        </h:form>
+                    </p:outputPanel>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard-main full-bleed">
+            <div class="dashboard-content full-bleed">
+
+                <h:form id="reportsForm">
+                    <div class="dashboard-grid reports-grid">
+
+                        <!-- Resumen Ejecutivo -->
+                        <div class="dashboard-card full-width">
+                            <div class="card-header">
+                                <h3><i class="pi pi-chart-pie"></i> Resumen Ejecutivo</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="metrics-grid">
+                                    <ui:repeat value="#{reportes_bean.resumenMetricas}" var="metric">
+                                        <div class="metric-card">
+                                            <span class="metric-label">#{metric.label}</span>
+                                            <span class="metric-value">#{metric.value}</span>
+                                            <span class="metric-subtext #{metric.positive ? 'trend-positive' : 'trend-negative'}">
+                                                #{metric.trendText}
+                                            </span>
+                                        </div>
+                                    </ui:repeat>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Clínicas con mayor actividad -->
+                        <div class="dashboard-card full-width">
+                            <div class="card-header">
+                                <h3><i class="pi pi-briefcase"></i> Clínicas con Mayor Actividad</h3>
+                            </div>
+                            <div class="card-content reports-table">
+                                <p:dataTable value="#{reportes_bean.actividadClinicas}"
+                                             var="clinica"
+                                             responsiveLayout="scroll">
+                                    <p:column headerText="Clínica">
+                                        <h:outputText value="#{clinica.nombre}"/>
+                                    </p:column>
+                                    <p:column headerText="Documentos RNDC">
+                                        <h:outputText value="#{clinica.documentos}"/>
+                                    </p:column>
+                                    <p:column headerText="Usuarios Activos">
+                                        <h:outputText value="#{clinica.usuariosActivos}"/>
+                                    </p:column>
+                                    <p:column headerText="Estado">
+                                        <span class="#{clinica.estado eq 'Operativa' ? 'status-active' : 'status-inactive'}">
+                                            #{clinica.estado}
+                                        </span>
+                                    </p:column>
+                                </p:dataTable>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico de tendencia -->
+                        <div class="dashboard-card full-width">
+                            <div class="card-header">
+                                <h3><i class="pi pi-chart-line"></i> Usuarios Activos por Trimestre</h3>
+                                <span class="card-hint">Incluye clínicas con onboarding completo</span>
+                            </div>
+                            <div class="card-content">
+                                <p:chart type="bar"
+                                         model="#{reportes_bean.usuariosClinicasChart}"
+                                         styleClass="report-chart"/>
+                            </div>
+                        </div>
+
+                    </div>
+                </h:form>
+
+            </div>
+        </main>
+
+        <footer class="dashboard-footer">
+            <p>© 2025 HCEN - Historia Clínica Electrónica Nacional - Universidad de la República</p>
+        </footer>
+    </div>
+
+</h:body>
+</html>

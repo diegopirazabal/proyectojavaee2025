@@ -3,6 +3,7 @@ package com.example.hcenmobile.ui.notifications;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -10,44 +11,74 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.hcenmobile.R;
 import com.example.hcenmobile.data.model.Notificacion;
+import com.example.hcenmobile.data.remote.dto.SolicitudAccesoDTO;
 import com.example.hcenmobile.util.Constants;
+import com.google.gson.Gson;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 /**
  * Adapter para mostrar la lista de notificaciones en un RecyclerView
+ * Soporta múltiples tipos de layouts (normal y solicitud de acceso)
  */
-public class NotificacionesAdapter extends RecyclerView.Adapter<NotificacionesAdapter.NotificacionViewHolder> {
+public class NotificacionesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+    private static final int VIEW_TYPE_NORMAL = 0;
+    private static final int VIEW_TYPE_SOLICITUD = 1;
 
     private List<Notificacion> notificaciones;
-    private final OnNotificacionClickListener listener;
+    private final OnNotificacionListener listener;
     private final SimpleDateFormat dateFormat;
+    private final Gson gson;
 
-    public interface OnNotificacionClickListener {
+    public interface OnNotificacionListener {
         void onNotificacionClick(Notificacion notificacion);
+        void onApproveClick(Notificacion notificacion);
+        void onRejectClick(Notificacion notificacion);
     }
 
-    public NotificacionesAdapter(OnNotificacionClickListener listener) {
+    public NotificacionesAdapter(OnNotificacionListener listener) {
         this.notificaciones = new ArrayList<>();
         this.listener = listener;
         this.dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+        this.gson = new Gson();
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        Notificacion notif = notificaciones.get(position);
+        if (Constants.NOTIF_TYPE_ACCESS_REQUEST.equals(notif.getTipo())) {
+            return VIEW_TYPE_SOLICITUD;
+        }
+        return VIEW_TYPE_NORMAL;
     }
 
     @NonNull
     @Override
-    public NotificacionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_notificacion, parent, false);
-        return new NotificacionViewHolder(view);
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == VIEW_TYPE_SOLICITUD) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_notificacion_solicitud, parent, false);
+            return new SolicitudViewHolder(view);
+        } else {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_notificacion, parent, false);
+            return new NotificacionViewHolder(view);
+        }
     }
 
     @Override
-    public void onBindViewHolder(@NonNull NotificacionViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         Notificacion notificacion = notificaciones.get(position);
-        holder.bind(notificacion, listener);
+        if (holder instanceof SolicitudViewHolder) {
+            ((SolicitudViewHolder) holder).bind(notificacion, listener);
+        } else if (holder instanceof NotificacionViewHolder) {
+            ((NotificacionViewHolder) holder).bind(notificacion, listener);
+        }
     }
 
     @Override
@@ -56,10 +87,33 @@ public class NotificacionesAdapter extends RecyclerView.Adapter<NotificacionesAd
     }
 
     public void setNotificaciones(List<Notificacion> notificaciones) {
-        this.notificaciones = notificaciones;
+        if (notificaciones != null) {
+            this.notificaciones = new ArrayList<>(notificaciones);
+        } else {
+            this.notificaciones = new ArrayList<>();
+        }
         notifyDataSetChanged();
     }
 
+    public Notificacion getNotificacionAt(int position) {
+        if (position >= 0 && position < notificaciones.size()) {
+            return notificaciones.get(position);
+        }
+        return null;
+    }
+
+    public void removeNotificacionAt(int position) {
+        if (position >= 0 && position < notificaciones.size()) {
+            notificaciones.remove(position);
+            notifyItemRemoved(position);
+        }
+    }
+
+    // ============ VIEW HOLDERS ============
+
+    /**
+     * ViewHolder para notificaciones normales
+     */
     class NotificacionViewHolder extends RecyclerView.ViewHolder {
 
         private final TextView textTitulo;
@@ -77,7 +131,7 @@ public class NotificacionesAdapter extends RecyclerView.Adapter<NotificacionesAd
             indicadorNoLeida = itemView.findViewById(R.id.view_indicador_no_leida);
         }
 
-        public void bind(Notificacion notificacion, OnNotificacionClickListener listener) {
+        public void bind(Notificacion notificacion, OnNotificacionListener listener) {
             textTitulo.setText(notificacion.getTitulo());
             textMensaje.setText(notificacion.getMensaje());
             textFecha.setText(dateFormat.format(notificacion.getFechaHora()));
@@ -93,15 +147,9 @@ public class NotificacionesAdapter extends RecyclerView.Adapter<NotificacionesAd
             // Indicador visual para notificaciones no leídas
             if (!notificacion.isLeida()) {
                 indicadorNoLeida.setVisibility(View.VISIBLE);
-                itemView.setBackgroundResource(R.color.notificacion_no_leida_bg);
             } else {
                 indicadorNoLeida.setVisibility(View.GONE);
-                itemView.setBackgroundResource(android.R.color.transparent);
             }
-
-            // Icono según tipo de notificación
-            int tipoIcono = getTipoIcono(notificacion.getTipo());
-            // TODO: Agregar un ImageView en el layout para mostrar el icono
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
@@ -109,19 +157,115 @@ public class NotificacionesAdapter extends RecyclerView.Adapter<NotificacionesAd
                 }
             });
         }
+    }
 
-        private int getTipoIcono(String tipo) {
-            if (tipo == null) return R.drawable.ic_launcher_foreground;
+    /**
+     * ViewHolder para solicitudes de acceso a documentos
+     */
+    class SolicitudViewHolder extends RecyclerView.ViewHolder {
 
-            switch (tipo) {
-                case Constants.NOTIF_TYPE_ACCESS_REQUEST:
-                    return R.drawable.ic_launcher_foreground; // TODO: Agregar icono específico
-                case Constants.NOTIF_TYPE_ACCESS_GRANTED:
-                    return R.drawable.ic_launcher_foreground; // TODO: Agregar icono específico
-                case Constants.NOTIF_TYPE_HISTORY_ACCESSED:
-                    return R.drawable.ic_launcher_foreground; // TODO: Agregar icono específico
-                default:
-                    return R.drawable.ic_launcher_foreground;
+        private final View indicator;
+        private final TextView profesionalNombre;
+        private final TextView clinicaNombre;
+        private final TextView documentoInfo;
+        private final TextView motivoConsulta;
+        private final TextView fechaSolicitud;
+        private final TextView estadoBadge;
+        private final View actionButtons;
+        private final Button btnApprove;
+        private final Button btnReject;
+
+        public SolicitudViewHolder(@NonNull View itemView) {
+            super(itemView);
+            indicator = itemView.findViewById(R.id.indicator);
+            profesionalNombre = itemView.findViewById(R.id.profesional_nombre);
+            clinicaNombre = itemView.findViewById(R.id.clinica_nombre);
+            documentoInfo = itemView.findViewById(R.id.documento_info);
+            motivoConsulta = itemView.findViewById(R.id.motivo_consulta);
+            fechaSolicitud = itemView.findViewById(R.id.fecha_solicitud);
+            estadoBadge = itemView.findViewById(R.id.estado_badge);
+            actionButtons = itemView.findViewById(R.id.action_buttons);
+            btnApprove = itemView.findViewById(R.id.btn_approve);
+            btnReject = itemView.findViewById(R.id.btn_reject);
+        }
+
+        public void bind(Notificacion notificacion, OnNotificacionListener listener) {
+            // Parsear datos adicionales desde JSON
+            SolicitudAccesoDTO solicitud = null;
+            if (notificacion.getDatosAdicionales() != null && !notificacion.getDatosAdicionales().isEmpty()) {
+                try {
+                    solicitud = gson.fromJson(notificacion.getDatosAdicionales(), SolicitudAccesoDTO.class);
+                    // Copiar ID de la notificación al DTO
+                    solicitud.setId(String.valueOf(notificacion.getId()));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (solicitud != null) {
+                // Configurar vistas con datos de la solicitud
+                profesionalNombre.setText(solicitud.getProfesionalNombre());
+                clinicaNombre.setText(solicitud.getNombreClinica());
+                documentoInfo.setText("📄 Documento del " + solicitud.getFechaDocumento());
+                motivoConsulta.setText(solicitud.getMotivoConsulta());
+
+                // Calcular tiempo transcurrido
+                fechaSolicitud.setText(getTimeAgo(notificacion.getFechaHora()));
+
+                // Configurar estado y botones según el estado de la notificación
+                // Asumiendo que Notificacion no tiene campo estado, usamos la visibilidad de botones
+                // En producción, deberías agregar el campo estado a la entidad Notificacion
+
+                // Por ahora, si no está leída, consideramos que está pendiente
+                if (!notificacion.isLeida()) {
+                    // Pendiente
+                    indicator.setBackgroundResource(android.R.color.holo_orange_light);
+                    estadoBadge.setVisibility(View.GONE);
+                    actionButtons.setVisibility(View.VISIBLE);
+
+                    btnApprove.setOnClickListener(v -> {
+                        if (listener != null) {
+                            listener.onApproveClick(notificacion);
+                        }
+                    });
+
+                    btnReject.setOnClickListener(v -> {
+                        if (listener != null) {
+                            listener.onRejectClick(notificacion);
+                        }
+                    });
+                } else {
+                    // Ya procesada (aprobada o rechazada)
+                    actionButtons.setVisibility(View.GONE);
+                    estadoBadge.setVisibility(View.VISIBLE);
+                    estadoBadge.setText("✓ Procesada");
+                    estadoBadge.setBackgroundResource(android.R.color.darker_gray);
+                    indicator.setBackgroundResource(android.R.color.darker_gray);
+                }
+            } else {
+                // Fallback si no hay datos
+                profesionalNombre.setText("Solicitud de acceso");
+                clinicaNombre.setText(notificacion.getMensaje());
+                actionButtons.setVisibility(View.GONE);
+            }
+        }
+
+        private String getTimeAgo(Date date) {
+            long diff = new Date().getTime() - date.getTime();
+            long minutes = diff / (60 * 1000);
+            long hours = diff / (60 * 60 * 1000);
+            long days = diff / (24 * 60 * 60 * 1000);
+
+            if (minutes < 60) {
+                return "Hace " + minutes + " minutos";
+            } else if (hours < 24) {
+                return "Hace " + hours + " horas";
+            } else if (days == 1) {
+                return "Ayer";
+            } else if (days < 7) {
+                return "Hace " + days + " días";
+            } else {
+                return dateFormat.format(date);
             }
         }
     }

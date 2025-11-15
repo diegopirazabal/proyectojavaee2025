@@ -180,4 +180,26 @@ public class ProfesionalSaludDAO {
         query.setParameter("term", "%" + searchTerm + "%");
         return query.getSingleResult();
     }
+
+    /**
+     * Busca un profesional por email y clínica (tenant) para autenticación.
+     */
+    public Optional<profesional_salud> findByEmailAndTenant(String email, UUID tenantId) {
+        if (email == null || tenantId == null) {
+            return Optional.empty();
+        }
+        String normalizedEmail = email.trim();
+        if (normalizedEmail.isEmpty()) {
+            return Optional.empty();
+        }
+        TypedQuery<profesional_salud> query = em.createQuery(
+            "SELECT p FROM profesional_salud p " +
+            "WHERE LOWER(p.email) = LOWER(:email) AND p.tenantId = :tenantId",
+            profesional_salud.class
+        );
+        query.setParameter("email", normalizedEmail);
+        query.setParameter("tenantId", tenantId);
+        List<profesional_salud> result = query.setMaxResults(1).getResultList();
+        return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+    }
 }

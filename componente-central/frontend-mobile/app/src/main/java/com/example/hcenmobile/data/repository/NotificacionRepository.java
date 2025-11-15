@@ -88,6 +88,10 @@ public class NotificacionRepository {
         });
     }
 
+    public void eliminarNotificacion(long id) {
+        executorService.execute(() -> notificacionDao.eliminarPorId(id));
+    }
+
     // Métodos remotos (API)
 
     public void sincronizarNotificaciones(String userId, SyncCallback callback) {

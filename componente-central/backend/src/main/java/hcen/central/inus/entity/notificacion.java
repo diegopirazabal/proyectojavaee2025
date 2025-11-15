@@ -26,12 +26,21 @@ public class notificacion {
     @Column(length = 30)
     private String estado;
 
+    @Column(name = "DATOS_ADICIONALES", columnDefinition = "TEXT")
+    private String datosAdicionales;
+
     // Usuario FK not null - Referencia a UsuarioSalud local con composite key
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumns({
-        @JoinColumn(name = "USUARIO_ID", referencedColumnName = "id", nullable = false),
-        @JoinColumn(name = "USUARIO_CEDULA", referencedColumnName = "cedula", nullable = false)
-    })
+    @JoinColumns(
+        value = {
+            @JoinColumn(name = "USUARIO_ID", referencedColumnName = "id", nullable = false),
+            @JoinColumn(name = "USUARIO_CEDULA", referencedColumnName = "cedula", nullable = false)
+        },
+        foreignKey = @ForeignKey(
+            name = "fk_notificacion_usuario_salud",
+            foreignKeyDefinition = "FOREIGN KEY (USUARIO_ID, USUARIO_CEDULA) REFERENCES usuario_salud(id, cedula)"
+        )
+    )
     private UsuarioSalud usuario;
 
     public UUID getId() { return id; }
@@ -43,6 +52,8 @@ public class notificacion {
     public void setFecCreacion(LocalDateTime fecCreacion) { this.fecCreacion = fecCreacion; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+    public String getDatosAdicionales() { return datosAdicionales; }
+    public void setDatosAdicionales(String datosAdicionales) { this.datosAdicionales = datosAdicionales; }
     public UsuarioSalud getUsuario() { return usuario; }
     public void setUsuario(UsuarioSalud usuario) { this.usuario = usuario; }
 

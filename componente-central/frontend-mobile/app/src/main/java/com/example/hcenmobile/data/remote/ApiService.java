@@ -1,8 +1,13 @@
 package com.example.hcenmobile.data.remote;
 
 import com.example.hcenmobile.data.remote.dto.ApiResponse;
+import com.example.hcenmobile.data.remote.dto.AprobarSolicitudRequest;
 import com.example.hcenmobile.data.remote.dto.FCMTokenDTO;
+import com.example.hcenmobile.data.remote.dto.HistoriaClinicaDocumentoDTO;
 import com.example.hcenmobile.data.remote.dto.NotificacionDTO;
+import com.example.hcenmobile.data.remote.dto.PermisoActivoDTO;
+import com.example.hcenmobile.data.remote.dto.RechazarSolicitudRequest;
+import com.example.hcenmobile.data.remote.dto.SolicitudAccesoDTO;
 
 import java.util.List;
 
@@ -58,8 +63,62 @@ public interface ApiService {
     Call<ApiResponse<Object>> getUserInfo(@Query("userId") String userId);
 
     /**
-     * Obtiene la historia clínica del usuario (para futuro)
+     * Obtiene los documentos registrados en la historia clínica central para un usuario.
      */
-    @GET("historia-clinica/{userId}")
-    Call<ApiResponse<Object>> getHistoriaClinica(@Path("userId") String userId);
+    @GET("historia-clinica/{userId}/documentos")
+    Call<ApiResponse<List<HistoriaClinicaDocumentoDTO>>> getHistoriaClinicaDocumentos(
+            @Path("userId") String userId);
+
+    // ============ GESTIÓN DE PERMISOS ============
+
+    /**
+     * Obtiene las solicitudes de acceso a documentos pendientes de aprobación
+     */
+    @GET("notifications/solicitudes-pendientes/{cedula}")
+    Call<ApiResponse<List<SolicitudAccesoDTO>>> getSolicitudesPendientes(
+            @Path("cedula") String cedula);
+
+    /**
+     * Aprueba una solicitud de acceso a documento clínico
+     */
+    @POST("notifications/aprobar-solicitud")
+    Call<ApiResponse<Void>> aprobarSolicitud(@Body AprobarSolicitudRequest request);
+
+    /**
+     * Rechaza una solicitud de acceso a documento clínico
+     */
+    @POST("notifications/rechazar-solicitud")
+    Call<ApiResponse<Void>> rechazarSolicitud(@Body RechazarSolicitudRequest request);
+
+    /**
+     * Obtiene los permisos activos otorgados por el paciente
+     */
+    @GET("politicas-acceso/historia/{historiaId}/activos")
+    Call<ApiResponse<List<PermisoActivoDTO>>> getPermisosActivos(
+            @Path("historiaId") String historiaId);
+
+    /**
+     * Revoca un permiso otorgado previamente
+     */
+    @PUT("politicas-acceso/{permisoId}/revocar")
+    Call<ApiResponse<Void>> revocarPermiso(
+            @Path("permisoId") String permisoId,
+            @Body RevocarPermisoRequest request);
+
+    // Clase interna para request de revocar permiso
+    class RevocarPermisoRequest {
+        private String motivo;
+
+        public RevocarPermisoRequest(String motivo) {
+            this.motivo = motivo;
+        }
+
+        public String getMotivo() {
+            return motivo;
+        }
+
+        public void setMotivo(String motivo) {
+            this.motivo = motivo;
+        }
+    }
 }

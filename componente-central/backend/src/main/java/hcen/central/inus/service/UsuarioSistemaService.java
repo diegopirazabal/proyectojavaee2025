@@ -124,7 +124,6 @@ public class UsuarioSistemaService {
             dto.setNombreCompleto(resolverNombreCompleto(usuario));
             dto.setEmail(usuario.getEmail());
             dto.setActivo(usuario.getActive());
-            dto.setTenantId(usuario.getTenantId() != null ? usuario.getTenantId().toString() : null);
             if (usuario.getFechaNacimiento() != null) {
                 dto.setFechaNacimiento(DATE_FORMAT.format(usuario.getFechaNacimiento()));
             }

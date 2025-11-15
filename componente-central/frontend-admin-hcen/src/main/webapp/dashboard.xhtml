@@ -21,11 +21,40 @@
 
     <div class="dashboard-container">
         <!-- Header -->
-        <header class="dashboard-header">
+        <header class="dashboard-header full-bleed">
             <div class="header-content">
                 <div class="logo-section">
                     <h1>HCEN</h1>
                     <span>Portal Administrativo</span>
+                </div>
+
+                <div class="nav-actions">
+                    <h:form id="navbarActionsForm" styleClass="nav-actions-form">
+                        <p:commandButton value="Enviar Notificación de Prueba"
+                                         styleClass="nav-action-button"
+                                         icon="pi pi-bell"
+                                         action="#{notification_bean.sendTestNotification}"
+                                         update=":dashboardForm:messages"
+                                         process="@this"/>
+                        <p:commandButton value="Gestionar Usuarios"
+                                         styleClass="nav-action-button"
+                                         icon="pi pi-users"
+                                         action="usuarios?faces-redirect=true"
+                                         process="@this"/>
+                        <p:commandButton type="button"
+                                         value="Crear Clínica"
+                                         styleClass="nav-action-button"
+                                         icon="pi pi-building"
+                                         onclick="PF('altaClinicaDialog').show()"/>
+                        <p:commandButton type="button"
+                                         value="Ver Reportes"
+                                         styleClass="nav-action-button"
+                                         icon="pi pi-chart-bar"/>
+                        <p:commandButton type="button"
+                                         value="Configuración"
+                                         styleClass="nav-action-button"
+                                         icon="pi pi-cog"/>
+                    </h:form>
                 </div>
 
                 <div class="user-section">
@@ -43,93 +72,14 @@
         </header>
 
         <!-- Main Content -->
-        <main class="dashboard-main">
-            <div class="dashboard-content">
+        <main class="dashboard-main full-bleed">
+            <div class="dashboard-content full-bleed">
 
                 <h:form id="dashboardForm">
                     <p:messages id="messages" showDetail="true" closable="true"/>
 
                     <!-- Dashboard Cards -->
                     <div class="dashboard-grid">
-
-                        <!-- Admin Info Card -->
-                        <div class="dashboard-card">
-                            <div class="card-header">
-                                <h3><i class="pi pi-user"></i> Información del Administrador</h3>
-                            </div>
-                            <div class="card-content">
-                                <p><strong>Usuario:</strong> #{login_bean.loggedAdmin.username}</p>
-                                <p><strong>Nombre:</strong> #{login_bean.loggedAdmin.fullName}</p>
-                                <p><strong>Email:</strong> #{login_bean.loggedAdmin.email}</p>
-                                <p><strong>Estado:</strong>
-                                    <span class="status-active">#{login_bean.loggedAdmin.active ? 'Activo' : 'Inactivo'}</span>
-                                </p>
-                                <p><strong>Último acceso:</strong>
-                                    <h:outputText value="#{login_bean.lastLoginDisplay}"/>
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- System Status Card -->
-                        <div class="dashboard-card">
-                            <div class="card-header">
-                                <h3><i class="pi pi-cog"></i> Estado del Sistema</h3>
-                            </div>
-                            <div class="card-content">
-                                <p><strong>INUS:</strong> <span class="status-active">Operativo</span></p>
-                                <p><strong>RNDC:</strong> <span class="status-active">Operativo</span></p>
-                                <p><strong>Base de Datos:</strong> <span class="status-active">Conectada</span></p>
-                                <p><strong>Servicios Web:</strong> <span class="status-active">Disponibles</span></p>
-                            </div>
-                        </div>
-
-                        <!-- Quick Actions Card -->
-                        <div class="dashboard-card">
-                            <div class="card-header">
-                                <h3><i class="pi pi-bolt"></i> Acciones Rápidas</h3>
-                            </div>
-                            <div class="card-content">
-                                <p:commandButton value="Enviar Notificación de Prueba"
-                                               styleClass="action-button"
-                                               icon="pi pi-bell"
-                                               action="#{notification_bean.sendTestNotification}"
-                                               update="messages"
-                                               process="@this"/>
-                                <br/><br/>
-                                <p:commandButton value="Gestionar Usuarios"
-                                               styleClass="action-button"
-                                               icon="pi pi-users"
-                                               action="usuarios?faces-redirect=true"
-                                               process="@this"/>
-                                <br/><br/>
-                                <p:commandButton type="button"
-                                               value="Gestionar Clínicas"
-                                               styleClass="action-button"
-                                               icon="pi pi-building"
-                                               onclick="PF('altaClinicaDialog').show()"/>
-                                <br/><br/>
-                                <p:commandButton value="Ver Reportes"
-                                               styleClass="action-button"
-                                               icon="pi pi-chart-bar"/>
-                                <br/><br/>
-                                <p:commandButton value="Configuración"
-                                               styleClass="action-button"
-                                               icon="pi pi-cog"/>
-                            </div>
-                        </div>
-
-                        <!-- Statistics Card -->
-                        <div class="dashboard-card">
-                            <div class="card-header">
-                                <h3><i class="pi pi-chart-line"></i> Estadísticas</h3>
-                            </div>
-                            <div class="card-content">
-                                <p><strong>Usuarios INUS:</strong> 1,250</p>
-                                <p><strong>Documentos RNDC:</strong> 5,680</p>
-                                <p><strong>Clínicas Registradas:</strong> 23</p>
-                                <p><strong>Accesos Hoy:</strong> 145</p>
-                            </div>
-                        </div>
 
                         <!-- Usuarios de Salud -->
                         <div class="dashboard-card full-width">
@@ -139,7 +89,7 @@
                                     <p:commandButton value="Refrescar"
                                                      icon="pi pi-refresh"
                                                      action="#{dashboard_bean.cargarUsuariosSalud}"
-                                                     update="usuariosTable messages"
+                                                     update="dashboardForm:usuariosTable dashboardForm:messages"
                                                      process="@this"
                                                      styleClass="action-button"/>
                                 </div>
@@ -170,54 +120,9 @@
                                         <p:commandButton value="Notificar"
                                                          icon="pi pi-bell"
                                                          action="#{dashboard_bean.enviarNotificacion(usuario)}"
-                                                         update="messages"
+                                                         update="dashboardForm:messages"
                                                          process="@this"
                                                          styleClass="action-button"/>
-                                    </p:column>
-                                </p:dataTable>
-                            </div>
-                        </div>
-
-                        <!-- Prestadores -->
-                        <div class="dashboard-card full-width">
-                            <div class="card-header">
-                                <h3><i class="pi pi-building"></i> Prestadores (Tenants)</h3>
-                                <div class="card-actions">
-                                    <p:commandButton value="Refrescar"
-                                                     icon="pi pi-refresh"
-                                                     action="#{dashboard_bean.cargarPrestadores}"
-                                                     update="prestadoresTable messages"
-                                                     process="@this"
-                                                     styleClass="action-button"/>
-                                    <p:commandButton type="button"
-                                                     value="Agregar Prestador"
-                                                     icon="pi pi-plus"
-                                                     onclick="PF('altaPrestadorDialog').show()"
-                                                     styleClass="action-button"/>
-                                </div>
-                            </div>
-                            <div class="card-content">
-                                <p:dataTable id="prestadoresTable"
-                                             value="#{dashboard_bean.prestadores}"
-                                             var="prestador"
-                                             paginator="true"
-                                             rows="5"
-                                             emptyMessage="No hay prestadores registrados."
-                                             responsiveLayout="scroll">
-                                    <p:column headerText="RUT">
-                                        <h:outputText value="#{prestador.rut}"/>
-                                    </p:column>
-                                    <p:column headerText="Nombre">
-                                        <h:outputText value="#{prestador.nombre}"/>
-                                    </p:column>
-                                    <p:column headerText="Email">
-                                        <h:outputText value="#{prestador.email}"/>
-                                    </p:column>
-                                    <p:column headerText="Estado">
-                                        <h:outputText value="#{prestador.estado}"/>
-                                    </p:column>
-                                    <p:column headerText="Tenant ID">
-                                        <h:outputText value="#{prestador.tenantId}"/>
                                     </p:column>
                                 </p:dataTable>
                             </div>
@@ -231,7 +136,7 @@
                                     <p:commandButton value="Refrescar"
                                                      icon="pi pi-refresh"
                                                      action="#{dashboard_bean.cargarClinicas}"
-                                                     update="clinicasTable messages"
+                                                     update="dashboardForm:clinicasTable dashboardForm:messages"
                                                      process="@this"
                                                      styleClass="action-button"/>
                                     <p:commandButton type="button"
@@ -303,7 +208,7 @@
                                                  icon="pi pi-check"
                                                  styleClass="action-button"
                                                  action="#{dashboard_bean.crearPrestador}"
-                                                 update="dashboardForm:messages dashboardForm:prestadoresTable dashboardForm:altaPrestadorDialog"
+                                                 update="dashboardForm:messages dashboardForm:altaPrestadorDialog"
                                                  process="@form"
                                                  oncomplete="if (!args.validationFailed &amp;&amp; args.prestadorCreado) { PF('altaPrestadorDialog').hide(); }"/>
                                 <p:commandButton type="button"
@@ -318,32 +223,42 @@
                     <!-- Dialogo Alta Clínica -->
                     <p:dialog id="altaClinicaDialog"
                               widgetVar="altaClinicaDialog"
-                              header="Alta de Clínica"
+                              header="Crear Clínica"
                               modal="true"
                               closable="true"
-                              resizable="false">
-                        <h:form id="altaClinicaForm">
-                            <h:panelGrid columns="2" columnClasses="label,value" styleClass="form-grid">
-                                <h:outputLabel for="nombreClinica" value="Nombre"/>
-                                <p:inputText id="nombreClinica"
-                                             value="#{dashboard_bean.nuevaClinica.nombre}"
-                                             required="true"
-                                             requiredMessage="El nombre es obligatorio."/>
+                              resizable="false"
+                              styleClass="modern-dialog">
+                        <h:form id="altaClinicaForm" styleClass="modern-dialog-form">
+                            <div class="modern-form-grid">
+                                <div class="modern-form-field">
+                                    <h:outputLabel for="nombreClinica" value="Nombre" styleClass="modern-label"/>
+                                    <p:inputText id="nombreClinica"
+                                                 value="#{dashboard_bean.nuevaClinica.nombre}"
+                                                 required="true"
+                                                 requiredMessage="El nombre es obligatorio."
+                                                 styleClass="modern-input"/>
+                                </div>
 
-                                <h:outputLabel for="emailClinica" value="Email"/>
-                                <p:inputText id="emailClinica"
-                                             value="#{dashboard_bean.nuevaClinica.email}"/>
+                                <div class="modern-form-field">
+                                    <h:outputLabel for="emailClinica" value="Email" styleClass="modern-label"/>
+                                    <p:inputText id="emailClinica"
+                                                 value="#{dashboard_bean.nuevaClinica.email}"
+                                                 styleClass="modern-input"/>
+                                </div>
 
-                                <h:outputLabel for="direccionClinica" value="Dirección"/>
-                                <p:inputTextarea id="direccionClinica"
-                                                 value="#{dashboard_bean.nuevaClinica.direccion}"
-                                                 autoResize="true"
-                                                 rows="2"/>
-                            </h:panelGrid>
-                            <div class="dialog-footer" style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
-                                <p:commandButton value="Alta de Clínica"
+                                <div class="modern-form-field">
+                                    <h:outputLabel for="direccionClinica" value="Dirección" styleClass="modern-label"/>
+                                    <p:inputTextarea id="direccionClinica"
+                                                     value="#{dashboard_bean.nuevaClinica.direccion}"
+                                                     autoResize="true"
+                                                     rows="2"
+                                                     styleClass="modern-input"/>
+                                </div>
+                            </div>
+                            <div class="modern-dialog-footer">
+                                <p:commandButton value="Crear Clínica"
                                                  icon="pi pi-check"
-                                                 styleClass="action-button"
+                                                 styleClass="primary-cta"
                                                  action="#{dashboard_bean.crearClinica}"
                                                  update="dashboardForm:messages dashboardForm:clinicasTable dashboardForm:altaClinicaDialog"
                                                  process="@form"
@@ -351,7 +266,7 @@
                                 <p:commandButton type="button"
                                                  value="Cancelar"
                                                  icon="pi pi-times"
-                                                 styleClass="action-button"
+                                                 styleClass="ghost-button"
                                                  onclick="PF('altaClinicaDialog').hide()"/>
                             </div>
                         </h:form>

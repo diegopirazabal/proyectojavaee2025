@@ -61,3 +61,5 @@ backup_hcen_*.json
 WARP.md
 AGENTS.md
 docs/
+.DS_Store
+.tmp/

@@ -4,20 +4,20 @@
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:p="http://primefaces.org/ui">
 
-<h:head>
-    <title>HCEN - Gestión de Usuarios</title>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/dashboard.css"/>
-    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/usuarios.css"/>
-</h:head>
-
-<h:body>
 <f:view>
     <f:metadata>
         <f:event type="preRenderView" listener="#{login_bean.checkAuthentication}"/>
     </f:metadata>
-</f:view>
+
+    <h:head>
+        <title>HCEN - Gestión de Usuarios</title>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/dashboard.css"/>
+        <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/usuarios.css"/>
+    </h:head>
+
+    <h:body>
 
 <div class="dashboard-container">
     <header class="dashboard-header">
@@ -67,6 +67,21 @@
                                              actionListener="#{usuarios_bean.buscarPorNombre}"
                                              update="usuariosForm:tablaUsuarios usuariosForm:messages"
                                              styleClass="action-button"/>
+                        </div>
+                    </div>
+
+                    <div class="filtro-bloque">
+                        <h3>Filtrar por tipo de usuario</h3>
+                        <div class="filtro-row">
+                            <p:selectOneMenu value="#{usuarios_bean.filtroTipoUsuario}" styleClass="filtro-select">
+                                <f:selectItems value="#{usuarios_bean.tiposUsuario}"
+                                               var="tipo"
+                                               itemValue="#{tipo}"
+                                               itemLabel="#{usuarios_bean.obtenerEtiquetaTipoUsuario(tipo)}"/>
+                                <p:ajax listener="#{usuarios_bean.aplicarFiltroTipoUsuario}"
+                                        update="usuariosForm:tablaUsuarios usuariosForm:messages"
+                                        process="@this"/>
+                            </p:selectOneMenu>
                         </div>
                     </div>
 
@@ -127,16 +142,16 @@
                     </p:column>
 
                     <p:column headerText="Acciones" styleClass="col-acciones">
-                        <p:commandButton value="Editar"
-                                         icon="pi pi-pencil"
-                                         actionListener="#{usuarios_bean.prepararEdicion(usuario)}"
+                        <p:commandButton value="Ver Detalles"
+                                         icon="pi pi-eye"
+                                         actionListener="#{usuarios_bean.prepararVisualizacion(usuario)}"
                                          process="@this"
                                          update="usuariosForm:messages"
                                          styleClass="action-button"/>
                     </p:column>
                 </p:dataTable>
 
-                <p:dialog id="dialogoEdicion" widgetVar="dialogoEdicion" header="Editar Usuario" modal="true"
+                <p:dialog id="dialogoEdicion" widgetVar="dialogoEdicion" header="Detalles del Usuario" modal="true"
                           resizable="false" closable="true" width="550">
                     <p:outputPanel rendered="#{not empty usuarios_bean.usuarioEdicion}">
                         <h:panelGrid columns="2" columnClasses="label,value" styleClass="form-grid">
@@ -146,54 +161,46 @@
                             <h:outputLabel value="Documento"/>
                             <h:outputText value="#{usuarios_bean.usuarioEdicion.tipoDocumento} #{usuarios_bean.usuarioEdicion.numeroDocumento}"/>
 
-                        <h:outputLabel value="Nombre"/>
-                        <p:inputText value="#{usuarios_bean.usuarioEdicion.primerNombre}" required="true"/>
+                        <h:outputLabel value="Primer Nombre"/>
+                        <h:outputText value="#{usuarios_bean.usuarioEdicion.primerNombre}"/>
 
                         <h:outputLabel value="Segundo Nombre"/>
-                        <p:inputText value="#{usuarios_bean.usuarioEdicion.segundoNombre}"/>
+                        <h:outputText value="#{usuarios_bean.usuarioEdicion.segundoNombre}"/>
 
                         <h:outputLabel value="Primer Apellido"/>
-                        <p:inputText value="#{usuarios_bean.usuarioEdicion.primerApellido}" required="true"/>
+                        <h:outputText value="#{usuarios_bean.usuarioEdicion.primerApellido}"/>
 
                         <h:outputLabel value="Segundo Apellido"/>
-                        <p:inputText value="#{usuarios_bean.usuarioEdicion.segundoApellido}"/>
+                        <h:outputText value="#{usuarios_bean.usuarioEdicion.segundoApellido}"/>
 
                         <h:outputLabel value="Email" rendered="#{usuarios_bean.isAdministradorSeleccionado() or usuarios_bean.isUsuarioSaludSeleccionado()}"/>
-                        <p:inputText value="#{usuarios_bean.usuarioEdicion.email}"
-                                     rendered="#{usuarios_bean.isAdministradorSeleccionado() or usuarios_bean.isUsuarioSaludSeleccionado()}"/>
+                        <h:outputText value="#{usuarios_bean.usuarioEdicion.email}"
+                                      rendered="#{usuarios_bean.isAdministradorSeleccionado() or usuarios_bean.isUsuarioSaludSeleccionado()}"/>
 
                         <h:outputLabel value="Activo" rendered="#{usuarios_bean.isUsuarioSaludSeleccionado()}"/>
-                        <p:selectBooleanButton value="#{usuarios_bean.usuarioEdicion.activo}"
-                                               onLabel="Sí" offLabel="No"
-                                               rendered="#{usuarios_bean.isUsuarioSaludSeleccionado()}"/>
+                        <h:outputText value="#{usuarios_bean.usuarioEdicion.activo ? 'Sí' : 'No'}"
+                                      rendered="#{usuarios_bean.isUsuarioSaludSeleccionado()}"/>
 
                         <h:outputLabel value="Fecha Nacimiento" rendered="#{usuarios_bean.isUsuarioSaludSeleccionado()}"/>
-                        <p:inputMask value="#{usuarios_bean.usuarioEdicion.fechaNacimiento}" mask="9999-99-99"
-                                     placeholder="YYYY-MM-DD"
-                                     rendered="#{usuarios_bean.isUsuarioSaludSeleccionado()}"/>
+                        <h:outputText value="#{usuarios_bean.usuarioEdicion.fechaNacimiento}"
+                                      rendered="#{usuarios_bean.isUsuarioSaludSeleccionado()}"/>
 
                         <h:outputLabel value="Especialidad" rendered="#{usuarios_bean.isProfesionalSeleccionado()}"/>
-                        <p:inputText value="#{usuarios_bean.usuarioEdicion.especialidad}"
-                                     rendered="#{usuarios_bean.isProfesionalSeleccionado()}"/>
+                        <h:outputText value="#{usuarios_bean.usuarioEdicion.especialidad}"
+                                      rendered="#{usuarios_bean.isProfesionalSeleccionado()}"/>
 
                         <h:outputLabel value="Usuario" rendered="#{usuarios_bean.isAdministradorSeleccionado()}"/>
-                        <p:inputText value="#{usuarios_bean.usuarioEdicion.username}"
-                                     rendered="#{usuarios_bean.isAdministradorSeleccionado()}"/>
+                        <h:outputText value="#{usuarios_bean.usuarioEdicion.username}"
+                                      rendered="#{usuarios_bean.isAdministradorSeleccionado()}"/>
 
                         <h:outputLabel value="Tenant" rendered="#{usuarios_bean.isAdministradorSeleccionado()}"/>
-                        <p:inputText value="#{usuarios_bean.usuarioEdicion.tenantId}"
-                                     rendered="#{usuarios_bean.isAdministradorSeleccionado()}"/>
+                        <h:outputText value="#{usuarios_bean.usuarioEdicion.tenantId}"
+                                      rendered="#{usuarios_bean.isAdministradorSeleccionado()}"/>
                         </h:panelGrid>
                     </p:outputPanel>
                     <f:facet name="footer">
                         <div class="dialog-footer">
-                            <p:commandButton value="Guardar"
-                                             icon="pi pi-check"
-                                             actionListener="#{usuarios_bean.guardarCambios}"
-                                             update="usuariosForm:tablaUsuarios usuariosForm:messages"
-                                             process="usuariosForm:dialogoEdicion"
-                                             styleClass="action-button"/>
-                            <p:commandButton type="button" value="Cancelar" icon="pi pi-times"
+                            <p:commandButton type="button" value="Cerrar" icon="pi pi-times"
                                              onclick="PF('dialogoEdicion').hide()"
                                              styleClass="action-button"/>
                         </div>
@@ -209,4 +216,5 @@
 </div>
 
 </h:body>
+</f:view>
 </html>
