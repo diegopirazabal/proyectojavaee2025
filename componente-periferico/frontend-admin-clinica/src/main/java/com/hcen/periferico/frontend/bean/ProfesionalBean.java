@@ -171,8 +171,18 @@ public class ProfesionalBean implements Serializable {
         newProfesional = new profesional_salud_dto();
     }
 
-    public void prepareEdit() {
+    public void prepareEdit(profesional_salud_dto profesional) {
+        // Crear copia defensiva con todos los valores
         this.selectedProfesional = new profesional_salud_dto();
+
+        if (profesional != null) {
+            this.selectedProfesional.setCi(profesional.getCi());
+            this.selectedProfesional.setNombre(profesional.getNombre());
+            this.selectedProfesional.setApellidos(profesional.getApellidos());
+            this.selectedProfesional.setEspecialidadId(profesional.getEspecialidadId());
+            this.selectedProfesional.setEmail(profesional.getEmail());
+            this.selectedProfesional.setTenantId(profesional.getTenantId());
+        }
     }
 
     private void addMessage(FacesMessage.Severity severity, String message) {

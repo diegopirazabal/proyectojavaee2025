@@ -96,12 +96,10 @@
                         <p:commandButton icon="pi pi-pencil"
                                         title="Editar"
                                         styleClass="p-button-warning"
-                                        process="@this"
+                                        action="#{profesionalBean.prepareEdit(prof)}"
                                         update=":profesionalesForm:dlgEditProfesional"
-                                        oncomplete="PF('dlgEditProfesional').show();">
-                            <f:setPropertyActionListener value="#{prof}"
-                                                        target="#{profesionalBean.selectedProfesional}"/>
-                        </p:commandButton>
+                                        oncomplete="PF('dlgEditProfesional').show();" />
+
 
 
                         <p:commandButton icon="pi pi-trash"
