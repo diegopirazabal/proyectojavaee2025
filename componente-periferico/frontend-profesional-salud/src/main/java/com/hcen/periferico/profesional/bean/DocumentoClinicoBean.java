@@ -298,6 +298,62 @@ public class DocumentoClinicoBean implements Serializable {
     }
 
     /**
+     * Revalida los permisos de los documentos ya cargados contra el backend.
+     * Útil cuando el paciente aprueba una solicitud mientras el profesional tiene la lista abierta.
+     */
+    public void refrescarPermisosDocumentos() {
+        if (documentos == null || documentos.isEmpty()) {
+            addMessage(FacesMessage.SEVERITY_WARN, "No hay documentos cargados para refrescar.");
+            return;
+        }
+
+        String tenantId = sessionBean.getTenantId();
+        Integer ciProfesional = sessionBean.getProfesionalCi();
+        String especialidad = sessionBean.getEspecialidad();
+
+        if (tenantId == null || tenantId.isBlank()) {
+            addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+            return;
+        }
+        if (ciProfesional == null) {
+            addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el CI del profesional");
+            return;
+        }
+
+        int documentosActualizados = 0;
+        UUID tenantUuid = UUID.fromString(tenantId);
+
+        for (documento_con_permiso_dto doc : documentos) {
+            if (doc.getId() == null || doc.getId().isBlank()) {
+                continue;
+            }
+            try {
+                boolean tienePermiso = apiService.validarAccesoDocumento(
+                    UUID.fromString(doc.getId()),
+                    tenantUuid,
+                    ciProfesional,
+                    especialidad
+                );
+                doc.setTienePermiso(tienePermiso);
+                documentosActualizados++;
+            } catch (Exception e) {
+                System.err.println("Error al refrescar permiso para documento " + doc.getId() + ": " + e.getMessage());
+            }
+        }
+
+        addMessage(
+            FacesMessage.SEVERITY_INFO,
+            documentosActualizados > 0
+                ? "Permisos actualizados para " + documentosActualizados + " documentos."
+                : "No se encontraron documentos para actualizar."
+        );
+        PrimeFaces current = PrimeFaces.current();
+        if (current != null) {
+            current.ajax().update("documentosForm:documentosTable", "documentosForm:messages");
+        }
+    }
+
+    /**
      * Se ejecuta antes de renderizar la vista para asegurar que los catálogos estén cargados
      * cuando el profesional inicia sesión desde la pantalla principal.
      */

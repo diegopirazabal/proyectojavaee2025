@@ -19,6 +19,9 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -290,6 +293,21 @@ public class notification_resource {
                 dto.setEspecialidad(request.getEspecialidad());
             }
 
+            String fechaExpiracionRaw = request.getFechaExpiracion();
+            if (fechaExpiracionRaw != null && !fechaExpiracionRaw.isBlank()) {
+                try {
+                    LocalDateTime fechaExpiracion = parseFechaExpiracion(fechaExpiracionRaw.trim());
+                    dto.setFechaExpiracion(fechaExpiracion);
+                } catch (DateTimeParseException e) {
+                    return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Json.createObjectBuilder()
+                            .add("status", "ERROR")
+                            .add("message", "fechaExpiracion tiene un formato inválido. Usar ISO 8601, por ejemplo 2025-01-30T14:30:00Z")
+                            .build())
+                        .build();
+                }
+            }
+
             // Otorgar el permiso
             PoliticaAccesoDTO permisoCreado = politicaAccesoService.otorgarPermiso(dto);
 
@@ -389,6 +407,14 @@ public class notification_resource {
         }
     }
 
+    private LocalDateTime parseFechaExpiracion(String fechaExpiracion) {
+        try {
+            return OffsetDateTime.parse(fechaExpiracion).toLocalDateTime();
+        } catch (DateTimeParseException ex) {
+            return LocalDateTime.parse(fechaExpiracion);
+        }
+    }
+
     // ============ CLASES DE REQUEST ============
 
     public static class AprobarSolicitudRequest {
@@ -399,6 +425,7 @@ public class notification_resource {
         private Integer profesionalCi; // Solo para PROFESIONAL_ESPECIFICO
         private String especialidad; // Solo para POR_ESPECIALIDAD
         private String tenantId;
+        private String fechaExpiracion;
 
         // Getters y Setters
         public String getNotificacionId() { return notificacionId; }
@@ -415,6 +442,8 @@ public class notification_resource {
         public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }
         public String getTenantId() { return tenantId; }
         public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+        public String getFechaExpiracion() { return fechaExpiracion; }
+        public void setFechaExpiracion(String fechaExpiracion) { this.fechaExpiracion = fechaExpiracion; }
     }
 
     public static class RechazarSolicitudRequest {
