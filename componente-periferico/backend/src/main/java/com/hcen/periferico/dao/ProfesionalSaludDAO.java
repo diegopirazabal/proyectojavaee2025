@@ -50,12 +50,12 @@ public class ProfesionalSaludDAO {
         return query.getResultList();
     }
 
-    public List<profesional_salud> findByEspecialidad(String especialidad) {
+    public List<profesional_salud> findByEspecialidadId(UUID especialidadId) {
         TypedQuery<profesional_salud> query = em.createQuery(
-            "SELECT p FROM profesional_salud p WHERE p.especialidad = :especialidad ORDER BY p.apellidos, p.nombre",
+            "SELECT p FROM profesional_salud p WHERE p.especialidadId = :especialidadId ORDER BY p.apellidos, p.nombre",
             profesional_salud.class
         );
-        query.setParameter("especialidad", especialidad);
+        query.setParameter("especialidadId", especialidadId);
         return query.getResultList();
     }
 

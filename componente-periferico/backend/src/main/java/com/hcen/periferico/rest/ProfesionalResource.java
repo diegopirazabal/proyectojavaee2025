@@ -108,11 +108,17 @@ public class ProfesionalResource {
 
             UUID tenantId = UUID.fromString(tenantIdStr);
 
+            // Parsear especialidadId de String a UUID
+            UUID especialidadId = null;
+            if (dto.getEspecialidadId() != null && !dto.getEspecialidadId().trim().isEmpty()) {
+                especialidadId = UUID.fromString(dto.getEspecialidadId());
+            }
+
             profesional_salud profesional = profesionalService.saveProfesional(
                 dto.getCi(),
                 dto.getNombre(),
                 dto.getApellidos(),
-                dto.getEspecialidad(),
+                especialidadId,
                 dto.getEmail(),
                 dto.getPassword(),
                 tenantId
@@ -150,11 +156,17 @@ public class ProfesionalResource {
 
             UUID tenantId = UUID.fromString(tenantIdStr);
 
+            // Parsear especialidadId de String a UUID
+            UUID especialidadId = null;
+            if (dto.getEspecialidadId() != null && !dto.getEspecialidadId().trim().isEmpty()) {
+                especialidadId = UUID.fromString(dto.getEspecialidadId());
+            }
+
             profesional_salud profesional = profesionalService.saveProfesional(
                 ci,
                 dto.getNombre(),
                 dto.getApellidos(),
-                dto.getEspecialidad(),
+                especialidadId,
                 dto.getEmail(),
                 null,  // Password null para actualizaciones (no se cambia)
                 tenantId
@@ -194,14 +206,19 @@ public class ProfesionalResource {
     }
 
     @GET
-    @Path("/especialidad/{especialidad}")
-    public Response getProfesionalesByEspecialidad(@PathParam("especialidad") String especialidad) {
+    @Path("/especialidad/{especialidadId}")
+    public Response getProfesionalesByEspecialidadId(@PathParam("especialidadId") String especialidadIdStr) {
         try {
-            List<profesional_salud> profesionales = profesionalService.getProfesionalesByEspecialidad(especialidad);
+            UUID especialidadId = UUID.fromString(especialidadIdStr);
+            List<profesional_salud> profesionales = profesionalService.getProfesionalesByEspecialidadId(especialidadId);
             List<profesional_salud_dto> dtos = profesionales.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
             return Response.ok(dtos).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorResponse("ID de especialidad inválido"))
+                .build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(new ErrorResponse("Error al buscar por especialidad: " + e.getMessage()))
@@ -214,7 +231,7 @@ public class ProfesionalResource {
             entity.getCi(),
             entity.getNombre(),
             entity.getApellidos(),
-            entity.getEspecialidad(),
+            entity.getEspecialidadId() != null ? entity.getEspecialidadId().toString() : null,
             entity.getEmail()
         );
         dto.setTenantId(entity.getTenantId() != null ? entity.getTenantId().toString() : null);

@@ -1,5 +1,6 @@
 package com.hcen.periferico.frontend.bean;
 
+import com.hcen.periferico.frontend.dto.especialidad_dto;
 import com.hcen.periferico.frontend.dto.profesional_salud_dto;
 import com.hcen.periferico.frontend.service.APIService;
 import jakarta.annotation.PostConstruct;
@@ -29,10 +30,12 @@ public class ProfesionalBean implements Serializable {
     private profesional_salud_dto newProfesional;
     private profesional_salud_dto profesionalToDelete;
 
+    private List<especialidad_dto> especialidades;  // Dropdown data
     private String searchTerm;
 
     @PostConstruct
     public void init() {
+        loadEspecialidades();
         loadProfesionales();
         newProfesional = new profesional_salud_dto();
         selectedProfesional = new profesional_salud_dto();
@@ -48,6 +51,15 @@ public class ProfesionalBean implements Serializable {
             profesionales = apiService.getAllProfesionales(tenantId);
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar profesionales: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void loadEspecialidades() {
+        try {
+            especialidades = apiService.getEspecialidades();
+        } catch (Exception e) {
+            addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar especialidades: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -82,7 +94,7 @@ public class ProfesionalBean implements Serializable {
                 newProfesional.getCi(),
                 newProfesional.getNombre(),
                 newProfesional.getApellidos(),
-                newProfesional.getEspecialidad(),
+                newProfesional.getEspecialidadId(),
                 newProfesional.getEmail(),
                 newProfesional.getPassword(),
                 tenantId
@@ -116,7 +128,7 @@ public class ProfesionalBean implements Serializable {
                 selectedProfesional.getCi(),
                 selectedProfesional.getNombre(),
                 selectedProfesional.getApellidos(),
-                selectedProfesional.getEspecialidad(),
+                selectedProfesional.getEspecialidadId(),
                 selectedProfesional.getEmail(),
                 null,  // No cambiar password en actualización
                 tenantId
@@ -189,7 +201,7 @@ public class ProfesionalBean implements Serializable {
             this.selectedProfesional.setCi(selectedProfesional.getCi());
             this.selectedProfesional.setNombre(selectedProfesional.getNombre());
             this.selectedProfesional.setApellidos(selectedProfesional.getApellidos());
-            this.selectedProfesional.setEspecialidad(selectedProfesional.getEspecialidad());
+            this.selectedProfesional.setEspecialidadId(selectedProfesional.getEspecialidadId());
             this.selectedProfesional.setEmail(selectedProfesional.getEmail());
             this.selectedProfesional.setTenantId(selectedProfesional.getTenantId());
         }
@@ -217,5 +229,28 @@ public class ProfesionalBean implements Serializable {
 
     public void setProfesionalToDelete(profesional_salud_dto profesionalToDelete) {
         this.profesionalToDelete = profesionalToDelete;
+    }
+
+    public List<especialidad_dto> getEspecialidades() {
+        return especialidades;
+    }
+
+    public void setEspecialidades(List<especialidad_dto> especialidades) {
+        this.especialidades = especialidades;
+    }
+
+    /**
+     * Obtiene el nombre de una especialidad por su ID
+     * Útil para mostrar en la tabla en lugar del UUID
+     */
+    public String getEspecialidadNombre(String especialidadId) {
+        if (especialidadId == null || especialidades == null) {
+            return "";
+        }
+        return especialidades.stream()
+            .filter(e -> especialidadId.equals(e.getId()))
+            .map(especialidad_dto::getNombre)
+            .findFirst()
+            .orElse("");
     }
 }

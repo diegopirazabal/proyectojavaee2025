@@ -29,8 +29,13 @@ public class profesional_salud {
     @Column(nullable = false, length = 100)
     private String apellidos;
 
-    @Column(length = 80)
-    private String especialidad;
+    // Relación con Especialidad
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "especialidad_id", referencedColumnName = "ID", insertable = false, updatable = false)
+    private Especialidad especialidad;
+
+    @Column(name = "especialidad_id", columnDefinition = "UUID")
+    private UUID especialidadId;
 
     @Column(nullable = false, length = 150)
     private String email;
@@ -58,8 +63,11 @@ public class profesional_salud {
     public String getApellidos() { return apellidos; }
     public void setApellidos(String apellidos) { this.apellidos = apellidos; }
 
-    public String getEspecialidad() { return especialidad; }
-    public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }
+    public Especialidad getEspecialidad() { return especialidad; }
+    public void setEspecialidad(Especialidad especialidad) { this.especialidad = especialidad; }
+
+    public UUID getEspecialidadId() { return especialidadId; }
+    public void setEspecialidadId(UUID especialidadId) { this.especialidadId = especialidadId; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }

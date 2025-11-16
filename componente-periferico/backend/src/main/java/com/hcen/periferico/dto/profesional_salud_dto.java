@@ -9,7 +9,7 @@ public class profesional_salud_dto implements Serializable {
     private Integer ci;
     private String nombre;
     private String apellidos;
-    private String especialidad;
+    private String especialidadId;  // UUID as String
     private String email;
     private String password;
     private String tenantId;
@@ -18,11 +18,11 @@ public class profesional_salud_dto implements Serializable {
     public profesional_salud_dto() {
     }
 
-    public profesional_salud_dto(Integer ci, String nombre, String apellidos, String especialidad, String email) {
+    public profesional_salud_dto(Integer ci, String nombre, String apellidos, String especialidadId, String email) {
         this.ci = ci;
         this.nombre = nombre;
         this.apellidos = apellidos;
-        this.especialidad = especialidad;
+        this.especialidadId = especialidadId;
         this.email = email;
     }
 
@@ -51,12 +51,12 @@ public class profesional_salud_dto implements Serializable {
         this.apellidos = apellidos;
     }
 
-    public String getEspecialidad() {
-        return especialidad;
+    public String getEspecialidadId() {
+        return especialidadId;
     }
 
-    public void setEspecialidad(String especialidad) {
-        this.especialidad = especialidad;
+    public void setEspecialidadId(String especialidadId) {
+        this.especialidadId = especialidadId;
     }
 
     public String getEmail() {

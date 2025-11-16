@@ -84,8 +84,8 @@
                         <h:outputText value="#{prof.apellidos}"/>
                     </p:column>
 
-                    <p:column headerText="Especialidad" sortBy="#{prof.especialidad}">
-                        <h:outputText value="#{prof.especialidad}"/>
+                    <p:column headerText="Especialidad" sortBy="#{profesionalBean.getEspecialidadNombre(prof.especialidadId)}">
+                        <h:outputText value="#{profesionalBean.getEspecialidadNombre(prof.especialidadId)}"/>
                     </p:column>
 
                     <p:column headerText="Email">
@@ -145,8 +145,14 @@
                                 required="true"/>
 
                     <p:outputLabel for="newEspecialidad" value="Especialidad"/>
-                    <p:inputText id="newEspecialidad"
-                                value="#{profesionalBean.newProfesional.especialidad}"/>
+                    <p:selectOneMenu id="newEspecialidad"
+                                     value="#{profesionalBean.newProfesional.especialidadId}">
+                        <f:selectItem itemLabel="-- Seleccione especialidad --" itemValue="#{null}" noSelectionOption="true"/>
+                        <f:selectItems value="#{profesionalBean.especialidades}"
+                                      var="esp"
+                                      itemValue="#{esp.id}"
+                                      itemLabel="#{esp.nombre}"/>
+                    </p:selectOneMenu>
 
                     <p:outputLabel for="newEmail" value="Email"/>
                     <p:inputText id="newEmail"
@@ -199,8 +205,14 @@
                                 required="true"/>
 
                     <p:outputLabel for="editEspecialidad" value="Especialidad"/>
-                    <p:inputText id="editEspecialidad"
-                                value="#{profesionalBean.selectedProfesional.especialidad}"/>
+                    <p:selectOneMenu id="editEspecialidad"
+                                     value="#{profesionalBean.selectedProfesional.especialidadId}">
+                        <f:selectItem itemLabel="-- Seleccione especialidad --" itemValue="#{null}" noSelectionOption="true"/>
+                        <f:selectItems value="#{profesionalBean.especialidades}"
+                                      var="esp"
+                                      itemValue="#{esp.id}"
+                                      itemLabel="#{esp.nombre}"/>
+                    </p:selectOneMenu>
 
                     <p:outputLabel for="editEmail" value="Email"/>
                     <p:inputText id="editEmail"

@@ -282,7 +282,7 @@ public class DocumentoClinicoService {
         // Información del profesional
         profesional_salud profesional = documento.getProfesionalFirmante();
         dto.setNombreCompletoProfesional(profesional.getNombre() + " " + profesional.getApellidos());
-        dto.setEspecialidadProfesional(profesional.getEspecialidad());
+        dto.setEspecialidadProfesional(profesional.getEspecialidad() != null ? profesional.getEspecialidad().getNombre() : null);
 
         // Información de la clínica
         if (documento.getTenantId() != null) {

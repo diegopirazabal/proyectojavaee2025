@@ -23,7 +23,7 @@ public class ProfesionalService {
      * Crea o actualiza un profesional de salud
      */
     public profesional_salud saveProfesional(Integer ci, String nombre, String apellidos,
-                                           String especialidad, String email, String password, UUID tenantId) {
+                                           UUID especialidadId, String email, String password, UUID tenantId) {
         // Validaciones
         if (ci == null || ci <= 0) {
             throw new IllegalArgumentException("La cédula es requerida y debe ser válida");
@@ -62,7 +62,7 @@ public class ProfesionalService {
 
         profesional.setNombre(nombre.trim());
         profesional.setApellidos(apellidos.trim());
-        profesional.setEspecialidad(especialidad != null ? especialidad.trim() : null);
+        profesional.setEspecialidadId(especialidadId);
         profesional.setEmail(email.trim());
 
         return profesionalDAO.save(profesional);
@@ -85,8 +85,8 @@ public class ProfesionalService {
     /**
      * Busca profesionales por especialidad
      */
-    public List<profesional_salud> getProfesionalesByEspecialidad(String especialidad) {
-        return profesionalDAO.findByEspecialidad(especialidad);
+    public List<profesional_salud> getProfesionalesByEspecialidadId(UUID especialidadId) {
+        return profesionalDAO.findByEspecialidadId(especialidadId);
     }
 
     /**
