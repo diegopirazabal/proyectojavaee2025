@@ -255,15 +255,24 @@ public class APIService implements Serializable {
             request.setEntity(entity);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
+                String responseBody = new String(response.getEntity().getContent().readAllBytes());
+
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
                     return parseProfesionalFromJson(responseBody);
+                } else if (response.getCode() == 400) {
+                    // Error de validación - parsear mensaje de error
+                    String errorMessage = parseErrorMessage(responseBody);
+                    throw new IllegalArgumentException(errorMessage);
+                } else {
+                    // Otro error
+                    String errorMessage = parseErrorMessage(responseBody);
+                    throw new RuntimeException("Error del servidor: " + errorMessage);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+            throw new RuntimeException("Error de comunicación con el servidor");
         }
-        return null;
     }
 
     public boolean deleteProfesional(Integer ci, String tenantId) {
@@ -860,6 +869,25 @@ public class APIService implements Serializable {
                 message = message.substring(0, 200) + "...";
             }
             return cleanExceptionPrefix(message);
+        }
+    }
+
+    /**
+     * Parsea el mensaje de error del JSON ErrorResponse
+     * Ejemplo JSON: {"message": "La contraseña debe tener..."}
+     */
+    private String parseErrorMessage(String jsonResponse) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonResponse))) {
+            JsonObject jsonObject = reader.readObject();
+            if (jsonObject.containsKey("message")) {
+                return jsonObject.getString("message");
+            } else if (jsonObject.containsKey("error")) {
+                return jsonObject.getString("error");
+            }
+            return "Error desconocido";
+        } catch (Exception e) {
+            // Si no se puede parsear el JSON, retornar el texto plano
+            return jsonResponse;
         }
     }
 

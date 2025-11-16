@@ -3,6 +3,7 @@ package com.hcen.periferico.rest;
 import com.hcen.periferico.entity.profesional_salud;
 import com.hcen.periferico.dto.profesional_salud_dto;
 import com.hcen.periferico.service.ProfesionalService;
+import com.hcen.periferico.service.AuthenticationService;
 import jakarta.ejb.EJB;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -19,6 +20,9 @@ public class ProfesionalResource {
 
     @EJB
     private ProfesionalService profesionalService;
+
+    @EJB
+    private AuthenticationService authenticationService;
 
     @GET
     public Response getAllProfesionales(
@@ -114,6 +118,18 @@ public class ProfesionalResource {
                 especialidadId = UUID.fromString(dto.getEspecialidadId());
             }
 
+            // Validar contraseña (obligatoria para nuevos profesionales)
+            if (dto.getPassword() == null || dto.getPassword().trim().isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("La contraseña es requerida para nuevos profesionales"))
+                    .build();
+            }
+            if (!authenticationService.isValidPassword(dto.getPassword())) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números"))
+                    .build();
+            }
+
             profesional_salud profesional = profesionalService.saveProfesional(
                 dto.getCi(),
                 dto.getNombre(),
@@ -162,13 +178,22 @@ public class ProfesionalResource {
                 especialidadId = UUID.fromString(dto.getEspecialidadId());
             }
 
+            // Validar contraseña si se proporciona (opcional en updates)
+            if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
+                if (!authenticationService.isValidPassword(dto.getPassword())) {
+                    return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números"))
+                        .build();
+                }
+            }
+
             profesional_salud profesional = profesionalService.saveProfesional(
                 ci,
                 dto.getNombre(),
                 dto.getApellidos(),
                 especialidadId,
                 dto.getEmail(),
-                null,  // Password null para actualizaciones (no se cambia)
+                dto.getPassword(),  // Password opcional: null/vacío = no cambiar, valor = actualizar
                 tenantId
             );
             return Response.ok(toDTO(profesional)).build();

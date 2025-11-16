@@ -47,6 +47,12 @@ public class ProfesionalService {
         if (existing.isPresent()) {
             // Actualizar existente
             profesional = existing.get();
+
+            // Si se proporciona una nueva contraseña, hashearla (validación hecha en Resource)
+            if (password != null && !password.trim().isEmpty()) {
+                profesional.setPassword(hashPassword(password));
+            }
+            // Si password es null o vacío, no se cambia la contraseña actual
         } else {
             // Crear nuevo
             profesional = new profesional_salud();
@@ -54,10 +60,7 @@ public class ProfesionalService {
             profesional.setTenantId(tenantId);
             profesional.setActive(true); // Por defecto activo
 
-            // Solo hashear password si es un nuevo profesional
-            if (password == null || password.trim().isEmpty()) {
-                throw new IllegalArgumentException("La contraseña es requerida para nuevos profesionales");
-            }
+            // Hashear contraseña (validación hecha en Resource)
             profesional.setPassword(hashPassword(password));
         }
 
@@ -66,7 +69,15 @@ public class ProfesionalService {
         profesional.setEspecialidadId(especialidadId);
         profesional.setEmail(email.trim());
 
-        return profesionalDAO.save(profesional);
+        // Para entidades existentes ya managed, los cambios se persisten automáticamente
+        // Para nuevas entidades, necesitamos merge
+        if (existing.isPresent()) {
+            // Ya está managed, los cambios se persisten al final de la transacción
+            return profesional;
+        } else {
+            // Nueva entidad, necesita merge
+            return profesionalDAO.save(profesional);
+        }
     }
 
     /**

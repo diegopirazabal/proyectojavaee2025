@@ -9,6 +9,7 @@ import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import org.primefaces.PrimeFaces;
 
 import java.io.Serializable;
 import java.util.List;
@@ -32,6 +33,7 @@ public class ProfesionalBean implements Serializable {
 
     private List<especialidad_dto> especialidades;  // Dropdown data
     private String searchTerm;
+    private String newPasswordForEdit;  // Password opcional al editar profesional
 
     @PostConstruct
     public void init() {
@@ -114,15 +116,22 @@ public class ProfesionalBean implements Serializable {
     public void updateProfesional() {
         try {
             if (selectedProfesional == null) {
-                addMessage(FacesMessage.SEVERITY_ERROR, "No hay profesional seleccionado");
+                addMessageToDialog(FacesMessage.SEVERITY_ERROR, "No hay profesional seleccionado");
+                PrimeFaces.current().ajax().addCallbackParam("updateSuccess", false);
                 return;
             }
 
             String tenantId = sessionBean.getTenantId();
             if (tenantId == null || tenantId.isEmpty()) {
-                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                addMessageToDialog(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                PrimeFaces.current().ajax().addCallbackParam("updateSuccess", false);
                 return;
             }
+
+            // Si newPasswordForEdit está vacío, pasar null para no cambiar la contraseña
+            String passwordToUpdate = (newPasswordForEdit != null && !newPasswordForEdit.trim().isEmpty())
+                                     ? newPasswordForEdit.trim()
+                                     : null;
 
             apiService.saveProfesional(
                 selectedProfesional.getCi(),
@@ -130,16 +139,19 @@ public class ProfesionalBean implements Serializable {
                 selectedProfesional.getApellidos(),
                 selectedProfesional.getEspecialidadId(),
                 selectedProfesional.getEmail(),
-                null,  // No cambiar password en actualización
+                passwordToUpdate,  // Password opcional: null = no cambiar
                 tenantId
             );
 
             addMessage(FacesMessage.SEVERITY_INFO, "Profesional actualizado exitosamente");
             loadProfesionales();
+            PrimeFaces.current().ajax().addCallbackParam("updateSuccess", true);
         } catch (IllegalArgumentException e) {
-            addMessage(FacesMessage.SEVERITY_ERROR, e.getMessage());
+            addMessageToDialog(FacesMessage.SEVERITY_ERROR, e.getMessage());
+            PrimeFaces.current().ajax().addCallbackParam("updateSuccess", false);
         } catch (Exception e) {
-            addMessage(FacesMessage.SEVERITY_ERROR, "Error al actualizar profesional: " + e.getMessage());
+            addMessageToDialog(FacesMessage.SEVERITY_ERROR, "Error al actualizar profesional: " + e.getMessage());
+            PrimeFaces.current().ajax().addCallbackParam("updateSuccess", false);
             e.printStackTrace();
         }
     }
@@ -174,6 +186,7 @@ public class ProfesionalBean implements Serializable {
     public void prepareEdit(profesional_salud_dto profesional) {
         // Crear copia defensiva con todos los valores
         this.selectedProfesional = new profesional_salud_dto();
+        this.newPasswordForEdit = null;  // Resetear password
 
         if (profesional != null) {
             this.selectedProfesional.setCi(profesional.getCi());
@@ -187,6 +200,13 @@ public class ProfesionalBean implements Serializable {
 
     private void addMessage(FacesMessage.Severity severity, String message) {
         FacesContext.getCurrentInstance().addMessage(null,
+            new FacesMessage(severity, message, null));
+    }
+
+    private void addMessageToDialog(FacesMessage.Severity severity, String message) {
+        // Agregar mensaje asociado a un componente ficticio para que NO sea global
+        // Esto permite que solo aparezca en el dialog, no en la pantalla principal
+        FacesContext.getCurrentInstance().addMessage("editDialog",
             new FacesMessage(severity, message, null));
     }
 
@@ -231,6 +251,14 @@ public class ProfesionalBean implements Serializable {
 
     public void setSearchTerm(String searchTerm) {
         this.searchTerm = searchTerm;
+    }
+
+    public String getNewPasswordForEdit() {
+        return newPasswordForEdit;
+    }
+
+    public void setNewPasswordForEdit(String newPasswordForEdit) {
+        this.newPasswordForEdit = newPasswordForEdit;
     }
 
     public profesional_salud_dto getProfesionalToDelete() {

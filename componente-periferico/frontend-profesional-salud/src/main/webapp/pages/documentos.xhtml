@@ -183,7 +183,7 @@
                     <p:column headerText="Acciones" style="width: 150px;">
                         <!-- Botón Ver (si tiene permiso) -->
                         <p:commandButton icon="pi pi-eye"
-                                        styleClass="p-button-info"
+                                        styleClass="btn-primario"
                                         onclick="PF('dlgVerDocumento').show();"
                                         action="#{documentoClinicoBean.seleccionarDocumento(doc)}"
                                         update=":verDocumentoPanel"
@@ -192,7 +192,7 @@
 
                         <!-- Botón Solicitar Acceso (si no tiene permiso) -->
                         <p:commandButton icon="pi pi-lock"
-                                        styleClass="p-button-warning"
+                                        styleClass="btn-secundario"
                                         action="#{documentoClinicoBean.solicitarAcceso(doc)}"
                                         update=":documentosForm:messages,:documentosForm:documentosTable"
                                         title="Solicitar acceso al paciente"
@@ -225,7 +225,9 @@
               widgetVar="dlgNuevoDocumento"
               header="Nueva Consulta No Urgente"
               modal="true"
-              width="800"
+              width="700"
+              height="600"
+              fitViewport="true"
               responsive="true">
         <h:form id="newDocumentoPanel">
             <p:messages id="dlgMessages" showDetail="false" closable="true"/>
@@ -337,7 +339,9 @@
               widgetVar="dlgVerDocumento"
               header="Documento Clínico"
               modal="true"
-              width="800"
+              width="700"
+              height="500"
+              fitViewport="true"
               responsive="true">
         <h:form id="verDocumentoPanel">
             <p:panel header="Información General">

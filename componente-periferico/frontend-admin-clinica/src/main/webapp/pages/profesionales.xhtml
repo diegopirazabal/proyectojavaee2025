@@ -33,7 +33,7 @@
 
     <div style="padding: 2rem;">
         <h:form id="profesionalesForm">
-            <p:messages id="messages" showDetail="false" closable="true"/>
+            <p:messages id="messages" showDetail="false" closable="true" globalOnly="true"/>
 
             <p:panel header="Gestión de Profesionales de Salud">
                 <p:toolbar style="margin-bottom: 1rem;">
@@ -183,8 +183,9 @@
                      header="Editar Profesional"
                      widgetVar="dlgEditProfesional"
                      modal="true"
-                     width="500"
+                     width="650"
                      dynamic="true">
+                <p:messages id="editMessages" showDetail="false" closable="true"/>
                 <h:panelGrid id="editProfesionalPanel" columns="2" styleClass="p-fluid">
                     <p:outputLabel for="editCi" value="Cédula"/>
                     <p:inputNumber id="editCi"
@@ -192,12 +193,12 @@
                                   disabled="true" 
                                   decimalPlaces="0"/>
 
-                    <p:outputLabel for="editNombre" value="Nombre*"/>
+                    <p:outputLabel for="editNombre" value="Nombre"/>
                     <p:inputText id="editNombre"
                                 value="#{profesionalBean.selectedProfesional.nombre}"
                                 required="true"/>
 
-                    <p:outputLabel for="editApellidos" value="Apellidos*"/>
+                    <p:outputLabel for="editApellidos" value="Apellidos"/>
                     <p:inputText id="editApellidos"
                                 value="#{profesionalBean.selectedProfesional.apellidos}"
                                 required="true"/>
@@ -217,6 +218,20 @@
                                 value="#{profesionalBean.selectedProfesional.email}"
                                 type="email"
                                 required="true"/>
+
+                    <p:outputLabel for="editPassword" value="Nueva Contraseña"/>
+                    <h:panelGroup>
+                        <p:password id="editPassword"
+                                   value="#{profesionalBean.newPasswordForEdit}"
+                                   toggleMask="true"
+                                   feedback="true"
+                                   weakLabel="Débil"
+                                   goodLabel="Buena"
+                                   strongLabel="Fuerte"
+                                   placeholder="Dejar en blanco para mantener la actual"/>
+                        <p:outputLabel value="Requisitos: mínimo 8 caracteres, incluir mayúsculas, minúsculas y números"
+                                      style="font-size: 0.85em; color: #666; display: block; margin-top: 0.25rem;"/>
+                    </h:panelGroup>
                 </h:panelGrid>
 
                 <f:facet name="footer">
@@ -224,8 +239,8 @@
                                     icon="pi pi-check"
                                     action="#{profesionalBean.updateProfesional}"
                                     process="@this,editProfesionalPanel"
-                                    update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages"
-                                    oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dlgEditProfesional').hide();"/>
+                                    update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages,editMessages"
+                                    oncomplete="if (args &amp;&amp; !args.validationFailed &amp;&amp; args.updateSuccess) PF('dlgEditProfesional').hide();"/>
                     <p:commandButton value="Cancelar"
                                     icon="pi pi-times"
                                     onclick="PF('dlgEditProfesional').hide();"
