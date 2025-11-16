@@ -212,9 +212,16 @@
                     <p:commandButton value="Nuevo Documento"
                                      icon="pi pi-plus"
                                      action="#{documentoClinicoBean.prepararNuevoDocumento}"
-                                     ajax="false"
+                                     update=":dlgNuevoDocumento"
+                                     oncomplete="PF('dlgNuevoDocumento').show();"
                                      styleClass="btn-primario"/>
                 </div>
+
+            </p:panel>
+
+        </h:form>
+
+    </div>
 
     <!-- Dialog: Nuevo Documento -->
     <p:dialog id="dlgNuevoDocumento"
