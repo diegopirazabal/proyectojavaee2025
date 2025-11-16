@@ -10,7 +10,6 @@ import java.util.UUID;
 public class notificacion {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "ID", columnDefinition = "UUID")
     private UUID id;
 
@@ -42,6 +41,13 @@ public class notificacion {
         )
     )
     private UsuarioSalud usuario;
+
+    @PrePersist
+    protected void ensureId() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
 
     public UUID getId() { return id; }
     public String getTipo() { return tipo; }

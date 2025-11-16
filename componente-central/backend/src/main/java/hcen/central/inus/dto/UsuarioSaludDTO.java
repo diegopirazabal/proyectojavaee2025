@@ -26,6 +26,7 @@ public class UsuarioSaludDTO implements Serializable {
     private Boolean active;
     private Instant createdAt;
     private Instant updatedAt;
+    private String tenantId;
 
     // Constructores
     public UsuarioSaludDTO() {}
@@ -149,6 +150,14 @@ public class UsuarioSaludDTO implements Serializable {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     @Override

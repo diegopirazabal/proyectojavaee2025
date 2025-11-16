@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.Response;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,6 +27,42 @@ public class UsuarioSaludResource {
 
     @EJB
     private UsuarioSaludService usuarioService;
+
+    /**
+     * Lista todos los usuarios de una clínica o filtra por nombre si se indica.
+     * GET /api/usuarios?tenantId={uuid}&search=texto
+     */
+    @GET
+    public Response getUsuariosByTenantId(@QueryParam("tenantId") String tenantIdStr,
+                                          @QueryParam("search") String searchTerm) {
+        try {
+            if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "El parámetro tenantId es requerido"))
+                    .build();
+            }
+
+            UUID tenantId = UUID.fromString(tenantIdStr);
+            java.util.List<UsuarioSaludDTO> usuarios;
+
+            if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+                usuarios = usuarioService.searchUsuariosByTenantId(searchTerm, tenantId);
+            } else {
+                usuarios = usuarioService.getUsuariosByTenantId(tenantId);
+            }
+
+            return Response.ok(usuarios).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(Map.of("error", e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener usuarios", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(Map.of("error", "Error interno del servidor"))
+                .build();
+        }
+    }
 
     /**
      * Verifica si un usuario existe por cédula
@@ -104,4 +141,32 @@ public class UsuarioSaludResource {
         }
     }
 
+    /**
+     * Desasocia un usuario de una clínica concreta.
+     * DELETE /api/usuarios/{cedula}/clinica/{tenantId}
+     */
+    @DELETE
+    @Path("/{cedula}/clinica/{tenantId}")
+    public Response desasociarUsuarioDeClinica(@PathParam("cedula") String cedula,
+                                               @PathParam("tenantId") String tenantIdStr) {
+        try {
+            UUID tenantId = UUID.fromString(tenantIdStr);
+            boolean deleted = usuarioService.desasociarUsuarioDeClinica(cedula, tenantId);
+            if (deleted) {
+                return Response.ok(Map.of("message", "Usuario desasociado de la clínica exitosamente")).build();
+            }
+            return Response.status(Response.Status.NOT_FOUND)
+                .entity(Map.of("error", "No se encontró el usuario en esa clínica"))
+                .build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(Map.of("error", e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al desasociar usuario de clínica", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(Map.of("error", "Error interno del servidor: " + e.getMessage()))
+                .build();
+        }
+    }
 }

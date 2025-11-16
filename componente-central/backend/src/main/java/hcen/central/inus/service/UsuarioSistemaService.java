@@ -36,6 +36,17 @@ public class UsuarioSistemaService {
     @Resource(lookup = "java:comp/DefaultManagedExecutorService")
     private ManagedExecutorService executorService;
 
+    public UsuarioSistemaService() {
+    }
+
+    public UsuarioSistemaService(UsuarioSaludDAO usuarioSaludDAO,
+                                 PerifericoUsuariosClient perifericoUsuariosClient,
+                                 ManagedExecutorService executorService) {
+        this.usuarioSaludDAO = usuarioSaludDAO;
+        this.perifericoUsuariosClient = perifericoUsuariosClient;
+        this.executorService = executorService;
+    }
+
     public List<UsuarioSistemaResponse> obtenerCatalogo(String tipoDocumento,
                                                         String numeroDocumento,
                                                         String nombre,
@@ -126,6 +137,9 @@ public class UsuarioSistemaService {
             dto.setActivo(usuario.getActive());
             if (usuario.getFechaNacimiento() != null) {
                 dto.setFechaNacimiento(DATE_FORMAT.format(usuario.getFechaNacimiento()));
+            }
+            if (usuario.getTenantId() != null) {
+                dto.setTenantId(usuario.getTenantId().toString());
             }
             respuesta.add(dto);
         }

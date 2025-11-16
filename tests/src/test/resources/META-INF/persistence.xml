@@ -10,15 +10,15 @@
 
         <!-- Fuerza registro de entidades usadas en los IT -->
         <class>hcen.central.inus.entity.UsuarioSalud</class>
+        <class>hcen.central.inus.entity.UsuarioClinica</class>
+        <class>hcen.central.inus.entity.historia_clinica</class>
+        <class>hcen.central.inus.entity.historia_clinica_documento</class>
+        <class>hcen.central.inus.entity.admin_hcen</class>
         <class>hcen.central.inus.entity.JWTSession</class>
+        <class>hcen.central.inus.entity.converter.InstantAttributeConverter</class>
         <exclude-unlisted-classes>false</exclude-unlisted-classes>
 
         <properties>
-            <!-- Generar esquema en H2 -->
-            <property name="javax.persistence.schema-generation.database.action" value="drop-and-create"/>
-            <property name="javax.persistence.schema-generation.create-source" value="metadata"/>
-            <property name="javax.persistence.schema-generation.drop-source" value="metadata"/>
-
             <!-- JDBC (el contenedor hará JTA, pero esto no molesta) -->
             <property name="javax.persistence.jdbc.driver" value="org.h2.Driver"/>
             <property name="javax.persistence.jdbc.url" value="jdbc:h2:mem:hcen;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"/>

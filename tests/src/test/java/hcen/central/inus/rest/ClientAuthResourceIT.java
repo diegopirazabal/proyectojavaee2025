@@ -42,7 +42,12 @@ public class ClientAuthResourceIT {
 
     @Deployment
     public static WebArchive createDeployment() {
-        File[] libs = ArquillianMavenResolver.resolve("com.h2database:h2");
+        File[] libs = ArquillianMavenResolver.resolve(
+                "com.h2database:h2",
+                "io.jsonwebtoken:jjwt-api",
+                "io.jsonwebtoken:jjwt-impl",
+                "io.jsonwebtoken:jjwt-jackson"
+        );
 
         return ShrinkWrap.create(WebArchive.class, "client-auth-resource-it.war")
                 .addClasses(
@@ -55,12 +60,12 @@ public class ClientAuthResourceIT {
                         JWTTokenProvider.class,
                         JWTConfiguration.class,
                         InvalidTokenException.class,
-                        hcen.central.inus.testsupport.converter.TestInstantAttributeConverter.class,
                         hcen.central.inus.testsupport.converter.TestUUIDAttributeConverter.class
                 )
                 .addAsLibraries(libs)
                 .addAsResource("META-INF/persistence.xml", "META-INF/persistence.xml")
                 .addAsResource("META-INF/oidc-config.properties", "META-INF/oidc-config.properties")
+                .addAsResource("sql/schema.sql", "sql/schema.sql")
                 .addAsWebInfResource("test-ds/resources.xml", "resources.xml")
                 .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
     }

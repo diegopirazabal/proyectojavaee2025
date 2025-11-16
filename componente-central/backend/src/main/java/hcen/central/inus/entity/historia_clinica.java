@@ -9,7 +9,6 @@ import java.util.*;
 public class historia_clinica {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "ID", columnDefinition = "UUID")
     private UUID id;
 
@@ -32,6 +31,13 @@ public class historia_clinica {
     // NOTA: Documentos clínicos NO se persisten en central
     // Los documentos están en backend periférico y se obtienen vía API REST
     // Ver HistoriaClinicaService para consultar documentos remotamente
+
+    @PrePersist
+    protected void ensureId() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
 
     public UUID getId() { return id; }
     public LocalDateTime getFecCreacion() { return fecCreacion; }

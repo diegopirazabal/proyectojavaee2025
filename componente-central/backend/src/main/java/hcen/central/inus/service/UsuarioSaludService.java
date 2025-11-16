@@ -1,22 +1,24 @@
 package hcen.central.inus.service;
 
+import hcen.central.inus.dao.UsuarioClinicaDAO;
 import hcen.central.inus.dao.UsuarioSaludDAO;
+import hcen.central.inus.dto.ActualizarUsuarioSaludRequest;
 import hcen.central.inus.dto.RegistrarUsuarioRequest;
 import hcen.central.inus.dto.UsuarioSaludDTO;
-import hcen.central.inus.dto.ActualizarUsuarioSaludRequest;
 import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.enums.TipoDocumento;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
-
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
- * Service para gestión de usuarios de salud y su asociación con clínicas
+ * Servicio para la gestión de usuarios de salud y su asociación con clínicas.
  */
 @Stateless
 public class UsuarioSaludService {
@@ -27,9 +29,9 @@ public class UsuarioSaludService {
     @EJB
     private UsuarioSaludDAO usuarioDAO;
 
-    /**
-     * Verifica si un usuario existe por cédula
-     */
+    @EJB
+    private UsuarioClinicaDAO usuarioClinicaDAO;
+
     public boolean verificarUsuarioExiste(String cedula) {
         if (cedula == null || cedula.trim().isEmpty()) {
             throw new IllegalArgumentException("La cédula es requerida");
@@ -38,37 +40,26 @@ public class UsuarioSaludService {
     }
 
     /**
-     * Registra un usuario de salud en el sistema nacional.
-     * Si el usuario ya existe por cédula: devuelve el usuario existente (no es error)
-     * Si NO existe: crea un nuevo usuario solo con cédula y tipo de documento
+     * Registra un usuario en una clínica validando que no exista la combinación cédula + tenant.
      */
     public UsuarioSaludDTO registrarUsuarioEnClinica(RegistrarUsuarioRequest request) {
-        // Validaciones
         validateRequest(request);
 
         String cedula = request.getCedula().trim();
+        UUID tenantId = request.getTenantId();
 
-        // Verificar si ya existe un usuario con esta cédula
-        Optional<UsuarioSalud> existente = usuarioDAO.findByCedula(cedula);
-
-        UsuarioSalud usuario;
-        if (existente.isPresent()) {
-            // Usuario ya registrado - devolver el existente
-            LOGGER.info("Usuario con cédula " + cedula + " ya está registrado en el sistema nacional");
-            usuario = existente.get();
-        } else {
-            // Usuario nuevo - crear con datos mínimos
-            LOGGER.info("Creando nuevo usuario en sistema nacional con cédula " + cedula);
-            usuario = createNuevoUsuarioMinimo(request);
-            usuario = usuarioDAO.save(usuario);
+        if (usuarioDAO.existsByCedulaAndTenantId(cedula, tenantId)) {
+            LOGGER.warning(() -> "Usuario con cédula " + cedula + " ya registrado en clínica " + tenantId);
+            throw new IllegalArgumentException("El usuario ya está registrado en esta clínica");
         }
+
+        UsuarioSalud usuario = createNuevoUsuario(request);
+        usuario.setTenantId(tenantId);
+        usuario = usuarioDAO.save(usuario);
 
         return toDTO(usuario);
     }
 
-    /**
-     * Obtiene datos de un usuario por cédula
-     */
     public Optional<UsuarioSaludDTO> getUsuarioByCedula(String cedula) {
         if (cedula == null || cedula.trim().isEmpty()) {
             throw new IllegalArgumentException("La cédula es requerida");
@@ -76,9 +67,29 @@ public class UsuarioSaludService {
         return usuarioDAO.findByCedula(cedula.trim()).map(this::toDTO);
     }
 
-    /**
-     * Actualiza los datos de un usuario sin modificar su documento
-     */
+    public java.util.List<UsuarioSaludDTO> getUsuariosByTenantId(UUID tenantId) {
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenant_id es requerido");
+        }
+        return usuarioDAO.findByTenantId(tenantId)
+            .stream()
+            .map(this::toDTO)
+            .collect(Collectors.toList());
+    }
+
+    public java.util.List<UsuarioSaludDTO> searchUsuariosByTenantId(String searchTerm, UUID tenantId) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            throw new IllegalArgumentException("El término de búsqueda es requerido");
+        }
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenant_id es requerido");
+        }
+        return usuarioDAO.searchByNombreOrApellidoAndTenantId(searchTerm.trim(), tenantId)
+            .stream()
+            .map(this::toDTO)
+            .collect(Collectors.toList());
+    }
+
     public UsuarioSaludDTO actualizarUsuario(String cedula, ActualizarUsuarioSaludRequest request) {
         if (cedula == null || cedula.trim().isEmpty()) {
             throw new IllegalArgumentException("La cédula es requerida");
@@ -136,9 +147,25 @@ public class UsuarioSaludService {
         return toDTO(actualizado);
     }
 
-    /**
-     * Valida la solicitud de registro
-     */
+    public boolean desasociarUsuarioDeClinica(String cedula, UUID tenantId) {
+        if (cedula == null || cedula.trim().isEmpty()) {
+            throw new IllegalArgumentException("La cédula es requerida");
+        }
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenant_id de la clínica es requerido");
+        }
+
+        LOGGER.info(() -> "Desasociando usuario " + cedula + " de clínica " + tenantId);
+        boolean deleted = usuarioDAO.deleteByCedulaAndTenantId(cedula.trim(), tenantId);
+
+        if (deleted) {
+            LOGGER.info("Usuario desasociado exitosamente");
+        } else {
+            LOGGER.warning("No se encontró el usuario en esa clínica");
+        }
+        return deleted;
+    }
+
     private void validateRequest(RegistrarUsuarioRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("La solicitud no puede ser nula");
@@ -146,50 +173,68 @@ public class UsuarioSaludService {
         if (request.getCedula() == null || request.getCedula().trim().isEmpty()) {
             throw new IllegalArgumentException("La cédula es requerida");
         }
+        if (request.getPrimerNombre() == null || request.getPrimerNombre().trim().isEmpty()) {
+            throw new IllegalArgumentException("El primer nombre es requerido");
+        }
+        if (request.getPrimerApellido() == null || request.getPrimerApellido().trim().isEmpty()) {
+            throw new IllegalArgumentException("El primer apellido es requerido");
+        }
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            throw new IllegalArgumentException("El email es requerido");
+        }
+        if (request.getFechaNacimiento() == null) {
+            throw new IllegalArgumentException("La fecha de nacimiento es requerida");
+        }
+        LocalDate today = LocalDate.now(URUGUAY_ZONE);
+        if (request.getFechaNacimiento().isAfter(today)) {
+            throw new IllegalArgumentException("La fecha de nacimiento no puede ser en el futuro");
+        }
+        if (Period.between(request.getFechaNacimiento(), today).getYears() < 18) {
+            LOGGER.warning(() -> "Registro permitido para usuario menor de edad: " + request.getCedula());
+        }
+        if (request.getTenantId() == null) {
+            throw new IllegalArgumentException("El ID de la clínica (tenant_id) es requerido");
+        }
         if (request.getTipoDocumento() == null) {
-            request.setTipoDocumento(TipoDocumento.DO); // Default
+            request.setTipoDocumento(TipoDocumento.DO);
         }
     }
 
-    /**
-     * Crea un nuevo usuario con datos mínimos (solo documento)
-     */
-    private UsuarioSalud createNuevoUsuarioMinimo(RegistrarUsuarioRequest request) {
+    private UsuarioSalud createNuevoUsuario(RegistrarUsuarioRequest request) {
         UsuarioSalud usuario = new UsuarioSalud();
         usuario.setCedula(request.getCedula().trim());
         usuario.setTipoDeDocumento(request.getTipoDocumento());
-        // Datos mínimos requeridos por las columnas NOT NULL
-        usuario.setPrimerNombre("PENDIENTE");
-        usuario.setPrimerApellido("PENDIENTE");
-        usuario.setEmail("pendiente@hcen.gub.uy");
-        usuario.setFechaNacimiento(LocalDate.of(1900, 1, 1));
+        usuario.setPrimerNombre(request.getPrimerNombre().trim());
+        usuario.setSegundoNombre(request.getSegundoNombre() != null ? request.getSegundoNombre().trim() : null);
+        usuario.setPrimerApellido(request.getPrimerApellido().trim());
+        usuario.setSegundoApellido(request.getSegundoApellido() != null ? request.getSegundoApellido().trim() : null);
+        usuario.setEmail(request.getEmail().trim());
+        usuario.setFechaNacimiento(request.getFechaNacimiento());
         usuario.setEmailVerificado(false);
         usuario.setActive(true);
-        usuario.setNombreCompleto("PENDIENTE PENDIENTE");
-
+        usuario.setNombreCompleto(buildNombreCompleto(
+            request.getPrimerNombre(),
+            request.getSegundoNombre(),
+            request.getPrimerApellido(),
+            request.getSegundoApellido()
+        ));
         return usuario;
     }
 
-    /**
-     * Construye el nombre completo del usuario
-     */
     private String buildNombreCompleto(String primerNombre, String segundoNombre,
-                                      String primerApellido, String segundoApellido) {
+                                       String primerApellido, String segundoApellido) {
         StringBuilder sb = new StringBuilder();
         sb.append(primerNombre.trim());
         if (segundoNombre != null && !segundoNombre.trim().isEmpty()) {
-            sb.append(" ").append(segundoNombre.trim());
+            sb.append(' ').append(segundoNombre.trim());
         }
-        sb.append(" ").append(primerApellido.trim());
+        sb.append(' ').append(primerApellido.trim());
         if (segundoApellido != null && !segundoApellido.trim().isEmpty()) {
-            sb.append(" ").append(segundoApellido.trim());
+            sb.append(' ').append(segundoApellido.trim());
         }
         return sb.toString();
     }
 
-    /**
-     * Convierte entidad a DTO
-     */
     private UsuarioSaludDTO toDTO(UsuarioSalud entity) {
         UsuarioSaludDTO dto = new UsuarioSaludDTO();
         dto.setId(entity.getId());
@@ -206,6 +251,7 @@ public class UsuarioSaludService {
         dto.setActive(entity.getActive());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
+        dto.setTenantId(entity.getTenantId() != null ? entity.getTenantId().toString() : null);
         return dto;
     }
 }

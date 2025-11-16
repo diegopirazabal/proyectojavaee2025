@@ -1,0 +1,9 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Sun Nov 16 12:47:17 GMT-03:00 2025
+https\://build.shibboleth.net/nexus/content/groups/public/.lastUpdated=1763308037887
+https\://repo.maven.apache.org/maven2/.error=
+https\://repo.maven.apache.org/maven2/.lastUpdated=1763308036645
+https\://repository.apache.org/content/repositories/releases/.error=
+https\://repository.apache.org/content/repositories/releases/.lastUpdated=1763308036838
+https\://repository.jboss.org/nexus/content/groups/public-jboss/.error=
+https\://repository.jboss.org/nexus/content/groups/public-jboss/.lastUpdated=1763308037337

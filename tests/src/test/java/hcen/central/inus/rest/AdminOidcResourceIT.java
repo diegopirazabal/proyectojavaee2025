@@ -1,11 +1,25 @@
 package hcen.central.inus.rest;
 
+import hcen.central.inus.dao.OIDCUserDAO;
 import hcen.central.inus.dao.admin_hcen_dao;
+import hcen.central.inus.dto.JWTTokenResponse;
 import hcen.central.inus.dto.AdminLoginRequest;
+import hcen.central.inus.dto.OIDCAuthRequest;
+import hcen.central.inus.dto.OIDCTokenResponse;
+import hcen.central.inus.dto.OIDCUserInfo;
 import hcen.central.inus.entity.admin_hcen;
+import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.enums.TipoDocumento;
+import hcen.central.inus.security.config.OIDCConfiguration;
+import hcen.central.inus.security.exceptions.InvalidTokenException;
+import hcen.central.inus.security.jwt.JWTConfiguration;
+import hcen.central.inus.security.jwt.JWTTokenProvider;
 import hcen.central.inus.security.oidc.OIDCAuthenticationService;
 import hcen.central.inus.security.oidc.OIDCCallbackHandler;
+import hcen.central.inus.security.oidc.OIDCTokenValidator;
 import hcen.central.inus.security.oidc.OIDCUserInfoService;
+import hcen.central.inus.security.pkce.PKCEGenerator;
+import hcen.central.inus.security.pkce.PKCEValidator;
 import hcen.central.inus.service.authentication_service;
 import hcen.central.inus.testsupport.ArquillianMavenResolver;
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -46,7 +60,15 @@ public class AdminOidcResourceIT {
 
     @Deployment
     public static WebArchive createDeployment() {
-        File[] libs = ArquillianMavenResolver.resolve("com.h2database:h2");
+        File[] libs = ArquillianMavenResolver.resolve(
+                "com.h2database:h2",
+                "org.mindrot:jbcrypt",
+                "io.jsonwebtoken:jjwt-api",
+                "io.jsonwebtoken:jjwt-impl",
+                "io.jsonwebtoken:jjwt-jackson",
+                "org.apache.httpcomponents.client5:httpclient5",
+                "com.fasterxml.jackson.core:jackson-databind"
+        );
 
         return ShrinkWrap.create(WebArchive.class, "admin-oidc-it.war")
                 .addClasses(
@@ -58,10 +80,28 @@ public class AdminOidcResourceIT {
                         OIDCAuthResource.class,
                         OIDCAuthenticationService.class,
                         OIDCCallbackHandler.class,
-                        OIDCUserInfoService.class
+                        OIDCUserInfoService.class,
+                        OIDCTokenValidator.class,
+                        OIDCConfiguration.class,
+                        JWTTokenProvider.class,
+                        JWTConfiguration.class,
+                        OIDCUserDAO.class,
+                        OIDCAuthRequest.class,
+                        OIDCTokenResponse.class,
+                        OIDCUserInfo.class,
+                        JWTTokenResponse.class,
+                        UsuarioSalud.class,
+                        TipoDocumento.class,
+                        hcen.central.inus.entity.converter.TipoDocumentoAttributeConverter.class,
+                        hcen.central.inus.util.TipoDocumentoMapper.class,
+                        PKCEValidator.class,
+                        PKCEGenerator.class,
+                        InvalidTokenException.class
                 )
                 .addAsLibraries(libs)
                 .addAsResource("META-INF/persistence.xml", "META-INF/persistence.xml")
+                .addAsResource("META-INF/oidc-config.properties", "META-INF/oidc-config.properties")
+                .addAsResource("sql/schema.sql", "sql/schema.sql")
                 .addAsWebInfResource("test-ds/resources.xml", "resources.xml")
                 .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
     }

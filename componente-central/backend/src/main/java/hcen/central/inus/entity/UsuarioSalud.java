@@ -1,13 +1,11 @@
 package hcen.central.inus.entity;
 
-import hcen.central.inus.entity.converter.TipoDocumentoAttributeConverter;
 import hcen.central.inus.enums.TipoDocumento;
 import jakarta.persistence.*;
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -35,7 +33,7 @@ public class UsuarioSalud {
     @JoinColumn(name = "historia_clinica_id")
     private historia_clinica historiaClinica;
 
-    @Convert(converter = TipoDocumentoAttributeConverter.class)
+    @Enumerated(EnumType.STRING)
     @Column(name = "tipo_documento", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'DO'")
     private TipoDocumento tipoDeDocumento;
 
@@ -67,23 +65,27 @@ public class UsuarioSalud {
     private Boolean active = true;
     
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private Timestamp createdAt;
     
     @Column(name = "updated_at")
-    private Instant updatedAt;
+    private Timestamp updatedAt;
     
     @Column(name = "last_login")
-    private Instant lastLogin;
+    private Timestamp lastLogin;
+
+    @Column(name = "tenant_id", length = 36)
+    private String tenantId;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
+        Instant now = Instant.now();
+        setCreatedAt(now);
+        setUpdatedAt(now);
     }
     
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = Instant.now();
+        setUpdatedAt(Instant.now());
     }
     
     public UsuarioSalud() {}
@@ -144,14 +146,22 @@ public class UsuarioSalud {
     public void setActive(Boolean active) { this.active = active; }
     public Boolean isActive() { return active; }
     
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getCreatedAt() { return createdAt != null ? createdAt.toInstant() : null; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt != null ? Timestamp.from(createdAt) : null; }
     
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public Instant getUpdatedAt() { return updatedAt != null ? updatedAt.toInstant() : null; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt != null ? Timestamp.from(updatedAt) : null; }
     
-    public Instant getLastLogin() { return lastLogin; }
-    public void setLastLogin(Instant lastLogin) { this.lastLogin = lastLogin; }
+    public Instant getLastLogin() { return lastLogin != null ? lastLogin.toInstant() : null; }
+    public void setLastLogin(Instant lastLogin) { this.lastLogin = lastLogin != null ? Timestamp.from(lastLogin) : null; }
+
+    public UUID getTenantId() {
+        return tenantId != null ? UUID.fromString(tenantId) : null;
+    }
+
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId != null ? tenantId.toString() : null;
+    }
 
     @Override
     public boolean equals(Object o) {

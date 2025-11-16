@@ -15,7 +15,6 @@ import java.util.UUID;
 public class historia_clinica_documento {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "ID", columnDefinition = "UUID")
     private UUID id;
 
@@ -31,6 +30,13 @@ public class historia_clinica_documento {
 
     @Column(name = "FEC_REGISTRO", nullable = false)
     private LocalDateTime fecRegistro = LocalDateTime.now();
+
+    @PrePersist
+    protected void ensureId() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
 
     public UUID getId() {
         return id;

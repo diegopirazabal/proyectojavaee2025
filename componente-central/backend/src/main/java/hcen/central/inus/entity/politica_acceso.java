@@ -20,7 +20,6 @@ public class politica_acceso implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "ID", columnDefinition = "UUID")
     private UUID id;
 
@@ -101,6 +100,13 @@ public class politica_acceso implements Serializable {
     }
 
     // Getters y Setters
+
+    @PrePersist
+    protected void ensureId() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
 
     public UUID getId() {
         return id;

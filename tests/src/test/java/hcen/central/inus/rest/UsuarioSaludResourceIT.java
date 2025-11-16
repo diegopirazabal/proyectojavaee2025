@@ -52,15 +52,15 @@ public class UsuarioSaludResourceIT {
                 UsuarioSaludDTO.class,
                 UsuarioSalud.class,
                 UsuarioClinica.class,
+                hcen.central.inus.entity.converter.InstantAttributeConverter.class,
                 hcen.central.inus.entity.converter.TipoDocumentoAttributeConverter.class,
                 hcen.central.inus.util.TipoDocumentoMapper.class,
                 TipoDocumento.class,
-                hcen.central.inus.testsupport.converter.TestInstantAttributeConverter.class,
-                hcen.central.inus.testsupport.converter.TestUUIDAttributeConverter.class,
                 ActualizarUsuarioSaludRequest.class
             )
             .addAsLibraries(libs)
             .addAsResource("META-INF/persistence.xml", "META-INF/persistence.xml")
+            .addAsResource("sql/schema.sql", "sql/schema.sql")
             .addAsWebInfResource("test-ds/resources.xml", "resources.xml")
             .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
 

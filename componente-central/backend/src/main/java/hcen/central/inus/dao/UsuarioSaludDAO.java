@@ -95,6 +95,19 @@ public class UsuarioSaludDAO {
     }
 
     /**
+     * Lista usuarios pertenecientes a una clínica
+     */
+    public List<UsuarioSalud> findByTenantId(UUID tenantId) {
+        TypedQuery<UsuarioSalud> query = em.createQuery(
+            "SELECT u FROM UsuarioSalud u WHERE u.tenantId = :tenantId AND u.active = true " +
+            "ORDER BY u.primerApellido, u.primerNombre",
+            UsuarioSalud.class
+        );
+        query.setParameter("tenantId", normalizeTenantId(tenantId));
+        return query.getResultList();
+    }
+
+    /**
      * Busca usuarios aplicando filtros opcionales
      */
     public List<UsuarioSalud> findByFilters(TipoDocumento tipoDocumento,
@@ -203,6 +216,56 @@ public class UsuarioSaludDAO {
     }
 
     /**
+     * Busca usuarios dentro de una clínica filtrando por nombre o apellido
+     */
+    public List<UsuarioSalud> searchByNombreOrApellidoAndTenantId(String searchTerm, UUID tenantId) {
+        TypedQuery<UsuarioSalud> query = em.createQuery(
+            "SELECT u FROM UsuarioSalud u WHERE u.tenantId = :tenantId AND u.active = true AND (" +
+            "LOWER(u.primerNombre) LIKE LOWER(:term) OR " +
+            "LOWER(u.segundoNombre) LIKE LOWER(:term) OR " +
+            "LOWER(u.primerApellido) LIKE LOWER(:term) OR " +
+            "LOWER(u.segundoApellido) LIKE LOWER(:term)) " +
+            "ORDER BY u.primerApellido, u.primerNombre",
+            UsuarioSalud.class
+        );
+        query.setParameter("tenantId", normalizeTenantId(tenantId));
+        query.setParameter("term", "%" + searchTerm + "%");
+        return query.getResultList();
+    }
+
+    /**
+     * Verifica si existe un usuario con una combinación cédula + tenant_id
+     */
+    public boolean existsByCedulaAndTenantId(String cedula, UUID tenantId) {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(u) FROM UsuarioSalud u WHERE u.cedula = :cedula AND u.tenantId = :tenantId",
+            Long.class
+        );
+        query.setParameter("cedula", cedula);
+        query.setParameter("tenantId", normalizeTenantId(tenantId));
+        return query.getSingleResult() > 0;
+    }
+
+    /**
+     * Elimina físicamente un usuario por cédula y tenant_id
+     */
+    public boolean deleteByCedulaAndTenantId(String cedula, UUID tenantId) {
+        try {
+            TypedQuery<UsuarioSalud> query = em.createQuery(
+                "SELECT u FROM UsuarioSalud u WHERE u.cedula = :cedula AND u.tenantId = :tenantId",
+                UsuarioSalud.class
+            );
+            query.setParameter("cedula", cedula);
+            query.setParameter("tenantId", normalizeTenantId(tenantId));
+            UsuarioSalud usuario = query.getSingleResult();
+            em.remove(usuario);
+            return true;
+        } catch (NoResultException e) {
+            return false;
+        }
+    }
+
+    /**
      * Desactiva un usuario (soft delete)
      */
     public void deactivate(String cedula) {
@@ -211,5 +274,9 @@ public class UsuarioSaludDAO {
             u.setActive(false);
             em.merge(u);
         });
+    }
+
+    private String normalizeTenantId(UUID tenantId) {
+        return tenantId != null ? tenantId.toString() : null;
     }
 }

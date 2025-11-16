@@ -16,19 +16,10 @@
         <module>componente-periferico/backend</module>
         <module>componente-periferico/frontend-admin-clinica</module>
         <module>mock-laboratorio</module>
-<<<<<<< HEAD
-<<<<<<< HEAD
+        <module>componente-periferico/frontend-profesional-salud</module>
         <module>tests</module>
-=======
-        <module>componente-periferico/frontend-profesional-salud</module>
->>>>>>> origin/main
-=======
-        <module>componente-periferico/frontend-profesional-salud</module>
->>>>>>> origin/main
     </modules>
 </project>
-
-
 
 
 
