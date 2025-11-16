@@ -63,6 +63,12 @@ public class politica_acceso implements Serializable {
     private String especialidad;
 
     /**
+     * Alcance del permiso (por ahora DOCUMENTO, reservado para futuras ampliaciones)
+     */
+    @Column(name = "ALCANCE", length = 30, nullable = false)
+    private String alcance = "DOCUMENTO";
+
+    /**
      * Fecha y hora en que se otorgó el permiso
      */
     @Column(name = "FECHA_OTORGAMIENTO", nullable = false)
@@ -156,6 +162,14 @@ public class politica_acceso implements Serializable {
 
     public void setEspecialidad(String especialidad) {
         this.especialidad = especialidad;
+    }
+
+    public String getAlcance() {
+        return alcance;
+    }
+
+    public void setAlcance(String alcance) {
+        this.alcance = alcance;
     }
 
     public LocalDateTime getFechaOtorgamiento() {
