@@ -17,16 +17,29 @@ public class ProfesionalSaludDAO {
     private EntityManager em;
 
     public profesional_salud save(profesional_salud profesional) {
-        if (profesional.getCi() == null || !em.contains(profesional)) {
-            return em.merge(profesional);
-        } else {
-            return em.merge(profesional);
-        }
+        return em.merge(profesional);
     }
 
-    public Optional<profesional_salud> findByCi(Integer ci) {
-        profesional_salud profesional = em.find(profesional_salud.class, ci);
+    public Optional<profesional_salud> findById(UUID id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        profesional_salud profesional = em.find(profesional_salud.class, id);
         return Optional.ofNullable(profesional);
+    }
+
+    public Optional<profesional_salud> findByCiAndTenantId(Integer ci, UUID tenantId) {
+        if (ci == null || tenantId == null) {
+            return Optional.empty();
+        }
+        TypedQuery<profesional_salud> query = em.createQuery(
+            "SELECT p FROM profesional_salud p WHERE p.ci = :ci AND p.tenantId = :tenantId",
+            profesional_salud.class
+        );
+        query.setParameter("ci", ci);
+        query.setParameter("tenantId", tenantId);
+        List<profesional_salud> result = query.setMaxResults(1).getResultList();
+        return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
     }
 
     public List<profesional_salud> findAll() {
@@ -46,12 +59,16 @@ public class ProfesionalSaludDAO {
         return query.getResultList();
     }
 
-    public boolean existsByCi(Integer ci) {
+    public boolean existsByCiAndTenantId(Integer ci, UUID tenantId) {
+        if (ci == null || tenantId == null) {
+            return false;
+        }
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(p) FROM profesional_salud p WHERE p.ci = :ci",
+            "SELECT COUNT(p) FROM profesional_salud p WHERE p.ci = :ci AND p.tenantId = :tenantId",
             Long.class
         );
         query.setParameter("ci", ci);
+        query.setParameter("tenantId", tenantId);
         return query.getSingleResult() > 0;
     }
 
@@ -62,8 +79,8 @@ public class ProfesionalSaludDAO {
         em.remove(profesional);
     }
 
-    public void deleteByCi(Integer ci) {
-        findByCi(ci).ifPresent(this::delete);
+    public void deleteByCiAndTenantId(Integer ci, UUID tenantId) {
+        findByCiAndTenantId(ci, tenantId).ifPresent(this::delete);
     }
 
     public List<profesional_salud> findByNombreOrApellido(String searchTerm) {

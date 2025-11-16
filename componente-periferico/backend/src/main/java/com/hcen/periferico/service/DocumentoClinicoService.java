@@ -94,14 +94,11 @@ public class DocumentoClinicoService {
         }
 
         // Validar que el profesional exista y pertenezca al mismo tenant
-        Optional<profesional_salud> profesionalOpt = profesionalDAO.findByCi(profesionalCi);
+        Optional<profesional_salud> profesionalOpt = profesionalDAO.findByCiAndTenantId(profesionalCi, tenantId);
         if (profesionalOpt.isEmpty()) {
-            throw new IllegalArgumentException("El profesional con CI " + profesionalCi + " no existe");
+            throw new IllegalArgumentException("El profesional con CI " + profesionalCi + " no existe en esta clínica");
         }
         profesional_salud profesional = profesionalOpt.get();
-        if (!tenantId.equals(profesional.getTenantId())) {
-            throw new IllegalArgumentException("El profesional no pertenece a esta clínica");
-        }
 
         // Validar que las codigueras existan
         validarCodigueras(codigoMotivoConsulta, codigoEstadoProblema, codigoGradoCerteza);
@@ -113,6 +110,7 @@ public class DocumentoClinicoService {
         documento.setUsuarioSaludCedula(usuarioSaludCedula);
         documento.setPaciente(paciente);
         documento.setProfesionalFirmante(profesional);
+        documento.setProfesionalId(profesional.getId());
         documento.setFecCreacion(LocalDateTime.now());
         documento.setCodigoMotivoConsulta(codigoMotivoConsulta);
         documento.setDescripcionDiagnostico(descripcionDiagnostico.trim());

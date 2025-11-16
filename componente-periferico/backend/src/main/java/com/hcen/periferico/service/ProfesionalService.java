@@ -34,11 +34,14 @@ public class ProfesionalService {
         if (apellidos == null || apellidos.trim().isEmpty()) {
             throw new IllegalArgumentException("Los apellidos son requeridos");
         }
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("El email es requerido");
+        }
         if (tenantId == null) {
             throw new IllegalArgumentException("El tenant_id es requerido");
         }
 
-        Optional<profesional_salud> existing = profesionalDAO.findByCi(ci);
+        Optional<profesional_salud> existing = profesionalDAO.findByCiAndTenantId(ci, tenantId);
         profesional_salud profesional;
 
         if (existing.isPresent()) {
@@ -48,6 +51,7 @@ public class ProfesionalService {
             // Crear nuevo
             profesional = new profesional_salud();
             profesional.setCi(ci);
+            profesional.setTenantId(tenantId);
 
             // Solo hashear password si es un nuevo profesional
             if (password == null || password.trim().isEmpty()) {
@@ -59,17 +63,16 @@ public class ProfesionalService {
         profesional.setNombre(nombre.trim());
         profesional.setApellidos(apellidos.trim());
         profesional.setEspecialidad(especialidad != null ? especialidad.trim() : null);
-        profesional.setEmail(email != null ? email.trim() : null);
-        profesional.setTenantId(tenantId);
+        profesional.setEmail(email.trim());
 
         return profesionalDAO.save(profesional);
     }
 
     /**
-     * Obtiene un profesional por su cédula
+     * Obtiene un profesional por su cédula y tenant
      */
-    public Optional<profesional_salud> getProfesionalByCi(Integer ci) {
-        return profesionalDAO.findByCi(ci);
+    public Optional<profesional_salud> getProfesionalByCi(Integer ci, UUID tenantId) {
+        return profesionalDAO.findByCiAndTenantId(ci, tenantId);
     }
 
     /**
@@ -99,15 +102,15 @@ public class ProfesionalService {
     /**
      * Elimina un profesional
      */
-    public void deleteProfesional(Integer ci) {
-        profesionalDAO.deleteByCi(ci);
+    public void deleteProfesional(Integer ci, UUID tenantId) {
+        profesionalDAO.deleteByCiAndTenantId(ci, tenantId);
     }
 
     /**
-     * Verifica si existe un profesional con una cédula dada
+     * Verifica si existe un profesional con una cédula dada en un tenant
      */
-    public boolean existsProfesional(Integer ci) {
-        return profesionalDAO.existsByCi(ci);
+    public boolean existsProfesional(Integer ci, UUID tenantId) {
+        return profesionalDAO.existsByCiAndTenantId(ci, tenantId);
     }
 
     /**

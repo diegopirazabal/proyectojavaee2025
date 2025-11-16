@@ -265,9 +265,9 @@ public class APIService implements Serializable {
         return null;
     }
 
-    public boolean deleteProfesional(Integer ci) {
+    public boolean deleteProfesional(Integer ci, String tenantId) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpDelete request = new HttpDelete(BACKEND_URL() + "/profesionales/" + ci);
+            HttpDelete request = new HttpDelete(BACKEND_URL() + "/profesionales/" + ci + "?tenantId=" + tenantId);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() == 200;

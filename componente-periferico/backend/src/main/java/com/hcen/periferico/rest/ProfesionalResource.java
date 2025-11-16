@@ -69,9 +69,18 @@ public class ProfesionalResource {
 
     @GET
     @Path("/{ci}")
-    public Response getProfesionalByCi(@PathParam("ci") Integer ci) {
+    public Response getProfesionalByCi(@PathParam("ci") Integer ci,
+                                       @QueryParam("tenantId") String tenantIdStr) {
         try {
-            Optional<profesional_salud> profesional = profesionalService.getProfesionalByCi(ci);
+            // tenantId es REQUERIDO
+            if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("El parámetro tenantId es requerido"))
+                    .build();
+            }
+
+            UUID tenantId = UUID.fromString(tenantIdStr);
+            Optional<profesional_salud> profesional = profesionalService.getProfesionalByCi(ci, tenantId);
             if (profesional.isPresent()) {
                 profesional_salud_dto dto = toDTO(profesional.get());
                 return Response.ok(dto).build();
@@ -164,9 +173,18 @@ public class ProfesionalResource {
 
     @DELETE
     @Path("/{ci}")
-    public Response deleteProfesional(@PathParam("ci") Integer ci) {
+    public Response deleteProfesional(@PathParam("ci") Integer ci,
+                                      @QueryParam("tenantId") String tenantIdStr) {
         try {
-            profesionalService.deleteProfesional(ci);
+            // tenantId es REQUERIDO
+            if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("El parámetro tenantId es requerido"))
+                    .build();
+            }
+
+            UUID tenantId = UUID.fromString(tenantIdStr);
+            profesionalService.deleteProfesional(ci, tenantId);
             return Response.ok(new SuccessResponse("Profesional eliminado exitosamente")).build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)

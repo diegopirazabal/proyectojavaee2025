@@ -134,7 +134,12 @@ public class ProfesionalBean implements Serializable {
 
     public void deleteProfesional(profesional_salud_dto profesional) {
         try {
-            apiService.deleteProfesional(profesional.getCi());
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                return;
+            }
+            apiService.deleteProfesional(profesional.getCi(), tenantId);
             addMessage(FacesMessage.SEVERITY_INFO, "Profesional eliminado exitosamente");
             loadProfesionales();
         } catch (Exception e) {
@@ -152,6 +157,10 @@ public class ProfesionalBean implements Serializable {
 
     public void prepareNew() {
         newProfesional = new profesional_salud_dto();
+    }
+
+    public void prepareEdit() {
+        this.selectedProfesional = new profesional_salud_dto();
     }
 
     private void addMessage(FacesMessage.Severity severity, String message) {
@@ -173,7 +182,17 @@ public class ProfesionalBean implements Serializable {
     }
 
     public void setSelectedProfesional(profesional_salud_dto selectedProfesional) {
-        this.selectedProfesional = selectedProfesional;
+        // SIEMPRE crear un objeto completamente nuevo para evitar estado residual de JSF
+        this.selectedProfesional = new profesional_salud_dto();
+
+        if (selectedProfesional != null) {
+            this.selectedProfesional.setCi(selectedProfesional.getCi());
+            this.selectedProfesional.setNombre(selectedProfesional.getNombre());
+            this.selectedProfesional.setApellidos(selectedProfesional.getApellidos());
+            this.selectedProfesional.setEspecialidad(selectedProfesional.getEspecialidad());
+            this.selectedProfesional.setEmail(selectedProfesional.getEmail());
+            this.selectedProfesional.setTenantId(selectedProfesional.getTenantId());
+        }
     }
 
     public profesional_salud_dto getNewProfesional() {

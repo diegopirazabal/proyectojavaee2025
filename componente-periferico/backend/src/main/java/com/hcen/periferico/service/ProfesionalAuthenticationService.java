@@ -40,8 +40,8 @@ public class ProfesionalAuthenticationService {
         return prof;
     }
 
-    public boolean setCredential(Integer profesionalCi, String email, String rawPassword) {
-        Optional<profesional_salud> profOpt = profesionalDAO.findByCi(profesionalCi);
+    public boolean setCredential(Integer profesionalCi, UUID tenantId, String email, String rawPassword) {
+        Optional<profesional_salud> profOpt = profesionalDAO.findByCiAndTenantId(profesionalCi, tenantId);
         if (profOpt.isEmpty()) return false;
         profesional_salud prof = profOpt.get();
         // Se usa email para login; mantener username sin uso
