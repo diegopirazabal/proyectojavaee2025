@@ -44,10 +44,10 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
                 LOGGER.info(() -> "tipo_documento codigo recibido: '" + codigo + "'");
                 // Mapeo de códigos comunes a descripciones
                 switch (codigo) {
-                    case "1":
+                    case "68909":
                         rawValue = "CI";
                         break;
-                    case "2":
+                    case "68912":
                         rawValue = "PASAPORTE";
                         break;
                     case "3":
