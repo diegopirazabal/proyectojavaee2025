@@ -156,6 +156,15 @@ public class UsuarioSaludLoginBean implements Serializable {
     private void obtenerCedulaDeOIDC() {
         try {
             ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
+
+            // Intentar obtener de parámetros URL primero (viene del callback)
+            String docNumber = external.getRequestParameterMap().get("docNumber");
+            if (docNumber != null && !docNumber.isBlank()) {
+                cedulaUsuarioActual = docNumber;
+                return;
+            }
+
+            // Fallback: intentar obtener de la sesión HTTP
             HttpSession session = (HttpSession) external.getSession(false);
 
             if (session != null) {
@@ -164,6 +173,7 @@ public class UsuarioSaludLoginBean implements Serializable {
                     String cedula = (String) userInfoObj.getClass().getMethod("getNumeroDocumento").invoke(userInfoObj);
                     if (cedula != null && !cedula.isBlank()) {
                         cedulaUsuarioActual = cedula;
+                        return;
                     }
                 }
             }
