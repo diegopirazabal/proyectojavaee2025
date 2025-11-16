@@ -43,6 +43,9 @@ public class profesional_salud {
     @Column(name = "PASSWORD", length = 200, nullable = false)
     private String password;
 
+    @Column(name = "ACTIVE", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean active = true;
+
     // Documentos firmados
     @OneToMany(mappedBy = "profesionalFirmante")
     private List<documento_clinico> documentosFirmados = new ArrayList<>();
@@ -74,6 +77,9 @@ public class profesional_salud {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public Boolean getActive() { return active; }
+    public void setActive(Boolean active) { this.active = active; }
 
     public List<documento_clinico> getDocumentosFirmados() { return documentosFirmados; }
     public void setDocumentosFirmados(List<documento_clinico> documentosFirmados) {

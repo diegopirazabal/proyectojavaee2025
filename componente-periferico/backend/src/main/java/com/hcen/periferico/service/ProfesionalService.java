@@ -52,6 +52,7 @@ public class ProfesionalService {
             profesional = new profesional_salud();
             profesional.setCi(ci);
             profesional.setTenantId(tenantId);
+            profesional.setActive(true); // Por defecto activo
 
             // Solo hashear password si es un nuevo profesional
             if (password == null || password.trim().isEmpty()) {
@@ -100,10 +101,10 @@ public class ProfesionalService {
     }
 
     /**
-     * Elimina un profesional
+     * Elimina un profesional (borrado lógico)
      */
     public void deleteProfesional(Integer ci, UUID tenantId) {
-        profesionalDAO.deleteByCiAndTenantId(ci, tenantId);
+        profesionalDAO.softDelete(ci, tenantId);
     }
 
     /**

@@ -173,7 +173,9 @@
                 <p:dataTable id="documentosTable"
                              value="#{documentoClinicoBean.documentos}"
                              var="doc" emptyMessage="No hay documentos para mostrar"
-                             paginator="true" rows="10" style="margin-top:1rem;">
+                             paginator="true" rows="10"
+                             paginatorPosition="bottom"
+                             style="margin-top:1rem;">
 
                     <p:column headerText="Tipo">
                         #{doc.nombreMotivoConsulta}
