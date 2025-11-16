@@ -36,7 +36,7 @@ public class HistoriaClinicaRepository {
 
     private HistoriaClinicaRepository(Context context) {
         this.context = context.getApplicationContext();
-        this.apiService = RetrofitClient.getInstance().getApiService();
+        this.apiService = RetrofitClient.getInstance(context).getApiService();
     }
 
     public static synchronized HistoriaClinicaRepository getInstance(Context context) {
