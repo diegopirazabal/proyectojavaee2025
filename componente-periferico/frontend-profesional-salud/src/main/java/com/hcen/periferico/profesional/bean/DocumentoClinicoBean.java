@@ -225,7 +225,6 @@ public class DocumentoClinicoBean implements Serializable {
                 return;
             }
 
-            // Llamar al APIService
             documento_clinico_dto resultado = apiService.crearDocumento(
                 newDocumento.getUsuarioSaludCedula(),
                 newDocumento.getProfesionalCi(),
