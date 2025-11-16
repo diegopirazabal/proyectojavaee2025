@@ -129,17 +129,12 @@
 
                 <p:messages id="messages" showDetail="true"/>
 
-                <p:outputLabel value="Paciente:" for="pacienteSel"/>
-                <p:selectOneMenu id="pacienteSel" value="#{documentoClinicoBean.cedulaPacienteSeleccionado}"
-                                 filter="true" filterMatchMode="startsWith"
-                                 style="width:100%;">
-                    <f:selectItem itemLabel="Seleccione un paciente" itemValue=""/>
-                    <f:selectItems value="#{documentoClinicoBean.pacientes}"
-                                   var="pac"
-                                   itemLabel="#{pac.cedula} - #{pac.nombreCompleto}"
-                                   itemValue="#{pac.cedula}" />
-
-                </p:selectOneMenu>
+                <p:outputLabel value="Cédula del Paciente:" for="cedulaInput"/>
+                <p:inputText id="cedulaInput"
+                             value="#{documentoClinicoBean.cedulaPacienteSeleccionado}"
+                             placeholder="Ingrese la cédula del paciente"
+                             style="width:100%;"
+                             maxlength="20"/>
 
                 <div class="acciones">
                     <p:commandButton value="Cargar Historia Clínica"

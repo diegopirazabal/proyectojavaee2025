@@ -154,6 +154,24 @@ public class APIService implements Serializable {
         return new ArrayList<>();
     }
 
+    public usuario_salud_dto getUsuarioByCedula(String cedula, String tenantId) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(getBackendUrl() + "/usuarios/" + cedula + "?tenantId=" + tenantId);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseUsuarioFromJson(responseBody);
+                } else if (response.getCode() == 404) {
+                    return null; // Usuario no encontrado
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     // ========== DOCUMENTOS CLÍNICOS ==========
 
     public documento_clinico_dto crearDocumento(
@@ -345,6 +363,32 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return list;
+    }
+
+    private usuario_salud_dto parseUsuarioFromJson(String jsonString) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject jsonObject = reader.readObject();
+
+            usuario_salud_dto dto = new usuario_salud_dto();
+            dto.setCedula(jsonObject.getString("cedula", null));
+            dto.setTipoDocumento(jsonObject.getString("tipoDocumento", null));
+            dto.setPrimerNombre(jsonObject.getString("primerNombre", null));
+            dto.setSegundoNombre(jsonObject.getString("segundoNombre", null));
+            dto.setPrimerApellido(jsonObject.getString("primerApellido", null));
+            dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
+            dto.setEmail(jsonObject.getString("email", null));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
+
+            String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
+            if (fechaNacStr != null) {
+                dto.setFechaNacimiento(java.time.LocalDate.parse(fechaNacStr));
+            }
+
+            return dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private profesional_salud_dto parseProfesionalFromJson(String jsonString) {
