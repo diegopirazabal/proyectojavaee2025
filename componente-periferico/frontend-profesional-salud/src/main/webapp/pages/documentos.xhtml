@@ -211,6 +211,13 @@
 
 
                 <div class="acciones">
+                    <p:commandButton value="Actualizar permisos"
+                                     icon="pi pi-refresh"
+                                     action="#{documentoClinicoBean.refrescarPermisosDocumentos}"
+                                     process="@this"
+                                     update="documentosForm:documentosTable :documentosForm:messages"
+                                     styleClass="btn-secundario"/>
+
                     <p:commandButton value="Nuevo Documento"
                                      icon="pi pi-plus"
                                      action="#{documentoClinicoBean.prepararNuevoDocumento}"
