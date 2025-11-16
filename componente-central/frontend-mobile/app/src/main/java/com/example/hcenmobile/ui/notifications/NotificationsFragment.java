@@ -219,7 +219,7 @@ public class NotificationsFragment extends Fragment {
 
         RechazarSolicitudRequest request = new RechazarSolicitudRequest(serverId);
 
-        ApiService apiService = RetrofitClient.getInstance().getApiService();
+        ApiService apiService = RetrofitClient.getInstance(requireContext()).getApiService();
         Call<ApiResponse<Void>> call = apiService.rechazarSolicitud(request);
 
         call.enqueue(new Callback<ApiResponse<Void>>() {

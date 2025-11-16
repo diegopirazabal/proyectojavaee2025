@@ -78,7 +78,7 @@ public class NotificationDetailFragment extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         binding = FragmentNotificationDetailBinding.inflate(inflater, container, false);
-        apiService = RetrofitClient.getInstance().getApiService();
+        apiService = RetrofitClient.getInstance(requireContext()).getApiService();
         readArguments();
         setupUi();
         return binding.getRoot();

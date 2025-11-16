@@ -163,7 +163,7 @@ public class ApprovalDialogFragment extends DialogFragment {
         }
 
         // Llamar al API
-        ApiService apiService = RetrofitClient.getInstance().getApiService();
+        ApiService apiService = RetrofitClient.getInstance(requireContext()).getApiService();
         Call<ApiResponse<Void>> call = apiService.aprobarSolicitud(request);
 
         call.enqueue(new Callback<ApiResponse<Void>>() {
