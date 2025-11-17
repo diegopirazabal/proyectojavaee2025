@@ -211,12 +211,12 @@
                             <p:commandButton icon="pi pi-ban"
                                              title="Revocar permiso"
                                              disabled="#{!permiso.activo}"
-                                             oncomplete="PF('dialogRevocar').show();"
+                                             action="#{permisosAccesoBean.revocarPermiso}"
+                                             update=":permisosForm :growl"
                                              styleClass="ui-button-danger ui-button-sm">
                                 <f:setPropertyActionListener
                                         target="#{permisosAccesoBean.permisoSeleccionado}"
                                         value="#{permiso}"/>
-                                <f:actionListener binding="#{permisosAccesoBean.prepararRevocar(permiso)}"/>
                             </p:commandButton>
                         </p:column>
 
