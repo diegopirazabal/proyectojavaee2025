@@ -4,8 +4,7 @@ import hcen.central.inus.dto.DnicCiudadanoDTO;
 import hcen.central.inus.exception.CiudadanoNoEncontradoException;
 import hcen.central.inus.ws.dnic.*;
 import jakarta.ejb.Stateless;
-import java.net.MalformedURLException;
-import java.net.URL;
+import jakarta.xml.ws.BindingProvider;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -23,9 +22,10 @@ public class DnicServiceClient {
 
     private static final Logger LOGGER = Logger.getLogger(DnicServiceClient.class.getName());
 
-    // URL del servicio DNIC (puede configurarse vía system property)
-    private static final String DEFAULT_DNIC_URL = "http://localhost:8080/mock-dnic/ciudadano_servicio_web?wsdl";
-    private static final String DNIC_URL_PROPERTY = "dnic.service.url";
+    // Endpoint del servicio DNIC (puede configurarse vía system property)
+    // Nota: Ya no incluye "?wsdl" porque usamos el WSDL empaquetado
+    private static final String DEFAULT_DNIC_ENDPOINT = "http://node5823-hcen-uy.web.elasticloud.uy/mock-dnic/ciudadano-service/ciudadano_servicio_web";
+    private static final String DNIC_ENDPOINT_PROPERTY = "dnic.service.endpoint";
 
     // Formatos de fecha esperados de DNIC (ISO-8601)
     private static final DateTimeFormatter[] DATE_FORMATTERS = {
@@ -78,17 +78,36 @@ public class DnicServiceClient {
     }
 
     /**
-     * Crea el cliente SOAP configurando la URL del servicio.
+     * Crea el cliente SOAP usando el WSDL empaquetado y configurando el endpoint en runtime.
+     *
+     * Esta implementación separa el contrato (WSDL) del endpoint:
+     * - WSDL: Embebido en las clases generadas (build-time)
+     * - Endpoint: Configurable vía system property (runtime)
+     *
+     * Esto permite:
+     * 1. No depender de que el servicio esté disponible durante el build
+     * 2. Cambiar de endpoint sin recompilar (dev/staging/prod)
+     * 3. No requiere modificar standalone.xml del servidor
      *
      * @return Puerto SOAP para invocar operaciones
      */
-    private CiudadanoPortType crearClienteSOAP() throws MalformedURLException {
-        String serviceUrl = System.getProperty(DNIC_URL_PROPERTY, DEFAULT_DNIC_URL);
-        LOGGER.fine("Conectando a DNIC en: " + serviceUrl);
+    private CiudadanoPortType crearClienteSOAP() {
+        // 1. Crear servicio usando WSDL empaquetado (constructor sin parámetros)
+        CiudadanoService service = new CiudadanoService();
+        CiudadanoPortType port = service.getCiudadanoPort();
 
-        URL wsdlUrl = new URL(serviceUrl);
-        CiudadanoService service = new CiudadanoService(wsdlUrl);
-        return service.getCiudadanoPort();
+        // 2. Configurar endpoint del servicio en runtime
+        String endpoint = System.getProperty(DNIC_ENDPOINT_PROPERTY, DEFAULT_DNIC_ENDPOINT);
+
+        BindingProvider bindingProvider = (BindingProvider) port;
+        bindingProvider.getRequestContext().put(
+            BindingProvider.ENDPOINT_ADDRESS_PROPERTY,
+            endpoint
+        );
+
+        LOGGER.info("Cliente SOAP DNIC creado. Endpoint: " + endpoint);
+
+        return port;
     }
 
     /**
