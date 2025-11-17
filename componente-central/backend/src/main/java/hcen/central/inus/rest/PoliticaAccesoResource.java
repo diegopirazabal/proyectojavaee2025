@@ -238,6 +238,93 @@ public class PoliticaAccesoResource {
     }
 
     /**
+     * Extiende la fecha de expiración de un permiso activo
+     */
+    @PUT
+    @Path("/{permisoId}/extender")
+    public Response extenderExpiracion(@PathParam("permisoId") String permisoId,
+                                        hcen.central.inus.dto.ExtenderPermisoRequest request) {
+        try {
+            if (request == null || request.getNuevaFechaExpiracion() == null || request.getNuevaFechaExpiracion().isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ApiResponse.error("La nueva fecha de expiración es requerida"))
+                    .build();
+            }
+
+            UUID permisoUuid = UUID.fromString(permisoId);
+            LocalDateTime nuevaFecha = LocalDateTime.parse(request.getNuevaFechaExpiracion());
+
+            PoliticaAccesoDTO resultado = politicaService.extenderExpiracion(permisoUuid, nuevaFecha);
+
+            return Response.ok(ApiResponse.success(resultado)).build();
+
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(ApiResponse.error(e.getMessage()))
+                .build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.CONFLICT)
+                .entity(ApiResponse.error(e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al extender expiración del permiso", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ApiResponse.error("Error interno al extender la expiración"))
+                .build();
+        }
+    }
+
+    /**
+     * Modifica el tipo de permiso de una política de acceso existente
+     */
+    @PUT
+    @Path("/{permisoId}/modificar-tipo")
+    public Response modificarTipoPermiso(@PathParam("permisoId") String permisoId,
+                                         hcen.central.inus.dto.ModificarTipoPermisoRequest request) {
+        try {
+            if (request == null || request.getTipoPermiso() == null || request.getTipoPermiso().isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ApiResponse.error("El tipo de permiso es requerido"))
+                    .build();
+            }
+
+            UUID permisoUuid = UUID.fromString(permisoId);
+            TipoPermiso nuevoTipo;
+
+            try {
+                nuevoTipo = TipoPermiso.valueOf(request.getTipoPermiso());
+            } catch (IllegalArgumentException e) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ApiResponse.error("Tipo de permiso inválido. Valores permitidos: PROFESIONAL_ESPECIFICO, POR_ESPECIALIDAD, POR_CLINICA"))
+                    .build();
+            }
+
+            PoliticaAccesoDTO resultado = politicaService.modificarTipoPermiso(
+                permisoUuid,
+                nuevoTipo,
+                request.getCiProfesional(),
+                request.getEspecialidad()
+            );
+
+            return Response.ok(ApiResponse.success(resultado)).build();
+
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(ApiResponse.error(e.getMessage()))
+                .build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.CONFLICT)
+                .entity(ApiResponse.error(e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al modificar tipo de permiso", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ApiResponse.error("Error interno al modificar el tipo de permiso"))
+                .build();
+        }
+    }
+
+    /**
      * Cuenta la cantidad de permisos activos para un documento
      */
     @GET

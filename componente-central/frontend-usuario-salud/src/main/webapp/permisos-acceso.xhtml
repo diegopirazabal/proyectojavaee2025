@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+
+<f:view>
+    <f:metadata>
+        <f:event type="preRenderView" listener="#{usuarioSaludLoginBean.checkAuthentication}"/>
+    </f:metadata>
+
+    <ui:composition template="/WEB-INF/templates/template.xhtml">
+        <ui:define name="content">
+
+            <style>
+                .permisos-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 2rem;
+                    padding: 1.5rem;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border-radius: 8px;
+                }
+
+                .permisos-header h1 {
+                    margin: 0;
+                    font-size: 1.8rem;
+                    font-weight: 600;
+                }
+
+                .estado-badge {
+                    padding: 0.35rem 0.85rem;
+                    border-radius: 20px;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    display: inline-block;
+                }
+
+                .badge-activo {
+                    background-color: #10b981;
+                    color: white;
+                }
+
+                .badge-revocado {
+                    background-color: #ef4444;
+                    color: white;
+                }
+
+                .badge-expirado {
+                    background-color: #6b7280;
+                    color: white;
+                }
+
+                .tipo-badge {
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 4px;
+                    font-size: 0.875rem;
+                    background-color: #dbeafe;
+                    color: #1e40af;
+                    font-weight: 500;
+                }
+
+                .documento-card {
+                    background: white;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                    margin-bottom: 1rem;
+                }
+
+                .info-mensaje {
+                    background-color: #e0f2fe;
+                    border-left: 4px solid #0284c7;
+                    padding: 1rem;
+                    margin: 1rem 0;
+                    border-radius: 4px;
+                }
+
+                .error-mensaje {
+                    background-color: #fee2e2;
+                    border-left: 4px solid #dc2626;
+                    padding: 1rem;
+                    margin: 1rem 0;
+                    border-radius: 4px;
+                }
+
+                .warning-box {
+                    background-color: #fef3c7;
+                    border: 1px solid #f59e0b;
+                    padding: 1rem;
+                    border-radius: 4px;
+                    margin-bottom: 1rem;
+                }
+            </style>
+
+            <!-- Encabezado -->
+            <div class="permisos-header">
+                <h1><i class="pi pi-key"/> Mis Permisos de Acceso</h1>
+                <h:form>
+                    <p:commandButton value="Refrescar"
+                                     icon="pi pi-refresh"
+                                     action="#{permisosAccesoBean.cargarPermisos}"
+                                     update="permisosForm"
+                                     styleClass="ui-button-rounded ui-button-outlined"/>
+                </h:form>
+            </div>
+
+            <h:form id="permisosForm">
+
+                <!-- Loading -->
+                <p:outputPanel rendered="#{permisosAccesoBean.loading}">
+                    <div style="text-align: center; padding: 3rem;">
+                        <p:progressBar mode="indeterminate" style="height: 1.5rem;"/>
+                        <p style="margin-top: 1rem; color: #6b7280;">Cargando permisos...</p>
+                    </div>
+                </p:outputPanel>
+
+                <!-- Error -->
+                <p:outputPanel rendered="#{not permisosAccesoBean.loading and permisosAccesoBean.hasMensajeError}">
+                    <div class="error-mensaje">
+                        <h3 style="margin-top: 0;"><i class="pi pi-exclamation-triangle"/> No pudimos cargar sus permisos</h3>
+                        <p>#{permisosAccesoBean.mensajeError}</p>
+                    </div>
+                </p:outputPanel>
+
+                <!-- Sin permisos -->
+                <p:outputPanel rendered="#{not permisosAccesoBean.loading and not permisosAccesoBean.hasMensajeError and not permisosAccesoBean.hasPermisos}">
+                    <div class="info-mensaje">
+                        <h3 style="margin-top: 0;"><i class="pi pi-info-circle"/> Sin permisos de acceso</h3>
+                        <p>No tiene permisos de acceso registrados en su historia clínica.</p>
+                        <p>Los permisos se otorgan cuando autoriza a profesionales de salud a acceder a sus documentos clínicos.</p>
+                    </div>
+                </p:outputPanel>
+
+                <!-- Tabla de permisos -->
+                <p:outputPanel rendered="#{not permisosAccesoBean.loading and permisosAccesoBean.hasPermisos}">
+
+                    <div class="info-mensaje" style="margin-bottom: 1.5rem;">
+                        <p style="margin: 0;"><strong><i class="pi pi-info-circle"/> Información:</strong>
+                            Puede gestionar los permisos de acceso a sus documentos clínicos.
+                            Los permisos ACTIVOS pueden ser extendidos, modificados o revocados.</p>
+                    </div>
+
+                    <p:dataTable value="#{permisosAccesoBean.permisos}"
+                                 var="permiso"
+                                 paginator="true"
+                                 rows="10"
+                                 paginatorPosition="bottom"
+                                 styleClass="documento-card"
+                                 emptyMessage="No hay permisos">
+
+                        <p:column headerText="Documento" style="width: 120px;">
+                            <h:outputText value="#{permiso.documentoIdCorto}"
+                                          title="#{permiso.documentoId}"/>
+                        </p:column>
+
+                        <p:column headerText="Tipo de Permiso">
+                            <span class="tipo-badge">#{permiso.descripcionPermiso}</span>
+                        </p:column>
+
+                        <p:column headerText="Clínica" style="width: 120px;">
+                            <h:outputText value="#{permiso.tenantId.substring(0, 8)}..."
+                                          title="#{permiso.tenantId}"/>
+                        </p:column>
+
+                        <p:column headerText="Fecha Otorgamiento" style="width: 150px;">
+                            <h:outputText value="#{permiso.fechaOtorgamiento}"/>
+                        </p:column>
+
+                        <p:column headerText="Fecha Expiración" style="width: 150px;">
+                            <h:outputText value="#{permiso.fechaExpiracion}"/>
+                        </p:column>
+
+                        <p:column headerText="Estado" style="width: 120px;">
+                            <span class="estado-badge
+                                         #{permiso.activo ? 'badge-activo' : ''}
+                                         #{permiso.revocado ? 'badge-revocado' : ''}
+                                         #{permiso.expirado ? 'badge-expirado' : ''}">
+                                #{permiso.estado}
+                            </span>
+                        </p:column>
+
+                        <p:column headerText="Acciones" style="width: 200px; text-align: center;">
+                            <p:commandButton icon="pi pi-clock"
+                                             title="Extender vigencia"
+                                             disabled="#{!permiso.activo}"
+                                             oncomplete="PF('dialogExtender').show();"
+                                             styleClass="ui-button-success ui-button-sm"
+                                             style="margin-right: 0.25rem;">
+                                <f:setPropertyActionListener
+                                        target="#{permisosAccesoBean.permisoSeleccionado}"
+                                        value="#{permiso}"/>
+                                <f:actionListener binding="#{permisosAccesoBean.prepararExtenderExpiracion(permiso)}"/>
+                            </p:commandButton>
+
+                            <p:commandButton icon="pi pi-pencil"
+                                             title="Modificar tipo"
+                                             disabled="#{!permiso.activo}"
+                                             oncomplete="PF('dialogModificar').show();"
+                                             styleClass="ui-button-warning ui-button-sm"
+                                             style="margin-right: 0.25rem;">
+                                <f:setPropertyActionListener
+                                        target="#{permisosAccesoBean.permisoSeleccionado}"
+                                        value="#{permiso}"/>
+                                <f:actionListener binding="#{permisosAccesoBean.prepararModificarTipo(permiso)}"/>
+                            </p:commandButton>
+
+                            <p:commandButton icon="pi pi-ban"
+                                             title="Revocar permiso"
+                                             disabled="#{!permiso.activo}"
+                                             oncomplete="PF('dialogRevocar').show();"
+                                             styleClass="ui-button-danger ui-button-sm">
+                                <f:setPropertyActionListener
+                                        target="#{permisosAccesoBean.permisoSeleccionado}"
+                                        value="#{permiso}"/>
+                                <f:actionListener binding="#{permisosAccesoBean.prepararRevocar(permiso)}"/>
+                            </p:commandButton>
+                        </p:column>
+
+                    </p:dataTable>
+
+                </p:outputPanel>
+
+            </h:form>
+
+            <!-- Diálogo: Extender Expiración -->
+            <h:form id="formExtender">
+                <p:dialog header="Extender Vigencia del Permiso"
+                          widgetVar="dialogExtender"
+                          modal="true"
+                          width="500px"
+                          closable="true">
+
+                    <p:outputPanel rendered="#{permisosAccesoBean.permisoSeleccionado != null}">
+                        <div style="margin-bottom: 1rem;">
+                            <p><strong>Permiso ID:</strong> #{permisosAccesoBean.permisoSeleccionado.idCorto}</p>
+                            <p><strong>Tipo:</strong> #{permisosAccesoBean.permisoSeleccionado.descripcionPermiso}</p>
+                            <p><strong>Expiración actual:</strong> #{permisosAccesoBean.permisoSeleccionado.fechaExpiracion}</p>
+                        </div>
+
+                        <p:outputLabel for="nuevaFecha" value="Nueva fecha de expiración:" style="display: block; margin-bottom: 0.5rem; font-weight: 600;"/>
+                        <p:calendar id="nuevaFecha"
+                                    value="#{permisosAccesoBean.nuevaFechaExpiracion}"
+                                    pattern="dd/MM/yyyy"
+                                    showIcon="true"
+                                    mindate="#{permisosAccesoBean.nuevaFechaExpiracion}"
+                                    style="width: 100%; margin-bottom: 1rem;"/>
+
+                        <div style="text-align: right; margin-top: 1.5rem;">
+                            <p:commandButton value="Cancelar"
+                                             onclick="PF('dialogExtender').hide(); return false;"
+                                             styleClass="ui-button-secondary"
+                                             style="margin-right: 0.5rem;"/>
+                            <p:commandButton value="Extender"
+                                             icon="pi pi-check"
+                                             action="#{permisosAccesoBean.extenderExpiracion}"
+                                             update=":permisosForm :growl"
+                                             oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dialogExtender').hide();"
+                                             styleClass="ui-button-success"/>
+                        </div>
+                    </p:outputPanel>
+
+                </p:dialog>
+            </h:form>
+
+            <!-- Diálogo: Modificar Tipo -->
+            <h:form id="formModificar">
+                <p:dialog header="Modificar Tipo de Permiso"
+                          widgetVar="dialogModificar"
+                          modal="true"
+                          width="500px"
+                          closable="true">
+
+                    <p:outputPanel rendered="#{permisosAccesoBean.permisoSeleccionado != null}">
+                        <div style="margin-bottom: 1rem;">
+                            <p><strong>Permiso ID:</strong> #{permisosAccesoBean.permisoSeleccionado.idCorto}</p>
+                            <p><strong>Tipo actual:</strong> #{permisosAccesoBean.permisoSeleccionado.descripcionPermiso}</p>
+                        </div>
+
+                        <p:outputLabel for="nuevoTipo" value="Nuevo tipo de permiso:" style="display: block; margin-bottom: 0.5rem; font-weight: 600;"/>
+                        <p:selectOneMenu id="nuevoTipo"
+                                         value="#{permisosAccesoBean.nuevoTipoPermiso}"
+                                         style="width: 100%; margin-bottom: 1rem;">
+                            <f:selectItem itemLabel="Profesional Específico" itemValue="PROFESIONAL_ESPECIFICO"/>
+                            <f:selectItem itemLabel="Por Especialidad" itemValue="POR_ESPECIALIDAD"/>
+                            <f:selectItem itemLabel="Toda la Clínica" itemValue="POR_CLINICA"/>
+                            <p:ajax update="camposCondicionales"/>
+                        </p:selectOneMenu>
+
+                        <p:outputPanel id="camposCondicionales">
+                            <p:outputPanel rendered="#{permisosAccesoBean.nuevoTipoPermiso == 'PROFESIONAL_ESPECIFICO'}">
+                                <p:outputLabel for="ciProf" value="CI del Profesional:" style="display: block; margin-bottom: 0.5rem; font-weight: 600;"/>
+                                <p:inputNumber id="ciProf"
+                                               value="#{permisosAccesoBean.nuevoCiProfesional}"
+                                               decimalPlaces="0"
+                                               thousandSeparator=""
+                                               style="width: 100%; margin-bottom: 1rem;"/>
+                            </p:outputPanel>
+
+                            <p:outputPanel rendered="#{permisosAccesoBean.nuevoTipoPermiso == 'POR_ESPECIALIDAD'}">
+                                <p:outputLabel for="espec" value="Especialidad:" style="display: block; margin-bottom: 0.5rem; font-weight: 600;"/>
+                                <p:inputText id="espec"
+                                             value="#{permisosAccesoBean.nuevaEspecialidad}"
+                                             placeholder="Ej: Cardiología, Pediatría..."
+                                             style="width: 100%; margin-bottom: 1rem;"/>
+                            </p:outputPanel>
+                        </p:outputPanel>
+
+                        <div style="text-align: right; margin-top: 1.5rem;">
+                            <p:commandButton value="Cancelar"
+                                             onclick="PF('dialogModificar').hide(); return false;"
+                                             styleClass="ui-button-secondary"
+                                             style="margin-right: 0.5rem;"/>
+                            <p:commandButton value="Modificar"
+                                             icon="pi pi-check"
+                                             action="#{permisosAccesoBean.modificarTipo}"
+                                             update=":permisosForm :growl"
+                                             oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dialogModificar').hide();"
+                                             styleClass="ui-button-warning"/>
+                        </div>
+                    </p:outputPanel>
+
+                </p:dialog>
+            </h:form>
+
+            <!-- Diálogo: Revocar Permiso -->
+            <h:form id="formRevocar">
+                <p:dialog header="Revocar Permiso de Acceso"
+                          widgetVar="dialogRevocar"
+                          modal="true"
+                          width="500px"
+                          closable="true">
+
+                    <p:outputPanel rendered="#{permisosAccesoBean.permisoSeleccionado != null}">
+
+                        <div class="warning-box">
+                            <p style="margin: 0;"><i class="pi pi-exclamation-triangle" style="color: #f59e0b;"/>
+                                <strong>¿Está seguro que desea revocar este permiso?</strong></p>
+                            <p style="margin: 0.5rem 0 0 0;">Esta acción no se puede deshacer. El profesional o clínica ya no podrá acceder a este documento.</p>
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <p><strong>Permiso ID:</strong> #{permisosAccesoBean.permisoSeleccionado.idCorto}</p>
+                            <p><strong>Tipo:</strong> #{permisosAccesoBean.permisoSeleccionado.descripcionPermiso}</p>
+                        </div>
+
+                        <p:outputLabel for="motivo" value="Motivo de revocación (opcional):" style="display: block; margin-bottom: 0.5rem; font-weight: 600;"/>
+                        <p:inputTextarea id="motivo"
+                                         value="#{permisosAccesoBean.motivoRevocacion}"
+                                         rows="4"
+                                         placeholder="Ingrese el motivo de la revocación..."
+                                         style="width: 100%; margin-bottom: 1rem;"/>
+
+                        <div style="text-align: right; margin-top: 1.5rem;">
+                            <p:commandButton value="Cancelar"
+                                             onclick="PF('dialogRevocar').hide(); return false;"
+                                             styleClass="ui-button-secondary"
+                                             style="margin-right: 0.5rem;"/>
+                            <p:commandButton value="Revocar"
+                                             icon="pi pi-ban"
+                                             action="#{permisosAccesoBean.revocarPermiso}"
+                                             update=":permisosForm :growl"
+                                             oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dialogRevocar').hide();"
+                                             styleClass="ui-button-danger"/>
+                        </div>
+                    </p:outputPanel>
+
+                </p:dialog>
+            </h:form>
+
+            <!-- Mensajes globales (growl) -->
+            <p:growl id="growl" life="4000" showDetail="true"/>
+
+        </ui:define>
+    </ui:composition>
+</f:view>
+</html>

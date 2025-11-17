@@ -56,7 +56,12 @@ public class JWTAuthenticationFilter implements Filter {
             "/api/politicas-acceso/pendientes",
             "/api/politicas-acceso/activas",
             "/api/politicas-acceso/aprobar-solicitud",
-            "/api/politicas-acceso/"
+            "/api/politicas-acceso/",
+            "/api/historia-clinica/by-cedula",  // Usuario salud obtiene su historia clínica ID
+            "/api/politicas-acceso/historia",   // Usuario salud obtiene sus permisos
+            "/api/politicas-acceso/extender",   // Usuario salud extiende permisos
+            "/api/politicas-acceso/modificar-tipo",  // Usuario salud modifica tipo de permiso
+            "/api/politicas-acceso/revocar"     // Usuario salud revoca permisos
     );
 
     @Override
@@ -204,6 +209,31 @@ public class JWTAuthenticationFilter implements Filter {
 
         // Permitir GET /api/historia-clinica/{cedula}/documentos (consumido por mobile)
         if (requestURI.matches(".*/api/historia-clinica/[^/]+/documentos$")) {
+            return true;
+        }
+
+        // Permitir GET /api/historia-clinica/by-cedula/{cedula} (usuario salud obtiene su historia ID)
+        if (requestURI.matches(".*/api/historia-clinica/by-cedula/[^/]+$")) {
+            return true;
+        }
+
+        // Permitir GET /api/politicas-acceso/historia/{historiaId} (usuario salud obtiene sus permisos)
+        if (requestURI.matches(".*/api/politicas-acceso/historia/[^/]+$")) {
+            return true;
+        }
+
+        // Permitir PUT /api/politicas-acceso/{id}/extender (usuario salud extiende permiso)
+        if (requestURI.matches(".*/api/politicas-acceso/[^/]+/extender$")) {
+            return true;
+        }
+
+        // Permitir PUT /api/politicas-acceso/{id}/modificar-tipo (usuario salud modifica tipo de permiso)
+        if (requestURI.matches(".*/api/politicas-acceso/[^/]+/modificar-tipo$")) {
+            return true;
+        }
+
+        // Permitir PUT /api/politicas-acceso/{id}/revocar (usuario salud revoca permiso)
+        if (requestURI.matches(".*/api/politicas-acceso/[^/]+/revocar$")) {
             return true;
         }
 

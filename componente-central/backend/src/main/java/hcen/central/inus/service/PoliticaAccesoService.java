@@ -203,6 +203,114 @@ public class PoliticaAccesoService {
     }
 
     /**
+     * Extiende la fecha de expiración de un permiso activo
+     *
+     * @param permisoId UUID del permiso
+     * @param nuevaFechaExpiracion Nueva fecha de expiración
+     * @return DTO del permiso actualizado
+     */
+    public PoliticaAccesoDTO extenderExpiracion(UUID permisoId, LocalDateTime nuevaFechaExpiracion) {
+        if (permisoId == null) {
+            throw new IllegalArgumentException("El ID del permiso es requerido");
+        }
+        if (nuevaFechaExpiracion == null) {
+            throw new IllegalArgumentException("La nueva fecha de expiración es requerida");
+        }
+        if (nuevaFechaExpiracion.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("La fecha de expiración debe ser futura");
+        }
+
+        politica_acceso politica = politicaDAO.findById(permisoId)
+            .orElseThrow(() -> new IllegalArgumentException("No existe el permiso con ID " + permisoId));
+
+        if (politica.estaRevocado()) {
+            throw new IllegalStateException("No se puede extender un permiso revocado");
+        }
+
+        if (politica.estaExpirado()) {
+            throw new IllegalStateException("No se puede extender un permiso expirado");
+        }
+
+        LocalDateTime fechaAnterior = politica.getFechaExpiracion();
+        politica.setFechaExpiracion(nuevaFechaExpiracion);
+        politica = politicaDAO.save(politica);
+
+        LOGGER.info(String.format("Expiración extendida: permiso=%s, fechaAnterior=%s, fechaNueva=%s",
+            permisoId, fechaAnterior, nuevaFechaExpiracion));
+
+        return new PoliticaAccesoDTO(politica);
+    }
+
+    /**
+     * Modifica el tipo de permiso de una política de acceso existente
+     *
+     * @param permisoId UUID del permiso
+     * @param nuevoTipo Nuevo tipo de permiso
+     * @param ciProfesional CI del profesional (requerido si tipo = PROFESIONAL_ESPECIFICO)
+     * @param especialidad Especialidad (requerida si tipo = POR_ESPECIALIDAD)
+     * @return DTO del permiso actualizado
+     */
+    public PoliticaAccesoDTO modificarTipoPermiso(UUID permisoId, TipoPermiso nuevoTipo,
+                                                   Integer ciProfesional, String especialidad) {
+        if (permisoId == null) {
+            throw new IllegalArgumentException("El ID del permiso es requerido");
+        }
+        if (nuevoTipo == null) {
+            throw new IllegalArgumentException("El nuevo tipo de permiso es requerido");
+        }
+
+        // Validaciones específicas por tipo
+        if (nuevoTipo == TipoPermiso.PROFESIONAL_ESPECIFICO) {
+            if (ciProfesional == null) {
+                throw new IllegalArgumentException("El CI del profesional es requerido para permiso específico");
+            }
+        }
+
+        if (nuevoTipo == TipoPermiso.POR_ESPECIALIDAD) {
+            if (especialidad == null || especialidad.isBlank()) {
+                throw new IllegalArgumentException("La especialidad es requerida para permiso por especialidad");
+            }
+        }
+
+        politica_acceso politica = politicaDAO.findById(permisoId)
+            .orElseThrow(() -> new IllegalArgumentException("No existe el permiso con ID " + permisoId));
+
+        if (politica.estaRevocado()) {
+            throw new IllegalStateException("No se puede modificar un permiso revocado");
+        }
+
+        if (politica.estaExpirado()) {
+            throw new IllegalStateException("No se puede modificar un permiso expirado");
+        }
+
+        TipoPermiso tipoAnterior = politica.getTipoPermiso();
+        politica.setTipoPermiso(nuevoTipo);
+
+        // Actualizar campos específicos según el tipo
+        switch (nuevoTipo) {
+            case PROFESIONAL_ESPECIFICO:
+                politica.setCiProfesional(ciProfesional);
+                politica.setEspecialidad(null); // Limpiar especialidad
+                break;
+            case POR_ESPECIALIDAD:
+                politica.setEspecialidad(especialidad);
+                politica.setCiProfesional(null); // Limpiar CI profesional
+                break;
+            case POR_CLINICA:
+                politica.setCiProfesional(null); // Limpiar ambos
+                politica.setEspecialidad(null);
+                break;
+        }
+
+        politica = politicaDAO.save(politica);
+
+        LOGGER.info(String.format("Tipo de permiso modificado: permiso=%s, tipoAnterior=%s, tipoNuevo=%s",
+            permisoId, tipoAnterior, nuevoTipo));
+
+        return new PoliticaAccesoDTO(politica);
+    }
+
+    /**
      * Valida los datos del permiso antes de crearlo
      */
     private void validarDatosPermiso(PoliticaAccesoDTO dto) {
