@@ -116,6 +116,32 @@
                 </configuration>
             </plugin>
 
+            <!-- Plugin JAX-WS para generar stubs desde WSDL -->
+            <plugin>
+                <groupId>com.sun.xml.ws</groupId>
+                <artifactId>jaxws-maven-plugin</artifactId>
+                <version>4.0.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-dnic-ws-client</id>
+                        <goals>
+                            <goal>wsimport</goal>
+                        </goals>
+                        <configuration>
+                            <wsdlDirectory>${project.basedir}/src/main/webapp/WEB-INF/wsdl</wsdlDirectory>
+                            <wsdlFiles>
+                                <wsdlFile>ciudadano-service.wsdl</wsdlFile>
+                            </wsdlFiles>
+                            <packageName>hcen.central.inus.ws.dnic</packageName>
+                            <sourceDestDir>${project.build.directory}/generated-sources/wsimport</sourceDestDir>
+                            <keep>true</keep>
+                            <verbose>true</verbose>
+                            <extension>true</extension>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 </project>

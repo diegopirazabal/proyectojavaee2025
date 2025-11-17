@@ -1,11 +1,14 @@
 package hcen.central.inus.service;
 
 import hcen.central.inus.dao.UsuarioSaludDAO;
+import hcen.central.inus.dto.DnicCiudadanoDTO;
 import hcen.central.inus.dto.RegistrarUsuarioRequest;
 import hcen.central.inus.dto.UsuarioSaludDTO;
 import hcen.central.inus.dto.ActualizarUsuarioSaludRequest;
 import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.enums.TipoDocumento;
+import hcen.central.inus.exception.CiudadanoNoEncontradoException;
+import hcen.central.inus.exception.UsuarioMenorDeEdadException;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 
@@ -13,6 +16,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -26,6 +30,12 @@ public class UsuarioSaludService {
 
     @EJB
     private UsuarioSaludDAO usuarioDAO;
+
+    @EJB
+    private DnicServiceClient dnicClient;
+
+    @EJB
+    private EdadValidacionService edadValidacionService;
 
     /**
      * Verifica si un usuario existe por cédula
@@ -152,22 +162,72 @@ public class UsuarioSaludService {
     }
 
     /**
-     * Crea un nuevo usuario con datos mínimos (solo documento)
+     * Crea un nuevo usuario consultando DNIC para obtener datos reales.
+     * Si DNIC falla o el usuario es menor de edad, crea con datos PENDIENTE.
      */
     private UsuarioSalud createNuevoUsuarioMinimo(RegistrarUsuarioRequest request) {
         UsuarioSalud usuario = new UsuarioSalud();
         usuario.setCedula(request.getCedula().trim());
         usuario.setTipoDeDocumento(request.getTipoDocumento());
-        // Datos mínimos requeridos por las columnas NOT NULL
+        usuario.setEmailVerificado(false);
+        usuario.setActive(true);
+
+        // Intentar obtener datos de DNIC
+        try {
+            LOGGER.info("Consultando DNIC para usuario con cédula: " + request.getCedula());
+
+            DnicCiudadanoDTO datosFromDnic = dnicClient.obtenerCiudadano(
+                request.getTipoDocumento().name(),
+                request.getCedula().trim()
+            );
+
+            // Validar mayoría de edad (18+)
+            if (datosFromDnic.getFechaNacimiento() != null) {
+                edadValidacionService.validarMayoriaDeEdad(datosFromDnic.getFechaNacimiento());
+            }
+
+            // Si llegamos aquí, tenemos datos válidos de DNIC y el usuario es mayor de edad
+            usuario.setPrimerNombre(datosFromDnic.getPrimerNombre());
+            usuario.setSegundoNombre(datosFromDnic.getSegundoNombre());
+            usuario.setPrimerApellido(datosFromDnic.getPrimerApellido());
+            usuario.setSegundoApellido(datosFromDnic.getSegundoApellido());
+            usuario.setFechaNacimiento(datosFromDnic.getFechaNacimiento());
+            usuario.setNombreCompleto(datosFromDnic.getNombreCompleto());
+            usuario.setEmail("pendiente@hcen.gub.uy");  // Email sigue pendiente de confirmación
+
+            LOGGER.info("Usuario creado con datos de DNIC: " + datosFromDnic.getNombreCompleto());
+
+        } catch (CiudadanoNoEncontradoException e) {
+            // DNIC no encontró al ciudadano - crear con datos PENDIENTE
+            LOGGER.warning("Ciudadano no encontrado en DNIC para cédula " + request.getCedula() +
+                          " - creando con datos PENDIENTE");
+            poblarUsuarioConDatosPendientes(usuario);
+
+        } catch (UsuarioMenorDeEdadException e) {
+            // Usuario es menor de edad - rechazar creación
+            LOGGER.warning("Usuario menor de edad detectado: " + e.getEdad() + " años - rechazando creación");
+            throw new IllegalArgumentException(
+                "No se puede registrar un usuario menor de edad. Edad: " + e.getEdad() + " años (se requieren 18+)");
+
+        } catch (Exception e) {
+            // Error general de comunicación con DNIC - crear con datos PENDIENTE (graceful degradation)
+            LOGGER.log(Level.WARNING, "Error consultando DNIC para cédula " + request.getCedula() +
+                      " - creando con datos PENDIENTE", e);
+            poblarUsuarioConDatosPendientes(usuario);
+        }
+
+        return usuario;
+    }
+
+    /**
+     * Completa el usuario con datos PENDIENTE cuando DNIC no está disponible.
+     */
+    private void poblarUsuarioConDatosPendientes(UsuarioSalud usuario) {
         usuario.setPrimerNombre("PENDIENTE");
         usuario.setPrimerApellido("PENDIENTE");
         usuario.setEmail("pendiente@hcen.gub.uy");
         usuario.setFechaNacimiento(LocalDate.of(1900, 1, 1));
-        usuario.setEmailVerificado(false);
-        usuario.setActive(true);
         usuario.setNombreCompleto("PENDIENTE PENDIENTE");
-
-        return usuario;
     }
 
     /**
