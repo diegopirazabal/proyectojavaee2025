@@ -12,12 +12,16 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Named
 @SessionScoped
 public class UsuarioSaludLoginBean implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = Logger.getLogger(UsuarioSaludLoginBean.class.getName());
 
     private static final String TEMP_USERNAME = "user";
     private static final String TEMP_PASSWORD = "user";
@@ -156,30 +160,149 @@ public class UsuarioSaludLoginBean implements Serializable {
     private void obtenerCedulaDeOIDC() {
         try {
             ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
+            HttpServletRequest request = (HttpServletRequest) external.getRequest();
 
-            // Intentar obtener de parámetros URL primero (viene del callback)
-            String docNumber = external.getRequestParameterMap().get("docNumber");
-            if (docNumber != null && !docNumber.isBlank()) {
-                cedulaUsuarioActual = docNumber;
+            // 1. PRIORIDAD MÁXIMA: Extraer cédula del JWT en la cookie
+            String cedulaFromJwt = extractCedulaFromJwtCookie(request);
+            if (cedulaFromJwt != null && !cedulaFromJwt.isBlank()) {
+                cedulaUsuarioActual = cedulaFromJwt;
+                LOGGER.info("Cédula obtenida del JWT: " + cedulaFromJwt);
                 return;
             }
 
-            // Fallback: intentar obtener de la sesión HTTP
-            HttpSession session = (HttpSession) external.getSession(false);
+            // 2. Fallback: Intentar obtener de parámetros URL (viene del callback inicial)
+            String docNumber = external.getRequestParameterMap().get("docNumber");
+            if (docNumber != null && !docNumber.isBlank()) {
+                cedulaUsuarioActual = docNumber;
+                LOGGER.info("Cédula obtenida de parámetros URL: " + docNumber);
+                return;
+            }
 
+            // 3. Fallback: intentar obtener de la sesión HTTP (mismo WAR, raro)
+            HttpSession session = (HttpSession) external.getSession(false);
             if (session != null) {
                 Object userInfoObj = session.getAttribute("userInfo");
                 if (userInfoObj != null) {
                     String cedula = (String) userInfoObj.getClass().getMethod("getNumeroDocumento").invoke(userInfoObj);
                     if (cedula != null && !cedula.isBlank()) {
                         cedulaUsuarioActual = cedula;
+                        LOGGER.info("Cédula obtenida de sesión HTTP: " + cedula);
                         return;
                     }
                 }
             }
-        } catch (Exception e) {
-            // Si no se puede obtener de OIDC, usar valor por defecto
+
+            // 4. Último fallback: usar valor por defecto (solo para desarrollo)
+            LOGGER.warning("No se pudo obtener cédula de OIDC, usando default");
             cedulaUsuarioActual = DEFAULT_DOC_NUMBER;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error obteniendo cédula de OIDC", e);
+            cedulaUsuarioActual = DEFAULT_DOC_NUMBER;
+        }
+    }
+
+    /**
+     * Extrae la cédula del JWT almacenado en la cookie jwt_token
+     * Decodifica el payload del JWT y obtiene el claim "sub" (subject)
+     *
+     * @param request HttpServletRequest con las cookies
+     * @return Cédula del usuario o null si no se puede extraer
+     */
+    private String extractCedulaFromJwtCookie(HttpServletRequest request) {
+        try {
+            // 1. Buscar cookie jwt_token
+            String jwtToken = null;
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("jwt_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (jwtToken == null || jwtToken.isBlank()) {
+                LOGGER.fine("No se encontró cookie jwt_token");
+                return null;
+            }
+
+            // 2. El JWT tiene formato: header.payload.signature
+            String[] parts = jwtToken.split("\\.");
+            if (parts.length != 3) {
+                LOGGER.warning("JWT con formato inválido (no tiene 3 partes)");
+                return null;
+            }
+
+            // 3. Decodificar el payload (segunda parte) de Base64URL
+            String payload = parts[1];
+            byte[] decodedBytes = Base64.getUrlDecoder().decode(payload);
+            String payloadJson = new String(decodedBytes, StandardCharsets.UTF_8);
+
+            LOGGER.fine("JWT payload decodificado: " + payloadJson);
+
+            // 4. Parsear JSON manualmente para obtener "sub"
+            // Formato esperado: {"iss":"g2.hcen.uy","sub":"12345678","exp":...}
+            String cedula = extractJsonField(payloadJson, "sub");
+
+            if (cedula != null && !cedula.isBlank()) {
+                LOGGER.info("Cédula extraída del JWT: " + cedula);
+                return cedula;
+            } else {
+                LOGGER.warning("No se encontró claim 'sub' en el JWT");
+                return null;
+            }
+
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error extrayendo cédula del JWT", e);
+            return null;
+        }
+    }
+
+    /**
+     * Extrae un campo de un JSON simple (sin usar librerías)
+     * Formato esperado: {"key":"value",...}
+     *
+     * @param json String JSON
+     * @param fieldName Nombre del campo a extraer
+     * @return Valor del campo o null
+     */
+    private String extractJsonField(String json, String fieldName) {
+        try {
+            String searchKey = "\"" + fieldName + "\"";
+            int keyIndex = json.indexOf(searchKey);
+
+            if (keyIndex == -1) {
+                return null;
+            }
+
+            // Buscar el ":" después de la clave
+            int colonIndex = json.indexOf(":", keyIndex);
+            if (colonIndex == -1) {
+                return null;
+            }
+
+            // Saltar espacios y comillas
+            int valueStart = colonIndex + 1;
+            while (valueStart < json.length() &&
+                   (json.charAt(valueStart) == ' ' || json.charAt(valueStart) == '"')) {
+                valueStart++;
+            }
+
+            // Buscar el final del valor (comilla o coma o })
+            int valueEnd = valueStart;
+            while (valueEnd < json.length() &&
+                   json.charAt(valueEnd) != '"' &&
+                   json.charAt(valueEnd) != ',' &&
+                   json.charAt(valueEnd) != '}') {
+                valueEnd++;
+            }
+
+            String value = json.substring(valueStart, valueEnd).trim();
+            return value.isEmpty() ? null : value;
+
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "Error parseando campo JSON: " + fieldName, e);
+            return null;
         }
     }
 
