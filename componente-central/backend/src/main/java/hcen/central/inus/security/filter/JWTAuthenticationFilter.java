@@ -209,7 +209,7 @@ public class JWTAuthenticationFilter implements Filter {
         }
 
         // Permitir GET /api/historia-clinica/{cedula}/documentos (consumido por mobile)
-        if (requestURI.matches(".*/api/historia-clinica/[^/]+/documentos$")) {
+        if (requestURI.matches(".*/api/historia-clinica/[^/]+/documentos(?:[;?].*)?$")) {
             return true;
         }
 
