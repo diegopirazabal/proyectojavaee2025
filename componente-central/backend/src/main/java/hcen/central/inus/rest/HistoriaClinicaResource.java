@@ -4,13 +4,16 @@ import hcen.central.inus.dto.HistoriaClinicaDocumentoDetalleResponse;
 import hcen.central.inus.dto.HistoriaClinicaIdResponse;
 import hcen.central.inus.service.HistoriaClinicaService;
 import hcen.central.notifications.dto.ApiResponse;
+import io.jsonwebtoken.Claims;
 import jakarta.ejb.EJB;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -112,11 +115,91 @@ public class HistoriaClinicaResource {
         }
     }
 
+    /**
+     * Obtiene los documentos de la historia clínica del usuario autenticado.
+     * La cédula se obtiene del JWT (claim docNumber), garantizando que el usuario
+     * solo pueda consultar su propia historia clínica.
+     * 
+     * SEGURIDAD: Requiere autenticación JWT válida.
+     */
+    @GET
+    @Path("/mis-documentos")
+    public Response obtenerMisDocumentos(@Context HttpServletRequest request) {
+        try {
+            // Extraer cédula del JWT (seteada por JWTAuthenticationFilter)
+            Claims claims = (Claims) request.getAttribute("jwtClaims");
+            
+            if (claims == null) {
+                LOGGER.warning("No se encontraron claims JWT en el request");
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ApiResponse.error("Token JWT no válido o no presente"))
+                    .build();
+            }
+            
+            // Obtener docNumber del JWT
+            String cedula = claims.get("docNumber", String.class);
+            
+            if (cedula == null || cedula.isBlank()) {
+                LOGGER.warning("JWT no contiene docNumber");
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ApiResponse.error("El token no contiene información de documento"))
+                    .build();
+            }
+            
+            LOGGER.info("Consultando historia clínica para usuario con cédula: " + cedula);
+            
+            var documentos = historiaClinicaService.obtenerDocumentosPorCedula(cedula);
+            return Response.ok(ApiResponse.success(documentos)).build();
+            
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(ApiResponse.error(e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener documentos de historia clínica", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ApiResponse.error("Error interno al obtener la historia clínica"))
+                .build();
+        }
+    }
+
+    /**
+     * DEPRECADO: Endpoint anterior que permitía consultar cualquier cédula.
+     * Ahora valida que el usuario solo pueda consultar su propia historia.
+     * 
+     * @deprecated Usar {@link #obtenerMisDocumentos(HttpServletRequest)} en su lugar
+     */
+    @Deprecated
     @GET
     @Path("/{cedula}/documentos")
-    public Response obtenerDocumentosPorCedula(@PathParam("cedula") String cedula) {
+    public Response obtenerDocumentosPorCedula(
+            @PathParam("cedula") String cedulaParam,
+            @Context HttpServletRequest request) {
         try {
-            var documentos = historiaClinicaService.obtenerDocumentosPorCedula(cedula);
+            // Extraer cédula del JWT para validar autorización
+            Claims claims = (Claims) request.getAttribute("jwtClaims");
+            
+            if (claims == null) {
+                LOGGER.warning("Intento de acceso sin JWT válido a historia clínica");
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(ApiResponse.error("Autenticación requerida"))
+                    .build();
+            }
+            
+            String cedulaJWT = claims.get("docNumber", String.class);
+            
+            // VALIDACIÓN CRÍTICA: El usuario solo puede consultar su propia historia clínica
+            if (cedulaJWT == null || !cedulaJWT.equals(cedulaParam.trim())) {
+                LOGGER.warning("Intento de acceso no autorizado: usuario con cédula " + cedulaJWT + 
+                             " intentó acceder a historia clínica de cédula " + cedulaParam);
+                return Response.status(Response.Status.FORBIDDEN)
+                    .entity(ApiResponse.error("No tiene autorización para consultar esta historia clínica"))
+                    .build();
+            }
+            
+            LOGGER.info("Consultando historia clínica para usuario con cédula: " + cedulaJWT);
+            
+            var documentos = historiaClinicaService.obtenerDocumentosPorCedula(cedulaJWT);
             return Response.ok(ApiResponse.success(documentos)).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)

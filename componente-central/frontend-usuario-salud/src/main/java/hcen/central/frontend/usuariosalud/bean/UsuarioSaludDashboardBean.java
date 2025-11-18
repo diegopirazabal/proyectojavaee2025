@@ -1,5 +1,6 @@
 package hcen.central.frontend.usuariosalud.bean;
 
+import com.hcen.periferico.usuariosalud.util.JwtUtil;
 import hcen.central.frontend.usuariosalud.dto.CiudadanoDetalle;
 import hcen.central.frontend.usuariosalud.service.DnicServiceClient;
 import hcen.central.frontend.usuariosalud.service.DocumentoNoEncontradoException;
@@ -63,18 +64,25 @@ public class UsuarioSaludDashboardBean implements Serializable {
             return;
         }
 
+        // Extraer docType y docNumber del JWT si existe
         if (hasJwtCookie) {
-            LOGGER.info("Cookie JWT encontrada, usuario autenticado");
+            LOGGER.info("Cookie JWT encontrada, extrayendo datos del usuario");
+            String jwtDocType = JwtUtil.extractDocType(jwtToken);
+            String jwtDocNumber = JwtUtil.extractDocNumber(jwtToken);
+            
+            if (jwtDocType != null && jwtDocNumber != null) {
+                docType = jwtDocType;
+                docNumber = jwtDocNumber;
+                LOGGER.info("Datos del JWT - docType: " + docType + ", docNumber: " + docNumber);
+            }
         } else {
             LOGGER.info("Sesión local autenticada sin cookie JWT, permitiendo acceso");
         }
 
-        // Verificar sesión HTTP para datos de userInfo (opcional, puede no existir en este WAR)
+        // Verificar sesión HTTP para advertencias
         HttpSession session = (HttpSession) externalContext.getSession(false);
-
-        // Intentar obtener datos de la sesión OIDC primero
         if (session != null) {
-            // Mostrar advertencia de menor de edad si viene en el JWT
+            // Mostrar advertencia de menor de edad si viene en el JWT de sesión
             Object jwtTokenObj = session.getAttribute("jwtToken");
             if (jwtTokenObj != null) {
                 try {
@@ -86,36 +94,13 @@ public class UsuarioSaludDashboardBean implements Serializable {
                     LOGGER.log(Level.FINE, "No se pudo obtener advertencia del JWT", e);
                 }
             }
-
-            // Buscar userInfo en la sesión (viene del callback OIDC)
-            Object userInfoObj = session.getAttribute("userInfo");
-            if (userInfoObj != null) {
-                try {
-                    // Usar reflexión para obtener la cédula sin depender de la clase OIDCUserInfo
-                    String cedula = (String) userInfoObj.getClass().getMethod("getNumeroDocumento").invoke(userInfoObj);
-                    if (cedula != null && !cedula.isBlank()) {
-                        docType = "do";
-                        docNumber = cedula;
-                        LOGGER.info("Cédula obtenida de sesión OIDC: " + cedula);
-                    }
-                } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "No se pudo obtener cédula de userInfo en sesión", e);
-                }
-            }
         }
 
-        // Si no hay datos de OIDC, intentar obtener de parámetros de URL
-        if (docType == null || docType.isBlank()) {
-            Map<String, String> params = externalContext.getRequestParameterMap();
-            docType = params.getOrDefault("docType", "");
-            docNumber = params.getOrDefault("docNumber", "");
-        }
-
-        // Si todavía no hay datos, usar los del LoginBean (usuario autenticado actual)
+        // Fallback: Si no hay datos del JWT, intentar LoginBean
         if ((docType == null || docType.isBlank()) && loginBean != null && loginBean.getCedulaUsuarioActual() != null) {
-            docType = "OTRO";  // Usar el tipo de documento por defecto
+            docType = "OTRO";
             docNumber = loginBean.getCedulaUsuarioActual();
-            LOGGER.info("Usando cédula del usuario autenticado: " + docNumber);
+            LOGGER.info("Usando cédula del LoginBean: " + docNumber);
         }
 
         if (!docType.isBlank() && !docNumber.isBlank()) {

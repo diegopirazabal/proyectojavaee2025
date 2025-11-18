@@ -66,13 +66,12 @@ public class DashboardFragment extends Fragment {
         binding.buttonRetry.setOnClickListener(v -> cargarHistoria());
     }
 
+    /**
+     * Carga la historia clínica del usuario autenticado.
+     * La cédula se obtiene automáticamente del JWT.
+     */
     private void cargarHistoria() {
-        String cedula = SessionManager.getUserCI(requireContext());
-        if (TextUtils.isEmpty(cedula)) {
-            renderError(getString(R.string.historia_error_sin_documentos));
-            return;
-        }
-        viewModel.cargarHistoria(cedula);
+        viewModel.cargarHistoria();
     }
 
     private void renderDocumentos(List<HistoriaClinicaItem> items) {

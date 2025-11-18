@@ -13,6 +13,8 @@ public class JWTTokenResponse {
     private String tokenType = "Bearer";
     private long expiresIn; // segundos
     private String userSub;
+    private String docType;
+    private String docNumber;
     private List<String> roles;
     private String warningMessage;
     
@@ -50,6 +52,12 @@ public class JWTTokenResponse {
     
     public String getUserSub() { return userSub; }
     public void setUserSub(String userSub) { this.userSub = userSub; }
+    
+    public String getDocType() { return docType; }
+    public void setDocType(String docType) { this.docType = docType; }
+    
+    public String getDocNumber() { return docNumber; }
+    public void setDocNumber(String docNumber) { this.docNumber = docNumber; }
     
     public List<String> getRoles() { return roles; }
     public void setRoles(List<String> roles) { this.roles = roles; }

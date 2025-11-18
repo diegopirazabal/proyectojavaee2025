@@ -51,6 +51,19 @@ public class JWTTokenProvider {
      * @return JWT firmado
      */
     public String generateAccessToken(String userSub, String email, List<String> roles) {
+        return generateAccessToken(userSub, email, null, null, roles);
+    }
+    
+    /**
+     * Genera un access token JWT para el usuario incluyendo documento
+     * @param userSub Subject del usuario (del OIDC)
+     * @param email Email del usuario
+     * @param docType Tipo de documento del usuario
+     * @param docNumber Número de documento del usuario
+     * @param roles Lista de roles del usuario
+     * @return JWT firmado
+     */
+    public String generateAccessToken(String userSub, String email, String docType, String docNumber, List<String> roles) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtConfig.getJwtAccessTokenExpiration());
         
@@ -60,6 +73,8 @@ public class JWTTokenProvider {
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .claim("email", email)
+                .claim("docType", docType)
+                .claim("docNumber", docNumber)
                 .claim("roles", roles)
                 .claim("type", "access")
                 .signWith(getSigningKey())
@@ -190,6 +205,26 @@ public class JWTTokenProvider {
     public String getEmailFromToken(String token) {
         Claims claims = validateToken(token);
         return (String) claims.get("email");
+    }
+    
+    /**
+     * Extrae el tipo de documento del token
+     * @param token JWT
+     * @return tipo de documento del usuario
+     */
+    public String getDocTypeFromToken(String token) {
+        Claims claims = validateToken(token);
+        return (String) claims.get("docType");
+    }
+    
+    /**
+     * Extrae el número de documento del token
+     * @param token JWT
+     * @return número de documento del usuario
+     */
+    public String getDocNumberFromToken(String token) {
+        Claims claims = validateToken(token);
+        return (String) claims.get("docNumber");
     }
     
     /**
