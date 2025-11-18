@@ -152,6 +152,7 @@ public class HCENFirebaseMessagingService extends FirebaseMessagingService {
                 solicitud.setEstado("PENDIENTE");
                 solicitud.setFechaCreacion(data.get("timestamp"));
                 solicitud.setDocumentoId(data.get("documentoId"));
+                solicitud.setCedulaPaciente(data.get("cedulaPaciente"));
                 solicitud.setProfesionalNombre(data.get("profesionalNombre"));
                 solicitud.setEspecialidad(data.get("especialidad"));
                 solicitud.setTenantId(data.get("tenantId"));

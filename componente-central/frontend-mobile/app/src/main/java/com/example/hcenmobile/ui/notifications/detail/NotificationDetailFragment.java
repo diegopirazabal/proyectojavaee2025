@@ -2,10 +2,12 @@ package com.example.hcenmobile.ui.notifications.detail;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -69,6 +71,7 @@ public class NotificationDetailFragment extends Fragment {
     private boolean isSolicitudAcceso;
     private boolean specialtyAvailable;
     private LocalDate selectedExpirationDate;
+    private String especialidadSeleccionada;
 
     private ApiService apiService;
 
@@ -117,6 +120,7 @@ public class NotificationDetailFragment extends Fragment {
 
         specialtyAvailable = solicitud != null && !TextUtils.isEmpty(solicitud.getEspecialidad());
         selectedExpirationDate = LocalDate.now().plusDays(DEFAULT_EXPIRATION_DAYS);
+        especialidadSeleccionada = solicitud != null ? solicitud.getEspecialidad() : null;
     }
 
     private void setupUi() {
@@ -162,21 +166,13 @@ public class NotificationDetailFragment extends Fragment {
         binding.actionsContainer.setVisibility(View.VISIBLE);
 
         binding.btnPermitirProfesional.setOnClickListener(v ->
-                enviarAprobacion("PROFESIONAL_ESPECIFICO"));
+                enviarAprobacion("PROFESIONAL_ESPECIFICO", null));
 
-        binding.btnPermitirEspecialidad.setEnabled(specialtyAvailable);
-        binding.btnPermitirEspecialidad.setOnClickListener(v -> {
-            if (!specialtyAvailable) {
-                Toast.makeText(requireContext(),
-                        R.string.notification_detail_especialidad_missing,
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
-            enviarAprobacion("POR_ESPECIALIDAD");
-        });
+        binding.btnPermitirEspecialidad.setOnClickListener(v ->
+                manejarPermisoEspecialidad());
 
         binding.btnPermitirClinica.setOnClickListener(v ->
-                enviarAprobacion("POR_CLINICA"));
+                enviarAprobacion("POR_CLINICA", null));
 
         binding.btnNoPermiso.setOnClickListener(v -> mostrarDialogoRechazo());
     }
@@ -226,7 +222,15 @@ public class NotificationDetailFragment extends Fragment {
         binding.textExpirationDate.setText(label);
     }
 
-    private void enviarAprobacion(String tipoPermiso) {
+    private void manejarPermisoEspecialidad() {
+        if (!TextUtils.isEmpty(obtenerEspecialidadSeleccionada())) {
+            enviarAprobacion("POR_ESPECIALIDAD", obtenerEspecialidadSeleccionada());
+        } else {
+            mostrarDialogoEspecialidad();
+        }
+    }
+
+    private void enviarAprobacion(String tipoPermiso, @Nullable String especialidadOverride) {
         if (solicitud == null || TextUtils.isEmpty(notificationServerId)) {
             Toast.makeText(requireContext(),
                     R.string.notification_detail_error_missing_data,
@@ -242,11 +246,25 @@ public class NotificationDetailFragment extends Fragment {
         }
 
         String cedula = SessionManager.getUserCI(requireContext());
+        if (TextUtils.isEmpty(cedula) && solicitud.getCedulaPaciente() != null) {
+            cedula = solicitud.getCedulaPaciente().trim();
+        }
         if (TextUtils.isEmpty(cedula)) {
             Toast.makeText(requireContext(),
                     R.string.notification_detail_error_missing_data,
                     Toast.LENGTH_LONG).show();
             return;
+        }
+
+        if ("POR_ESPECIALIDAD".equals(tipoPermiso)) {
+            String especialidad = especialidadOverride != null ? especialidadOverride : obtenerEspecialidadSeleccionada();
+            if (TextUtils.isEmpty(especialidad)) {
+                Toast.makeText(requireContext(),
+                        R.string.notification_detail_especialidad_missing,
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            especialidadSeleccionada = especialidad;
         }
 
         AprobarSolicitudRequest request = new AprobarSolicitudRequest();
@@ -262,7 +280,7 @@ public class NotificationDetailFragment extends Fragment {
         if ("PROFESIONAL_ESPECIFICO".equals(tipoPermiso)) {
             request.setProfesionalCi(solicitud.getProfesionalCi());
         } else if ("POR_ESPECIALIDAD".equals(tipoPermiso)) {
-            request.setEspecialidad(solicitud.getEspecialidad());
+            request.setEspecialidad(especialidadSeleccionada.trim());
         }
 
         setLoading(true);
@@ -352,9 +370,50 @@ public class NotificationDetailFragment extends Fragment {
         binding.progressLoading.setVisibility(loading ? View.VISIBLE : View.GONE);
         binding.buttonChangeDate.setEnabled(!loading);
         binding.btnPermitirProfesional.setEnabled(!loading);
-        binding.btnPermitirEspecialidad.setEnabled(!loading && specialtyAvailable);
+        binding.btnPermitirEspecialidad.setEnabled(!loading);
         binding.btnPermitirClinica.setEnabled(!loading);
         binding.btnNoPermiso.setEnabled(!loading);
+    }
+    private String obtenerEspecialidadSeleccionada() {
+        if (especialidadSeleccionada != null && !especialidadSeleccionada.trim().isEmpty()) {
+            especialidadSeleccionada = especialidadSeleccionada.trim();
+            return especialidadSeleccionada;
+        }
+        if (solicitud != null && !TextUtils.isEmpty(solicitud.getEspecialidad())) {
+            especialidadSeleccionada = solicitud.getEspecialidad().trim();
+        }
+        return especialidadSeleccionada != null && !especialidadSeleccionada.isEmpty()
+                ? especialidadSeleccionada
+                : null;
+    }
+
+    private void mostrarDialogoEspecialidad() {
+        final EditText input = new EditText(requireContext());
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        input.setHint(R.string.notification_detail_especialidad_dialog_hint);
+        if (!TextUtils.isEmpty(especialidadSeleccionada)) {
+            input.setText(especialidadSeleccionada);
+            input.setSelection(especialidadSeleccionada.length());
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.notification_detail_permission_specialty)
+                .setMessage(R.string.notification_detail_especialidad_dialog_message)
+                .setView(input)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    String value = input.getText() != null ? input.getText().toString().trim() : "";
+                    if (value.isEmpty()) {
+                        Toast.makeText(requireContext(),
+                                R.string.notification_detail_especialidad_missing,
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    especialidadSeleccionada = value;
+                    binding.textEspecialidad.setText(value);
+                    enviarAprobacion("POR_ESPECIALIDAD", value);
+                })
+                .setNegativeButton(R.string.button_cancel, null)
+                .show();
     }
 
     private String formatProfesionalText() {

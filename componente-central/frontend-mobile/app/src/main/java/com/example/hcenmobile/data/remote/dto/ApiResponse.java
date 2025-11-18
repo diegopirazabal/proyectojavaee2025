@@ -10,7 +10,10 @@ import java.util.List;
 public class ApiResponse<T> {
 
     @SerializedName("success")
-    private boolean success;
+    private Boolean success;
+
+    @SerializedName("status")
+    private String status;
 
     @SerializedName("message")
     private String message;
@@ -24,7 +27,7 @@ public class ApiResponse<T> {
     public ApiResponse() {
     }
 
-    public ApiResponse(boolean success, String message, T data, String error) {
+    public ApiResponse(Boolean success, String message, T data, String error) {
         this.success = success;
         this.message = message;
         this.data = data;
@@ -32,11 +35,25 @@ public class ApiResponse<T> {
     }
 
     public boolean isSuccess() {
-        return success;
+        if (success != null) {
+            return success;
+        }
+        if (status != null) {
+            return "OK".equalsIgnoreCase(status) || "SUCCESS".equalsIgnoreCase(status);
+        }
+        return false;
     }
 
-    public void setSuccess(boolean success) {
+    public void setSuccess(Boolean success) {
         this.success = success;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getMessage() {

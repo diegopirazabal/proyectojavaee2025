@@ -7,6 +7,9 @@ import com.google.gson.annotations.SerializedName;
  */
 public class SolicitudAccesoDTO {
 
+    @SerializedName("cedulaPaciente")
+    private String cedulaPaciente;
+
     @SerializedName("id")
     private String id; // ID de la notificación
 
@@ -165,5 +168,13 @@ public class SolicitudAccesoDTO {
 
     public void setDiagnostico(String diagnostico) {
         this.diagnostico = diagnostico;
+    }
+
+    public String getCedulaPaciente() {
+        return cedulaPaciente;
+    }
+
+    public void setCedulaPaciente(String cedulaPaciente) {
+        this.cedulaPaciente = cedulaPaciente;
     }
 }

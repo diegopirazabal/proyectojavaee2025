@@ -26,6 +26,8 @@
     <string name="notification_detail_deny">No dar permiso</string>
     <string name="notification_detail_empty_state">Esta notificación no requiere acciones manuales.</string>
     <string name="notification_detail_especialidad_missing">No hay una especialidad asociada a esta solicitud.</string>
+    <string name="notification_detail_especialidad_dialog_message">Ingresá la especialidad para otorgar este permiso.</string>
+    <string name="notification_detail_especialidad_dialog_hint">Ej: Cardiología</string>
     <string name="notification_detail_error_missing_data">Faltan datos para procesar la solicitud.</string>
     <string name="notification_detail_success_aprobar">Permiso otorgado correctamente.</string>
     <string name="notification_detail_success_rechazar">Solicitud rechazada.</string>

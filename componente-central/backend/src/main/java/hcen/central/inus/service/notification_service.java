@@ -198,6 +198,7 @@ public class notification_service {
                     .build())
                 // Datos adicionales para la app móvil
                 .putData("tipo", "SOLICITUD_ACCESO")
+                .putData("cedulaPaciente", solicitud.getCedulaPaciente())
                 .putData("notificacionId", notif.getId().toString())
                 .putData("documentoId", solicitud.getDocumentoId())
                 .putData("profesionalCi", solicitud.getProfesionalCi().toString())
