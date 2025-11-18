@@ -234,18 +234,10 @@ public class OIDCAuthResource {
                     if ("mobile".equals(loginOrigin)) {
                         LOGGER.info("Redirigiendo a aplicación móvil");
                         
-                        // Construir deep link para la app móvil
+                        // Construir deep link para la app móvil - SOLO JWT, no datos sensibles en URL
                         StringBuilder mobileCallbackUrl = new StringBuilder("hcenmobile://auth/callback");
                         mobileCallbackUrl.append("?jwt_token=")
-                                        .append(java.net.URLEncoder.encode(tokenResponse.getAccessToken(), java.nio.charset.StandardCharsets.UTF_8))
-                                        .append("&cedula=")
-                                        .append(java.net.URLEncoder.encode(cedula, java.nio.charset.StandardCharsets.UTF_8));
-                        
-                        // Agregar nombre completo si está disponible
-                        if (user.getNombreCompleto() != null && !user.getNombreCompleto().isBlank()) {
-                            mobileCallbackUrl.append("&nombre_completo=")
-                                           .append(java.net.URLEncoder.encode(user.getNombreCompleto(), java.nio.charset.StandardCharsets.UTF_8));
-                        }
+                                        .append(java.net.URLEncoder.encode(tokenResponse.getAccessToken(), java.nio.charset.StandardCharsets.UTF_8));
                         
                         // Limpiar atributo de origen
                         session.removeAttribute("oidc_login_origin");
@@ -259,7 +251,7 @@ public class OIDCAuthResource {
                     String contextPath;
                     
                     if ("usuario-salud".equals(loginOrigin)) {
-                        contextPath = isProduction ? "/portal-usuario" : "/portal-salud";
+                        contextPath = "/portal-usuario"; // Siempre usar /portal-usuario
                     } else {
                         // Admin: /portal-admin en producción, /frontend-admin-hcen en desarrollo
                         contextPath = isProduction ? "/portal-admin" : "/frontend-admin-hcen";
@@ -277,11 +269,7 @@ public class OIDCAuthResource {
                     }
                     dashboardUrl.append(contextPath).append("/dashboard.xhtml");
                     
-                    // Agregar cédula como parámetro si es portal usuario-salud
-                    if ("usuario-salud".equals(loginOrigin)) {
-                        dashboardUrl.append("?docType=DO&docNumber=")
-                                   .append(java.net.URLEncoder.encode(cedula, java.nio.charset.StandardCharsets.UTF_8));
-                    }
+                    // NO agregar docType/docNumber en URL - el frontend leerá del JWT
                     
                     // Limpiar atributo de origen
                     session.removeAttribute("oidc_login_origin");

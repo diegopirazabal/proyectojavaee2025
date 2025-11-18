@@ -19,7 +19,6 @@ public class DashboardViewModel extends AndroidViewModel {
     private final MutableLiveData<List<HistoriaClinicaItem>> documentos = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>(null);
-    private String ultimaCedula;
 
     public DashboardViewModel(@NonNull Application application) {
         super(application);
@@ -38,12 +37,15 @@ public class DashboardViewModel extends AndroidViewModel {
         return errorMessage;
     }
 
-    public void cargarHistoria(String cedula) {
-        ultimaCedula = cedula;
+    /**
+     * Carga la historia clínica del usuario autenticado.
+     * La cédula se obtiene automáticamente del JWT.
+     */
+    public void cargarHistoria() {
         loading.setValue(true);
         errorMessage.setValue(null);
 
-        repository.cargarHistoriaClinica(cedula, new HistoriaClinicaRepository.HistoriaCallback() {
+        repository.cargarHistoriaClinica(new HistoriaClinicaRepository.HistoriaCallback() {
             @Override
             public void onSuccess(List<HistoriaClinicaItem> items) {
                 loading.postValue(false);
@@ -60,8 +62,6 @@ public class DashboardViewModel extends AndroidViewModel {
     }
 
     public void refrescar() {
-        if (ultimaCedula != null && !ultimaCedula.isEmpty()) {
-            cargarHistoria(ultimaCedula);
-        }
+        cargarHistoria();
     }
 }

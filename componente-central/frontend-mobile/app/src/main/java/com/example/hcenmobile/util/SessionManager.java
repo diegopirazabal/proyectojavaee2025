@@ -33,6 +33,24 @@ public class SessionManager {
     }
 
     /**
+     * Obtiene el JWT del usuario logueado
+     */
+    public static String getJwtToken(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getString(Constants.PREF_JWT_TOKEN, null);
+    }
+
+    /**
+     * Guarda el JWT del usuario
+     */
+    public static void saveJwtToken(Context context, String jwtToken) {
+        SharedPreferences prefs = context.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+                .putString(Constants.PREF_JWT_TOKEN, jwtToken)
+                .apply();
+    }
+
+    /**
      * Cierra la sesión del usuario (logout)
      * Elimina todos los datos de sesión de SharedPreferences
      */
@@ -43,6 +61,7 @@ public class SessionManager {
                 .remove(Constants.PREF_USER_ID)
                 .remove(Constants.PREF_IS_LOGGED_IN)
                 .remove(Constants.PREF_FCM_TOKEN)
+                .remove(Constants.PREF_JWT_TOKEN)
                 .apply();
     }
 }

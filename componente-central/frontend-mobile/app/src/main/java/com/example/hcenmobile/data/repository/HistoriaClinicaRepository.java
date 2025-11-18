@@ -46,15 +46,12 @@ public class HistoriaClinicaRepository {
         return instance;
     }
 
-    public void cargarHistoriaClinica(String cedula, HistoriaCallback callback) {
-        if (TextUtils.isEmpty(cedula)) {
-            if (callback != null) {
-                callback.onError(context.getString(R.string.historia_error_sin_documentos));
-            }
-            return;
-        }
-
-        apiService.getHistoriaClinicaDocumentos(cedula)
+    /**
+     * Carga la historia clínica del usuario autenticado.
+     * La cédula se obtiene automáticamente del JWT en el backend.
+     */
+    public void cargarHistoriaClinica(HistoriaCallback callback) {
+        apiService.getHistoriaClinicaDocumentos()
                 .enqueue(new Callback<ApiResponse<List<HistoriaClinicaDocumentoDTO>>>() {
                     @Override
                     public void onResponse(@NonNull Call<ApiResponse<List<HistoriaClinicaDocumentoDTO>>> call,

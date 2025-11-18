@@ -196,9 +196,19 @@ public class OIDCAuthenticationService {
 
         // Roles del usuario (por ahora, rol básico "USER")
         List<String> roles = Arrays.asList("USER");
+        
+        // Obtener tipo de documento como String
+        String docType = user.getTipoDeDocumento() != null ? user.getTipoDeDocumento().toString() : "CI";
+        String docNumber = user.getCedula();
 
-        // Generar access token JWT usando la cédula como subject
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getCedula(), roles);
+        // Generar access token JWT con docType y docNumber
+        String accessToken = jwtTokenProvider.generateAccessToken(
+                user.getCedula(), 
+                user.getEmail(), 
+                docType, 
+                docNumber, 
+                roles
+        );
 
         // Generar refresh token JWT
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getCedula());
@@ -211,9 +221,11 @@ public class OIDCAuthenticationService {
                 user.getCedula(), // Usar cédula como userSub
                 roles
         );
+        jwtResponse.setDocType(docType);
+        jwtResponse.setDocNumber(docNumber);
         attachMinorWarningIfNeeded(user, jwtResponse);
 
-        LOGGER.info("JWT generados exitosamente");
+        LOGGER.info("JWT generados exitosamente con docType: " + docType + ", docNumber: " + docNumber);
         return jwtResponse;
     }
 
@@ -239,7 +251,18 @@ public class OIDCAuthenticationService {
 
         // Generar nuevos tokens
         List<String> roles = Arrays.asList("USER");
-        String newAccessToken = jwtTokenProvider.generateAccessToken(cedula, roles);
+        
+        // Obtener tipo de documento como String
+        String docType = user.getTipoDeDocumento() != null ? user.getTipoDeDocumento().toString() : "CI";
+        String docNumber = user.getCedula();
+        
+        String newAccessToken = jwtTokenProvider.generateAccessToken(
+                cedula, 
+                user.getEmail(), 
+                docType, 
+                docNumber, 
+                roles
+        );
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(cedula);
 
         JWTTokenResponse jwtResponse = new JWTTokenResponse(
@@ -250,6 +273,8 @@ public class OIDCAuthenticationService {
                 cedula,
                 roles
         );
+        jwtResponse.setDocType(docType);
+        jwtResponse.setDocNumber(docNumber);
         attachMinorWarningIfNeeded(user, jwtResponse);
 
         LOGGER.info("JWT refrescado exitosamente para usuario con cédula: " + cedula);

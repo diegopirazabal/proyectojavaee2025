@@ -63,11 +63,12 @@ public interface ApiService {
     Call<ApiResponse<Object>> getUserInfo(@Query("userId") String userId);
 
     /**
-     * Obtiene los documentos registrados en la historia clínica central para un usuario.
+     * Obtiene los documentos de la historia clínica del usuario autenticado.
+     * La cédula se obtiene automáticamente del JWT.
+     * SEGURIDAD: Requiere JWT válido en header Authorization.
      */
-    @GET("historia-clinica/{userId}/documentos")
-    Call<ApiResponse<List<HistoriaClinicaDocumentoDTO>>> getHistoriaClinicaDocumentos(
-            @Path("userId") String userId);
+    @GET("historia-clinica/mis-documentos")
+    Call<ApiResponse<List<HistoriaClinicaDocumentoDTO>>> getHistoriaClinicaDocumentos();
 
     // ============ GESTIÓN DE PERMISOS ============
 
