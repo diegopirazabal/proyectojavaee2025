@@ -1,5 +1,6 @@
 package hcen.central.inus.rest;
 
+import hcen.central.inus.dto.ActualizarUsuarioSaludRequest;
 import hcen.central.inus.dto.RegistrarUsuarioRequest;
 import hcen.central.inus.dto.UsuarioSaludDTO;
 import hcen.central.inus.service.UsuarioSaludService;
@@ -100,6 +101,31 @@ public class UsuarioSaludResource {
             LOGGER.log(Level.SEVERE, "Error al obtener usuario", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(Map.of("error", "Error interno del servidor"))
+                .build();
+        }
+    }
+
+    /**
+     * Actualiza datos de contacto de un usuario (email, teléfono, dirección)
+     * PUT /api/usuarios/{cedula}
+     */
+    @PUT
+    @Path("/{cedula}")
+    public Response actualizarUsuario(@PathParam("cedula") String cedula,
+                                      ActualizarUsuarioSaludRequest request) {
+        try {
+            LOGGER.info("Recibida solicitud de actualización para cédula: " + cedula);
+            UsuarioSaludDTO usuarioActualizado = usuarioService.actualizarUsuario(cedula, request);
+            return Response.ok(usuarioActualizado).build();
+        } catch (IllegalArgumentException e) {
+            LOGGER.warning("Validación fallida: " + e.getMessage());
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(Map.of("error", e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al actualizar usuario", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(Map.of("error", "Error interno del servidor: " + e.getMessage()))
                 .build();
         }
     }

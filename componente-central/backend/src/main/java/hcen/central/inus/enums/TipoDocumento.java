@@ -1,5 +1,7 @@
 package hcen.central.inus.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum TipoDocumento {
     DO,
     PA,
@@ -12,4 +14,12 @@ public enum TipoDocumento {
     @Deprecated public static final TipoDocumento PASSPORT = PA;
     @Deprecated public static final TipoDocumento DNI = OTRO;
     @Deprecated public static final TipoDocumento OTROS = OTRO;
+
+    /**
+     * Serializa el enum como string simple (su nombre) en JSON
+     */
+    @JsonValue
+    public String toJson() {
+        return this.name();
+    }
 }

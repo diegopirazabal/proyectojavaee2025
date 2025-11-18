@@ -479,6 +479,26 @@ public class DocumentoClinicoService {
         }
 
         try {
+            // 1. Buscar el profesional por CI y tenantId para obtener su UUID
+            Optional<profesional_salud> profesionalOpt = profesionalDAO.findByCiAndTenantId(ciProfesional, tenantId);
+            if (profesionalOpt.isPresent()) {
+                // 2. Consultar el documento localmente
+                Optional<documento_clinico> documentoOpt = documentoDAO.findById(documentoId);
+                if (documentoOpt.isPresent()) {
+                    documento_clinico documento = documentoOpt.get();
+                    profesional_salud profesional = profesionalOpt.get();
+
+                    // 3. Verificar si el profesional actual es el creador del documento
+                    if (documento.getProfesionalId() != null &&
+                        documento.getProfesionalId().equals(profesional.getId())) {
+                        LOGGER.info("Acceso automático concedido: el profesional CI=" + ciProfesional +
+                                  " es el creador del documento " + documentoId);
+                        return true; // El creador siempre tiene acceso permanente
+                    }
+                }
+            }
+
+            // 4. Si no es el creador, validar con el sistema de permisos del central
             return centralAPIClient.validarAccesoDocumento(documentoId, ciProfesional, tenantId, especialidad);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al validar acceso a documento", e);

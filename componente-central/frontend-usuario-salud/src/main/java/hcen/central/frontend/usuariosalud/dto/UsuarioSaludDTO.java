@@ -1,12 +1,11 @@
-package hcen.central.inus.dto;
+package hcen.central.frontend.usuariosalud.dto;
 
-import hcen.central.inus.enums.TipoDocumento;
 import java.io.Serializable;
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 /**
- * DTO para transferir datos de UsuarioSalud
+ * DTO para transferir datos de UsuarioSalud entre frontend y backend
  */
 public class UsuarioSaludDTO implements Serializable {
 
@@ -14,7 +13,7 @@ public class UsuarioSaludDTO implements Serializable {
 
     private Long id;
     private String cedula;
-    private TipoDocumento tipoDocumento;
+    private String tipoDocumento;
     private LocalDate fechaNacimiento;
     private String email;
     private Boolean emailVerificado;
@@ -26,18 +25,23 @@ public class UsuarioSaludDTO implements Serializable {
     private String primerApellido;
     private String segundoApellido;
     private Boolean active;
-    private Instant createdAt;
-    private Instant updatedAt;
 
     // Constructores
     public UsuarioSaludDTO() {}
 
-    public UsuarioSaludDTO(Long id, String cedula, String primerNombre, String primerApellido, String email) {
-        this.id = id;
+    public UsuarioSaludDTO(String cedula, String email, String primerNombre, String primerApellido) {
         this.cedula = cedula;
+        this.email = email;
         this.primerNombre = primerNombre;
         this.primerApellido = primerApellido;
-        this.email = email;
+    }
+
+    // Método auxiliar para formatear fecha
+    public String getFechaNacimientoFormateada() {
+        if (fechaNacimiento == null) {
+            return "";
+        }
+        return fechaNacimiento.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
 
     // Getters y Setters
@@ -57,11 +61,11 @@ public class UsuarioSaludDTO implements Serializable {
         this.cedula = cedula;
     }
 
-    public TipoDocumento getTipoDocumento() {
+    public String getTipoDocumento() {
         return tipoDocumento;
     }
 
-    public void setTipoDocumento(TipoDocumento tipoDocumento) {
+    public void setTipoDocumento(String tipoDocumento) {
         this.tipoDocumento = tipoDocumento;
     }
 
@@ -151,22 +155,6 @@ public class UsuarioSaludDTO implements Serializable {
 
     public void setActive(Boolean active) {
         this.active = active;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     @Override
