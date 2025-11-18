@@ -206,10 +206,11 @@ public class DocumentoClinicoService {
     }
 
     /**
-     * Lista documentos de un paciente
+     * Lista documentos de un paciente de TODAS las clínicas
+     * Muestra la historia clínica completa sin importar el tenant
      */
     public List<documento_clinico_dto> getDocumentosPorPaciente(String cedula, UUID tenantId) {
-        List<documento_clinico> documentos = documentoDAO.findByPaciente(cedula, tenantId);
+        List<documento_clinico> documentos = documentoDAO.findByPacienteAllTenants(cedula);
         return documentos.stream()
                 .map(this::convertirADTO)
                 .collect(Collectors.toList());
@@ -244,10 +245,10 @@ public class DocumentoClinicoService {
     }
 
     /**
-     * Cuenta documentos de un paciente
+     * Cuenta documentos de un paciente de TODAS las clínicas
      */
     public long countDocumentosPorPaciente(String cedula, UUID tenantId) {
-        return documentoDAO.countByPaciente(cedula, tenantId);
+        return documentoDAO.countByPacienteAllTenants(cedula);
     }
 
     /**
@@ -469,7 +470,7 @@ public class DocumentoClinicoService {
      * @param documentoId UUID del documento
      * @param ciProfesional CI del profesional que solicita acceso
      * @param tenantId UUID de la clínica
-     * @param especialidad Especialidad del profesional (opcional)
+     * @param especialidad Especialidad del profesional (opcional, se busca automáticamente si es null)
      * @return true si tiene permiso, false en caso contrario
      */
     public boolean validarAccesoDocumento(UUID documentoId, Integer ciProfesional, UUID tenantId, String especialidad) {
@@ -479,27 +480,39 @@ public class DocumentoClinicoService {
         }
 
         try {
-            // 1. Buscar el profesional por CI y tenantId para obtener su UUID
+            // 1. Buscar el profesional por CI y tenantId para obtener su UUID y especialidad
             Optional<profesional_salud> profesionalOpt = profesionalDAO.findByCiAndTenantId(ciProfesional, tenantId);
-            if (profesionalOpt.isPresent()) {
-                // 2. Consultar el documento localmente
-                Optional<documento_clinico> documentoOpt = documentoDAO.findById(documentoId);
-                if (documentoOpt.isPresent()) {
-                    documento_clinico documento = documentoOpt.get();
-                    profesional_salud profesional = profesionalOpt.get();
+            if (profesionalOpt.isEmpty()) {
+                LOGGER.warning(String.format("Profesional no encontrado: CI=%d, tenant=%s", ciProfesional, tenantId));
+                return false;
+            }
 
-                    // 3. Verificar si el profesional actual es el creador del documento
-                    if (documento.getProfesionalId() != null &&
-                        documento.getProfesionalId().equals(profesional.getId())) {
-                        LOGGER.info("Acceso automático concedido: el profesional CI=" + ciProfesional +
-                                  " es el creador del documento " + documentoId);
-                        return true; // El creador siempre tiene acceso permanente
-                    }
+            profesional_salud profesional = profesionalOpt.get();
+
+            // 2. Si no se proporcionó especialidad, buscarla del profesional
+            String especialidadNombre = especialidad;
+            if (especialidadNombre == null || especialidadNombre.isBlank()) {
+                if (profesional.getEspecialidad() != null) {
+                    especialidadNombre = profesional.getEspecialidad().getNombre();
                 }
             }
 
-            // 4. Si no es el creador, validar con el sistema de permisos del central
-            return centralAPIClient.validarAccesoDocumento(documentoId, ciProfesional, tenantId, especialidad);
+            // 3. Consultar el documento localmente
+            Optional<documento_clinico> documentoOpt = documentoDAO.findById(documentoId);
+            if (documentoOpt.isPresent()) {
+                documento_clinico documento = documentoOpt.get();
+
+                // 4. Verificar si el profesional actual es el creador del documento
+                if (documento.getProfesionalId() != null &&
+                    documento.getProfesionalId().equals(profesional.getId())) {
+                    LOGGER.info("Acceso automático concedido: el profesional CI=" + ciProfesional +
+                              " es el creador del documento " + documentoId);
+                    return true; // El creador siempre tiene acceso permanente
+                }
+            }
+
+            // 5. Si no es el creador, validar con el sistema de permisos del central
+            return centralAPIClient.validarAccesoDocumento(documentoId, ciProfesional, tenantId, especialidadNombre);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al validar acceso a documento", e);
             return false; // En caso de error, denegar acceso por seguridad
@@ -558,13 +571,24 @@ public class DocumentoClinicoService {
             documento.getCodigoMotivoConsulta() : "No especificado";
         String diagnostico = documento.getDescripcionDiagnostico();
 
+        // Buscar la especialidad del profesional en la base de datos
+        String especialidadNombre = null;
+        Optional<profesional_salud> profesionalOpt = profesionalDAO.findByCiAndTenantId(ciProfesional, tenantId);
+
+        if (profesionalOpt.isPresent()) {
+            profesional_salud profesional = profesionalOpt.get();
+            if (profesional.getEspecialidad() != null) {
+                especialidadNombre = profesional.getEspecialidad().getNombre();
+            }
+        }
+
         // Enviar notificación al paciente vía componente central
         boolean notificacionEnviada = centralAPIClient.solicitarAccesoDocumento(
             cedulaPaciente,
             documentoId,
             ciProfesional,
             nombreProfesional,
-            especialidad,
+            especialidadNombre,
             tenantId,
             nombreClinica,
             fechaDocumento,
