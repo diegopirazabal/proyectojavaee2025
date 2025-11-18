@@ -1,6 +1,7 @@
 package hcen.central.inus.rest;
 
 import hcen.central.inus.dto.HistoriaClinicaDocumentoDetalleResponse;
+import hcen.central.inus.dto.HistoriaClinicaIdResponse;
 import hcen.central.inus.service.HistoriaClinicaService;
 import hcen.central.notifications.dto.ApiResponse;
 import jakarta.ejb.EJB;
@@ -13,6 +14,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,6 +73,41 @@ public class HistoriaClinicaResource {
             LOGGER.log(Level.SEVERE, "Error al registrar documento en historia clínica", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(new ErrorResponse("Error interno al registrar el documento: " + e.getMessage()))
+                .build();
+        }
+    }
+
+    /**
+     * Obtiene el ID de la historia clínica de un paciente por su cédula
+     */
+    @GET
+    @Path("/by-cedula/{cedula}")
+    public Response obtenerHistoriaIdPorCedula(@PathParam("cedula") String cedula) {
+        try {
+            if (cedula == null || cedula.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ApiResponse.error("La cédula es requerida"))
+                    .build();
+            }
+
+            Optional<HistoriaClinicaIdResponse> historiaIdOpt = historiaClinicaService.obtenerHistoriaIdPorCedula(cedula);
+
+            if (historiaIdOpt.isEmpty()) {
+                return Response.status(Response.Status.NOT_FOUND)
+                    .entity(ApiResponse.error("No existe historia clínica para la cédula " + cedula))
+                    .build();
+            }
+
+            return Response.ok(ApiResponse.success(historiaIdOpt.get())).build();
+
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(ApiResponse.error(e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener ID de historia clínica", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(ApiResponse.error("Error interno al obtener el ID de historia clínica"))
                 .build();
         }
     }

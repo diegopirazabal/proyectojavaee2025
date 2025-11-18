@@ -17,59 +17,75 @@ public class ProfesionalSaludDAO {
     private EntityManager em;
 
     public profesional_salud save(profesional_salud profesional) {
-        if (profesional.getCi() == null || !em.contains(profesional)) {
-            return em.merge(profesional);
-        } else {
-            return em.merge(profesional);
-        }
+        return em.merge(profesional);
     }
 
-    public Optional<profesional_salud> findByCi(Integer ci) {
-        profesional_salud profesional = em.find(profesional_salud.class, ci);
+    public Optional<profesional_salud> findById(UUID id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        profesional_salud profesional = em.find(profesional_salud.class, id);
         return Optional.ofNullable(profesional);
+    }
+
+    public Optional<profesional_salud> findByCiAndTenantId(Integer ci, UUID tenantId) {
+        if (ci == null || tenantId == null) {
+            return Optional.empty();
+        }
+        TypedQuery<profesional_salud> query = em.createQuery(
+            "SELECT p FROM profesional_salud p WHERE p.ci = :ci AND p.tenantId = :tenantId AND p.active = true",
+            profesional_salud.class
+        );
+        query.setParameter("ci", ci);
+        query.setParameter("tenantId", tenantId);
+        List<profesional_salud> result = query.setMaxResults(1).getResultList();
+        return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
     }
 
     public List<profesional_salud> findAll() {
         TypedQuery<profesional_salud> query = em.createQuery(
-            "SELECT p FROM profesional_salud p ORDER BY p.apellidos, p.nombre",
+            "SELECT p FROM profesional_salud p WHERE p.active = true ORDER BY p.apellidos, p.nombre",
             profesional_salud.class
         );
         return query.getResultList();
     }
 
-    public List<profesional_salud> findByEspecialidad(String especialidad) {
+    public List<profesional_salud> findByEspecialidadId(UUID especialidadId) {
         TypedQuery<profesional_salud> query = em.createQuery(
-            "SELECT p FROM profesional_salud p WHERE p.especialidad = :especialidad ORDER BY p.apellidos, p.nombre",
+            "SELECT p FROM profesional_salud p WHERE p.especialidadId = :especialidadId AND p.active = true ORDER BY p.apellidos, p.nombre",
             profesional_salud.class
         );
-        query.setParameter("especialidad", especialidad);
+        query.setParameter("especialidadId", especialidadId);
         return query.getResultList();
     }
 
-    public boolean existsByCi(Integer ci) {
+    public boolean existsByCiAndTenantId(Integer ci, UUID tenantId) {
+        if (ci == null || tenantId == null) {
+            return false;
+        }
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(p) FROM profesional_salud p WHERE p.ci = :ci",
+            "SELECT COUNT(p) FROM profesional_salud p WHERE p.ci = :ci AND p.tenantId = :tenantId AND p.active = true",
             Long.class
         );
         query.setParameter("ci", ci);
+        query.setParameter("tenantId", tenantId);
         return query.getSingleResult() > 0;
     }
 
-    public void delete(profesional_salud profesional) {
-        if (!em.contains(profesional)) {
-            profesional = em.merge(profesional);
-        }
-        em.remove(profesional);
-    }
-
-    public void deleteByCi(Integer ci) {
-        findByCi(ci).ifPresent(this::delete);
+    /**
+     * Borrado lógico de profesional (soft delete)
+     */
+    public void softDelete(Integer ci, UUID tenantId) {
+        findByCiAndTenantId(ci, tenantId).ifPresent(profesional -> {
+            profesional.setActive(false);
+            em.merge(profesional);
+        });
     }
 
     public List<profesional_salud> findByNombreOrApellido(String searchTerm) {
         TypedQuery<profesional_salud> query = em.createQuery(
             "SELECT p FROM profesional_salud p WHERE " +
-            "LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term) " +
+            "p.active = true AND (LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term)) " +
             "ORDER BY p.apellidos, p.nombre",
             profesional_salud.class
         );
@@ -79,7 +95,7 @@ public class ProfesionalSaludDAO {
 
     public List<profesional_salud> findAllPaginated(int page, int size) {
         TypedQuery<profesional_salud> query = em.createQuery(
-            "SELECT p FROM profesional_salud p ORDER BY p.apellidos, p.nombre",
+            "SELECT p FROM profesional_salud p WHERE p.active = true ORDER BY p.apellidos, p.nombre",
             profesional_salud.class
         );
         query.setFirstResult(page * size);
@@ -90,7 +106,7 @@ public class ProfesionalSaludDAO {
     public List<profesional_salud> findByNombreOrApellidoPaginated(String searchTerm, int page, int size) {
         TypedQuery<profesional_salud> query = em.createQuery(
             "SELECT p FROM profesional_salud p WHERE " +
-            "LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term) " +
+            "p.active = true AND (LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term)) " +
             "ORDER BY p.apellidos, p.nombre",
             profesional_salud.class
         );
@@ -102,7 +118,7 @@ public class ProfesionalSaludDAO {
 
     public long countAll() {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(p) FROM profesional_salud p",
+            "SELECT COUNT(p) FROM profesional_salud p WHERE p.active = true",
             Long.class
         );
         return query.getSingleResult();
@@ -111,7 +127,7 @@ public class ProfesionalSaludDAO {
     public long countByNombreOrApellido(String searchTerm) {
         TypedQuery<Long> query = em.createQuery(
             "SELECT COUNT(p) FROM profesional_salud p WHERE " +
-            "LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term)",
+            "p.active = true AND (LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term))",
             Long.class
         );
         query.setParameter("term", "%" + searchTerm + "%");
@@ -124,7 +140,7 @@ public class ProfesionalSaludDAO {
     public List<profesional_salud> findByTenantIdPaginated(UUID tenantId, int page, int size) {
         TypedQuery<profesional_salud> query = em.createQuery(
             "SELECT p FROM profesional_salud p " +
-            "WHERE p.tenantId = :tenantId " +
+            "WHERE p.tenantId = :tenantId AND p.active = true " +
             "ORDER BY p.apellidos, p.nombre",
             profesional_salud.class
         );
@@ -141,7 +157,7 @@ public class ProfesionalSaludDAO {
             String searchTerm, UUID tenantId, int page, int size) {
         TypedQuery<profesional_salud> query = em.createQuery(
             "SELECT p FROM profesional_salud p " +
-            "WHERE p.tenantId = :tenantId AND " +
+            "WHERE p.tenantId = :tenantId AND p.active = true AND " +
             "(LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term)) " +
             "ORDER BY p.apellidos, p.nombre",
             profesional_salud.class
@@ -159,7 +175,7 @@ public class ProfesionalSaludDAO {
     public long countByTenantId(UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
             "SELECT COUNT(p) FROM profesional_salud p " +
-            "WHERE p.tenantId = :tenantId",
+            "WHERE p.tenantId = :tenantId AND p.active = true",
             Long.class
         );
         query.setParameter("tenantId", tenantId);
@@ -172,7 +188,7 @@ public class ProfesionalSaludDAO {
     public long countByNombreOrApellidoAndTenantId(String searchTerm, UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
             "SELECT COUNT(p) FROM profesional_salud p " +
-            "WHERE p.tenantId = :tenantId AND " +
+            "WHERE p.tenantId = :tenantId AND p.active = true AND " +
             "(LOWER(p.nombre) LIKE LOWER(:term) OR LOWER(p.apellidos) LIKE LOWER(:term))",
             Long.class
         );
@@ -194,7 +210,7 @@ public class ProfesionalSaludDAO {
         }
         TypedQuery<profesional_salud> query = em.createQuery(
             "SELECT p FROM profesional_salud p " +
-            "WHERE LOWER(p.email) = LOWER(:email) AND p.tenantId = :tenantId",
+            "WHERE LOWER(p.email) = LOWER(:email) AND p.tenantId = :tenantId AND p.active = true",
             profesional_salud.class
         );
         query.setParameter("email", normalizedEmail);

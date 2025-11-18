@@ -68,4 +68,8 @@ public class NotificationsViewModel extends AndroidViewModel {
     public void marcarTodasComoLeidas() {
         repository.marcarTodasComoLeidas();
     }
+
+    public void eliminarNotificacion(long id) {
+        repository.eliminarNotificacion(id);
+    }
 }

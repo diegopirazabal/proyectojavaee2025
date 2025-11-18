@@ -39,6 +39,8 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -47,13 +49,16 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 @ApplicationScoped
 public class api_service {
 
     private static final String CENTRAL_ENV_VAR = "HCEN_API_BASE_URL";
     private static final String CENTRAL_SYS_PROP = "hcen.apiBaseUrl";
-    private static final String DEFAULT_BACKEND_URL = "http://179.31.3.190/api";
+    private static final String DEFAULT_BACKEND_URL = "http://localhost:8080/api";
 
     private static final String PERIPHERAL_ENV_VAR = "HCEN_PERIPHERAL_API_BASE_URL";
     private static final String PERIPHERAL_SYS_PROP = "hcen.peripheralApiBaseUrl";
@@ -435,6 +440,256 @@ public class api_service {
         }
     }
 
+    // ============= Métodos para gestión de políticas de acceso =============
+
+    /**
+     * Obtiene el ID de la historia clínica de un paciente por su cédula
+     */
+    public hcen.frontend.admin.dto.historia_clinica_id_response obtenerHistoriaIdPorCedula(String cedula) {
+        if (cedula == null || cedula.isBlank()) {
+            throw new IllegalArgumentException("La cédula es requerida");
+        }
+
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(backendUrl + "/historia-clinica/by-cedula/" + cedula.trim());
+            attachAuthorizationHeader(request);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int status = response.getCode();
+                String body = readEntityContent(response);
+
+                if (status == 200) {
+                    try (JsonReader reader = Json.createReader(new StringReader(body))) {
+                        JsonObject wrapper = reader.readObject();
+                        if (wrapper.containsKey("data") && !wrapper.isNull("data")) {
+                            JsonObject data = wrapper.getJsonObject("data");
+                            hcen.frontend.admin.dto.historia_clinica_id_response dto =
+                                new hcen.frontend.admin.dto.historia_clinica_id_response();
+                            dto.setHistoriaId(data.getString("historiaId"));
+                            dto.setCedula(data.getString("cedula"));
+                            return dto;
+                        }
+                    }
+                } else if (status == 404) {
+                    return null; // No existe historia clínica para esa cédula
+                }
+
+                LOGGER.warning(() -> "Error al obtener historiaId: status=" + status + ", body=" + body);
+                return null;
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener historia clínica por cédula", e);
+            throw new RuntimeException("Error al obtener historia clínica", e);
+        }
+    }
+
+    /**
+     * Lista todas las políticas de acceso de una historia clínica
+     */
+    public List<hcen.frontend.admin.dto.politica_acceso_dto> listarPermisosPorHistoria(String historiaId) {
+        if (historiaId == null || historiaId.isBlank()) {
+            throw new IllegalArgumentException("El ID de historia clínica es requerido");
+        }
+
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(backendUrl + "/politicas-acceso/historia/" + historiaId);
+            attachAuthorizationHeader(request);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int status = response.getCode();
+                String body = readEntityContent(response);
+
+                if (status == 200) {
+                    return parsePoliticasAcceso(body);
+                }
+
+                LOGGER.warning(() -> "Error al listar permisos: status=" + status + ", body=" + body);
+                return new ArrayList<>();
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al listar permisos", e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Extiende la fecha de expiración de un permiso
+     */
+    public boolean extenderExpiracionPermiso(String permisoId, String nuevaFechaExpiracion) {
+        if (permisoId == null || permisoId.isBlank()) {
+            throw new IllegalArgumentException("El ID del permiso es requerido");
+        }
+        if (nuevaFechaExpiracion == null || nuevaFechaExpiracion.isBlank()) {
+            throw new IllegalArgumentException("La nueva fecha de expiración es requerida");
+        }
+
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPut request = new HttpPut(backendUrl + "/politicas-acceso/" + permisoId + "/extender");
+            attachAuthorizationHeader(request);
+
+            JsonObject requestBody = Json.createObjectBuilder()
+                .add("nuevaFechaExpiracion", nuevaFechaExpiracion)
+                .build();
+
+            request.setEntity(new StringEntity(requestBody.toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int status = response.getCode();
+                if (status == 200) {
+                    return true;
+                }
+
+                String body = readEntityContent(response);
+                LOGGER.warning(() -> "Error al extender expiración: status=" + status + ", body=" + body);
+                return false;
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al extender expiración del permiso", e);
+            return false;
+        }
+    }
+
+    /**
+     * Modifica el tipo de permiso de una política de acceso
+     */
+    public boolean modificarTipoPermiso(String permisoId, String tipoPermiso,
+                                        Integer ciProfesional, String especialidad) {
+        if (permisoId == null || permisoId.isBlank()) {
+            throw new IllegalArgumentException("El ID del permiso es requerido");
+        }
+        if (tipoPermiso == null || tipoPermiso.isBlank()) {
+            throw new IllegalArgumentException("El tipo de permiso es requerido");
+        }
+
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPut request = new HttpPut(backendUrl + "/politicas-acceso/" + permisoId + "/modificar-tipo");
+            attachAuthorizationHeader(request);
+
+            var builder = Json.createObjectBuilder()
+                .add("tipoPermiso", tipoPermiso);
+
+            if (ciProfesional != null) {
+                builder.add("ciProfesional", ciProfesional);
+            }
+            if (especialidad != null && !especialidad.isBlank()) {
+                builder.add("especialidad", especialidad);
+            }
+
+            request.setEntity(new StringEntity(builder.build().toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int status = response.getCode();
+                if (status == 200) {
+                    return true;
+                }
+
+                String body = readEntityContent(response);
+                LOGGER.warning(() -> "Error al modificar tipo de permiso: status=" + status + ", body=" + body);
+                return false;
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al modificar tipo de permiso", e);
+            return false;
+        }
+    }
+
+    /**
+     * Revoca un permiso de acceso
+     */
+    public boolean revocarPermiso(String permisoId, String motivo) {
+        if (permisoId == null || permisoId.isBlank()) {
+            throw new IllegalArgumentException("El ID del permiso es requerido");
+        }
+
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPut request = new HttpPut(backendUrl + "/politicas-acceso/" + permisoId + "/revocar");
+            attachAuthorizationHeader(request);
+
+            var builder = Json.createObjectBuilder();
+            if (motivo != null && !motivo.isBlank()) {
+                builder.add("motivo", motivo);
+            }
+
+            request.setEntity(new StringEntity(builder.build().toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int status = response.getCode();
+                if (status == 200) {
+                    return true;
+                }
+
+                String body = readEntityContent(response);
+                LOGGER.warning(() -> "Error al revocar permiso: status=" + status + ", body=" + body);
+                return false;
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al revocar permiso", e);
+            return false;
+        }
+    }
+
+    /**
+     * Parsea una lista de políticas de acceso desde JSON
+     */
+    private List<hcen.frontend.admin.dto.politica_acceso_dto> parsePoliticasAcceso(String jsonString) {
+        List<hcen.frontend.admin.dto.politica_acceso_dto> politicas = new ArrayList<>();
+
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject wrapper = reader.readObject();
+
+            if (wrapper.containsKey("data") && !wrapper.isNull("data")) {
+                JsonArray array = wrapper.getJsonArray("data");
+
+                for (JsonValue value : array) {
+                    if (value.getValueType() != JsonValue.ValueType.OBJECT) {
+                        continue;
+                    }
+
+                    JsonObject obj = value.asJsonObject();
+                    hcen.frontend.admin.dto.politica_acceso_dto dto =
+                        new hcen.frontend.admin.dto.politica_acceso_dto();
+
+                    dto.setId(obj.getString("id", null));
+                    dto.setHistoriaClinicaId(obj.getString("historiaClinicaId", null));
+                    dto.setDocumentoId(obj.getString("documentoId", null));
+                    dto.setTipoPermiso(obj.getString("tipoPermiso", null));
+                    dto.setTenantId(obj.getString("tenantId", null));
+                    dto.setEstado(obj.getString("estado", null));
+
+                    if (!obj.isNull("ciProfesional")) {
+                        dto.setCiProfesional(obj.getInt("ciProfesional"));
+                    }
+                    if (!obj.isNull("especialidad")) {
+                        dto.setEspecialidad(obj.getString("especialidad"));
+                    }
+                    if (!obj.isNull("fechaOtorgamiento")) {
+                        dto.setFechaOtorgamiento(LocalDateTime.parse(
+                            obj.getString("fechaOtorgamiento"), DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    }
+                    if (!obj.isNull("fechaExpiracion")) {
+                        dto.setFechaExpiracion(LocalDateTime.parse(
+                            obj.getString("fechaExpiracion"), DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    }
+                    if (!obj.isNull("motivoRevocacion")) {
+                        dto.setMotivoRevocacion(obj.getString("motivoRevocacion"));
+                    }
+                    if (!obj.isNull("fechaRevocacion")) {
+                        dto.setFechaRevocacion(LocalDateTime.parse(
+                            obj.getString("fechaRevocacion"), DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    }
+
+                    politicas.add(dto);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error parseando políticas de acceso", e);
+        }
+
+        return politicas;
+    }
+
+    // ============= Fin métodos de gestión de políticas de acceso =============
+
     private admin_hcen_dto parseAdminFromJson(String jsonString) {
         try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
             JsonObject jsonObject = reader.readObject();
@@ -720,17 +975,43 @@ public class api_service {
         return body;
     }
 
-    private CloseableHttpClient createHttpClient() {
-        SSLConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactoryBuilder.create()
-                .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                .build();
+    private static final X509TrustManager TRUST_ALL_MANAGER = new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            // no-op to accept any client cert
+        }
 
-        return HttpClients.custom()
-                .setConnectionManager(
-                        PoolingHttpClientConnectionManagerBuilder.create()
-                                .setSSLSocketFactory(sslSocketFactory)
-                                .build())
-                .build();
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            // no-op to accept any server cert
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    };
+
+    private CloseableHttpClient createHttpClient() {
+        try {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[]{TRUST_ALL_MANAGER}, null);
+
+            SSLConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactoryBuilder.create()
+                    .setSslContext(sslContext)
+                    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                    .build();
+
+            return HttpClients.custom()
+                    .setConnectionManager(
+                            PoolingHttpClientConnectionManagerBuilder.create()
+                                    .setSSLSocketFactory(sslSocketFactory)
+                                    .build())
+                    .build();
+        } catch (GeneralSecurityException e) {
+            LOGGER.log(Level.WARNING, "Falling back to default HttpClient without relaxed SSL", e);
+            return HttpClients.createDefault();
+        }
     }
 
     private String resolveBackendUrl() {

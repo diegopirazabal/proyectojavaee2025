@@ -44,7 +44,7 @@ public class NotificacionRepository {
     private NotificacionRepository(Context context) {
         AppDatabase database = AppDatabase.getInstance(context);
         notificacionDao = database.notificacionDao();
-        apiService = RetrofitClient.getInstance().getApiService();
+        apiService = RetrofitClient.getInstance(context).getApiService();
         executorService = Executors.newSingleThreadExecutor();
         dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault());
     }
@@ -86,6 +86,10 @@ public class NotificacionRepository {
         executorService.execute(() -> {
             notificacionDao.marcarTodasComoLeidas();
         });
+    }
+
+    public void eliminarNotificacion(long id) {
+        executorService.execute(() -> notificacionDao.eliminarPorId(id));
     }
 
     // Métodos remotos (API)

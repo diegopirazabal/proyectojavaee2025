@@ -1,6 +1,7 @@
 package com.hcen.periferico.profesional.bean;
 
 import com.hcen.periferico.profesional.dto.documento_clinico_dto;
+import com.hcen.periferico.profesional.dto.documento_con_permiso_dto;
 import com.hcen.periferico.profesional.dto.usuario_salud_dto;
 import com.hcen.periferico.profesional.service.APIService;
 import jakarta.annotation.PostConstruct;
@@ -33,8 +34,7 @@ public class DocumentoClinicoBean implements Serializable {
     private SessionBean sessionBean;
 
     // Listas
-    private List<documento_clinico_dto> documentos;
-    private List<usuario_salud_dto> pacientes;
+    private List<documento_con_permiso_dto> documentos;
 
     // Catálogos (codigueras)
     private Map<String, String> motivosConsulta;
@@ -58,11 +58,9 @@ public class DocumentoClinicoBean implements Serializable {
         newDocumento = new documento_clinico_dto();
         selectedDocumento = new documento_clinico_dto();
         documentos = new ArrayList<>();
-        pacientes = new ArrayList<>();
         motivosCache = new LinkedHashMap<>();
 
         cargarCatalogos();
-        cargarPacientes();
     }
 
     /**
@@ -80,35 +78,11 @@ public class DocumentoClinicoBean implements Serializable {
     }
 
     /**
-     * Carga la lista de pacientes
-     */
-    public void cargarPacientes() {
-        try {
-            String tenantId = sessionBean.getTenantId();
-            if (tenantId == null || tenantId.isEmpty()) {
-                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
-                return;
-            }
-            List<usuario_salud_dto> resultado = apiService.getAllUsuarios(tenantId);
-            List<usuario_salud_dto> filtrado = resultado.stream()
-                .filter(p -> p.getTenantId() != null && tenantId.equalsIgnoreCase(p.getTenantId()))
-                .collect(Collectors.toList());
-            if (filtrado.isEmpty() && !resultado.isEmpty()) {
-                addMessage(FacesMessage.SEVERITY_WARN, "No se encontraron pacientes asociados al tenant actual.");
-            }
-            pacientes = filtrado;
-        } catch (Exception e) {
-            addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar pacientes: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
      * Carga documentos de un paciente específico
      */
     public void cargarDocumentosPorPaciente() {
         if (cedulaPacienteSeleccionado == null || cedulaPacienteSeleccionado.trim().isEmpty()) {
-            addMessage(FacesMessage.SEVERITY_WARN, "Debe seleccionar un paciente");
+            addMessage(FacesMessage.SEVERITY_WARN, "Debe ingresar la cédula del paciente");
             return;
         }
 
@@ -119,15 +93,43 @@ public class DocumentoClinicoBean implements Serializable {
                 return;
             }
 
-            documentos = apiService.getDocumentosPorPaciente(cedulaPacienteSeleccionado, UUID.fromString(tenantId));
+            // Buscar el paciente por cédula
+            usuario_salud_dto paciente = apiService.getUsuarioByCedula(cedulaPacienteSeleccionado.trim(), tenantId);
 
-            // Buscar el paciente seleccionado para mostrar su nombre
-            for (usuario_salud_dto paciente : pacientes) {
-                if (paciente.getCedula().equals(cedulaPacienteSeleccionado)) {
-                    pacienteSeleccionado = paciente;
-                    break;
-                }
+            if (paciente == null) {
+                addMessage(FacesMessage.SEVERITY_WARN, "No se encontró un paciente con esa cédula en esta clínica");
+                pacienteSeleccionado = null;
+                documentos = new ArrayList<>();
+                return;
             }
+
+            pacienteSeleccionado = paciente;
+
+            // Cargar documentos desde el backend
+            List<documento_clinico_dto> docs = apiService.getDocumentosPorPaciente(cedulaPacienteSeleccionado, UUID.fromString(tenantId));
+
+            // Validar permisos para cada documento
+            Integer ciProfesional = sessionBean.getProfesionalCi();
+            String especialidad = sessionBean.getEspecialidad();
+
+            documentos = docs.stream()
+                .map(doc -> {
+                    boolean tienePermiso = false;
+                    try {
+                        tienePermiso = apiService.validarAccesoDocumento(
+                            UUID.fromString(doc.getId()),
+                            UUID.fromString(tenantId),
+                            ciProfesional,
+                            especialidad
+                        );
+                    } catch (Exception e) {
+                        // Si hay error al validar, por seguridad negamos acceso
+                        System.err.println("Error al validar acceso al documento " + doc.getId() + ": " + e.getMessage());
+                    }
+                    return new documento_con_permiso_dto(doc, tienePermiso);
+                })
+                .collect(Collectors.toList());
+
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al cargar documentos: " + e.getMessage());
             e.printStackTrace();
@@ -201,7 +203,6 @@ public class DocumentoClinicoBean implements Serializable {
                 return;
             }
 
-            // Llamar al APIService
             documento_clinico_dto resultado = apiService.crearDocumento(
                 newDocumento.getUsuarioSaludCedula(),
                 newDocumento.getProfesionalCi(),
@@ -255,15 +256,110 @@ public class DocumentoClinicoBean implements Serializable {
     }
 
     /**
-     * Se ejecuta antes de renderizar la vista para asegurar que las listas estén cargadas
+     * Solicita acceso a un documento clínico bloqueado
+     * Envía notificación al paciente vía FCM
+     */
+    public void solicitarAcceso(documento_con_permiso_dto documento) {
+        try {
+            String tenantId = sessionBean.getTenantId();
+            if (tenantId == null || tenantId.isEmpty()) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                return;
+            }
+
+            Integer ciProfesional = sessionBean.getProfesionalCi();
+            String nombreProfesional = sessionBean.getNombreProfesional();
+            String especialidad = sessionBean.getEspecialidad();
+
+            if (ciProfesional == null) {
+                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el CI del profesional");
+                return;
+            }
+
+            // Llamar al backend para solicitar acceso
+            apiService.solicitarAccesoDocumento(
+                UUID.fromString(documento.getId()),
+                UUID.fromString(tenantId),
+                ciProfesional,
+                nombreProfesional != null ? nombreProfesional : "Profesional",
+                especialidad != null ? especialidad : ""
+            );
+
+            addMessage(FacesMessage.SEVERITY_INFO,
+                "Solicitud de acceso enviada al paciente. Recibirá una notificación en su dispositivo móvil.");
+
+        } catch (IllegalStateException e) {
+            // Error de cooldown de 1 minuto
+            addMessage(FacesMessage.SEVERITY_WARN, e.getMessage());
+        } catch (Exception e) {
+            addMessage(FacesMessage.SEVERITY_ERROR, "Error al solicitar acceso: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Revalida los permisos de los documentos ya cargados contra el backend.
+     * Útil cuando el paciente aprueba una solicitud mientras el profesional tiene la lista abierta.
+     */
+    public void refrescarPermisosDocumentos() {
+        if (documentos == null || documentos.isEmpty()) {
+            addMessage(FacesMessage.SEVERITY_WARN, "No hay documentos cargados para refrescar.");
+            return;
+        }
+
+        String tenantId = sessionBean.getTenantId();
+        Integer ciProfesional = sessionBean.getProfesionalCi();
+        String especialidad = sessionBean.getEspecialidad();
+
+        if (tenantId == null || tenantId.isBlank()) {
+            addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+            return;
+        }
+        if (ciProfesional == null) {
+            addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el CI del profesional");
+            return;
+        }
+
+        int documentosActualizados = 0;
+        UUID tenantUuid = UUID.fromString(tenantId);
+
+        for (documento_con_permiso_dto doc : documentos) {
+            if (doc.getId() == null || doc.getId().isBlank()) {
+                continue;
+            }
+            try {
+                boolean tienePermiso = apiService.validarAccesoDocumento(
+                    UUID.fromString(doc.getId()),
+                    tenantUuid,
+                    ciProfesional,
+                    especialidad
+                );
+                doc.setTienePermiso(tienePermiso);
+                documentosActualizados++;
+            } catch (Exception e) {
+                System.err.println("Error al refrescar permiso para documento " + doc.getId() + ": " + e.getMessage());
+            }
+        }
+
+        addMessage(
+            FacesMessage.SEVERITY_INFO,
+            documentosActualizados > 0
+                ? "Permisos actualizados para " + documentosActualizados + " documentos."
+                : "No se encontraron documentos para actualizar."
+        );
+        PrimeFaces current = PrimeFaces.current();
+        if (current != null) {
+            current.ajax().update("documentosForm:documentosTable", "documentosForm:messages");
+        }
+    }
+
+    /**
+     * Se ejecuta antes de renderizar la vista para asegurar que los catálogos estén cargados
      * cuando el profesional inicia sesión desde la pantalla principal.
      */
     public void prepararVista() {
         if (!sessionBean.isLoggedIn()) {
             return;
-        }
-        if (pacientes == null || pacientes.isEmpty()) {
-            cargarPacientes();
         }
         if (motivosConsulta == null || motivosConsulta.isEmpty()) {
             cargarCatalogos();
@@ -349,20 +445,12 @@ public class DocumentoClinicoBean implements Serializable {
 
     // ============ GETTERS Y SETTERS ============
 
-    public List<documento_clinico_dto> getDocumentos() {
+    public List<documento_con_permiso_dto> getDocumentos() {
         return documentos;
     }
 
-    public void setDocumentos(List<documento_clinico_dto> documentos) {
+    public void setDocumentos(List<documento_con_permiso_dto> documentos) {
         this.documentos = documentos;
-    }
-
-    public List<usuario_salud_dto> getPacientes() {
-        return pacientes;
-    }
-
-    public void setPacientes(List<usuario_salud_dto> pacientes) {
-        this.pacientes = pacientes;
     }
 
     public Map<String, String> getMotivosConsulta() {

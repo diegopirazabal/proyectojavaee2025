@@ -3,6 +3,7 @@ package com.hcen.periferico.profesional.service;
 import com.hcen.periferico.profesional.dto.clinica_dto;
 import com.hcen.periferico.profesional.dto.documento_clinico_dto;
 import com.hcen.periferico.profesional.dto.profesional_salud_dto;
+import com.hcen.periferico.profesional.dto.configuracion_clinica_dto;
 import com.hcen.periferico.profesional.dto.usuario_salud_dto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
@@ -115,6 +116,26 @@ public class APIService implements Serializable {
         return new ArrayList<>();
     }
 
+    // ========== CONFIGURACIÓN CLÍNICA ==========
+
+    public configuracion_clinica_dto getConfiguracion(String tenantId) throws IOException {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(getBackendUrl() + "/configuracion/" + tenantId);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                int status = response.getCode();
+                String responseBody = response.getEntity() != null
+                    ? new String(response.getEntity().getContent().readAllBytes())
+                    : "";
+
+                if (status == 200) {
+                    return parseConfiguracionFromJson(responseBody);
+                }
+                throw new IOException("Error al obtener configuración: HTTP " + status + " - " + responseBody);
+            }
+        }
+    }
+
     // ========== USUARIOS SALUD ==========
 
     public List<usuario_salud_dto> getAllUsuarios(String tenantId) {
@@ -131,6 +152,24 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return new ArrayList<>();
+    }
+
+    public usuario_salud_dto getUsuarioByCedula(String cedula, String tenantId) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(getBackendUrl() + "/usuarios/" + cedula + "?tenantId=" + tenantId);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseUsuarioFromJson(responseBody);
+                } else if (response.getCode() == 404) {
+                    return null; // Usuario no encontrado
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     // ========== DOCUMENTOS CLÍNICOS ==========
@@ -326,6 +365,32 @@ public class APIService implements Serializable {
         return list;
     }
 
+    private usuario_salud_dto parseUsuarioFromJson(String jsonString) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject jsonObject = reader.readObject();
+
+            usuario_salud_dto dto = new usuario_salud_dto();
+            dto.setCedula(jsonObject.getString("cedula", null));
+            dto.setTipoDocumento(jsonObject.getString("tipoDocumento", null));
+            dto.setPrimerNombre(jsonObject.getString("primerNombre", null));
+            dto.setSegundoNombre(jsonObject.getString("segundoNombre", null));
+            dto.setPrimerApellido(jsonObject.getString("primerApellido", null));
+            dto.setSegundoApellido(jsonObject.getString("segundoApellido", null));
+            dto.setEmail(jsonObject.getString("email", null));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
+
+            String fechaNacStr = jsonObject.getString("fechaNacimiento", null);
+            if (fechaNacStr != null) {
+                dto.setFechaNacimiento(java.time.LocalDate.parse(fechaNacStr));
+            }
+
+            return dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     private profesional_salud_dto parseProfesionalFromJson(String jsonString) {
         try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
             JsonObject jsonObject = reader.readObject();
@@ -358,6 +423,26 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return clinicas;
+    }
+
+    private configuracion_clinica_dto parseConfiguracionFromJson(String jsonString) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject jsonObject = reader.readObject();
+
+            configuracion_clinica_dto dto = new configuracion_clinica_dto();
+            dto.setId(jsonObject.isNull("id") ? null : jsonObject.getString("id"));
+            dto.setTenantId(jsonObject.getString("tenantId", null));
+            dto.setColorPrimario(jsonObject.getString("colorPrimario", null));
+            dto.setColorSecundario(jsonObject.getString("colorSecundario", null));
+            dto.setLogoUrl(jsonObject.getString("logoUrl", null));
+            dto.setNombreSistema(jsonObject.getString("nombreSistema", null));
+            dto.setTema(jsonObject.getString("tema", null));
+            dto.setNodoPerifericoHabilitado(jsonObject.getBoolean("nodoPerifericoHabilitado", false));
+            return dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private documento_clinico_dto parseDocumentoFromJson(String jsonString) {
@@ -440,5 +525,85 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return map;
+    }
+
+    // ========== MÉTODOS PARA VALIDACIÓN DE PERMISOS DE ACCESO ==========
+
+    /**
+     * Valida si un profesional tiene permiso para acceder a un documento clínico
+     */
+    public boolean validarAccesoDocumento(UUID documentoId, UUID tenantId, Integer ciProfesional, String especialidad) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            String url = getBackendUrl() + "/documentos/" + documentoId + "/validar-acceso?tenantId=" + tenantId;
+            HttpPost request = new HttpPost(url);
+
+            JsonObject json = Json.createObjectBuilder()
+                .add("ciProfesional", ciProfesional)
+                .add("especialidad", especialidad != null ? especialidad : "")
+                .build();
+
+            request.setEntity(new StringEntity(json.toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    try (JsonReader reader = Json.createReader(new StringReader(responseBody))) {
+                        JsonObject responseJson = reader.readObject();
+                        return responseJson.getBoolean("tienePermiso", false);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al validar acceso a documento: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false; // Por seguridad, denegar acceso si hay error
+    }
+
+    /**
+     * Solicita acceso a un documento clínico enviando notificación al paciente
+     */
+    public void solicitarAccesoDocumento(UUID documentoId, UUID tenantId, Integer ciProfesional,
+                                         String nombreProfesional, String especialidad) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            String url = getBackendUrl() + "/documentos/" + documentoId + "/solicitar-acceso?tenantId=" + tenantId;
+            HttpPost request = new HttpPost(url);
+
+            JsonObject json = Json.createObjectBuilder()
+                .add("ciProfesional", ciProfesional)
+                .add("nombreProfesional", nombreProfesional)
+                .add("especialidad", especialidad != null ? especialidad : "")
+                .build();
+
+            request.setEntity(new StringEntity(json.toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    // Parsear la respuesta JSON para verificar si fue exitoso
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    try (JsonReader reader = Json.createReader(new java.io.StringReader(responseBody))) {
+                        JsonObject responseJson = reader.readObject();
+                        boolean exitoso = responseJson.getBoolean("exitoso", false);
+                        String mensaje = responseJson.getString("mensaje", "");
+
+                        if (!exitoso) {
+                            // La solicitud fue rechazada (probablemente por cooldown de 24h)
+                            throw new IllegalStateException(mensaje);
+                        }
+                        // Si fue exitoso, continuar normalmente
+                        System.out.println("Solicitud de acceso enviada correctamente: " + mensaje);
+                    }
+                } else {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    throw new RuntimeException("Error al solicitar acceso: " + responseBody);
+                }
+            }
+        } catch (IllegalStateException e) {
+            throw e; // Re-lanzar para que el bean lo maneje
+        } catch (Exception e) {
+            System.err.println("Error al solicitar acceso a documento: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error al enviar solicitud de acceso: " + e.getMessage());
+        }
     }
 }

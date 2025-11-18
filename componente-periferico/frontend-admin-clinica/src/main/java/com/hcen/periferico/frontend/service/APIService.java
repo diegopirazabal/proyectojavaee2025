@@ -3,6 +3,7 @@ package com.hcen.periferico.frontend.service;
 import com.hcen.periferico.frontend.dto.administrador_clinica_dto;
 import com.hcen.periferico.frontend.dto.clinica_dto;
 import com.hcen.periferico.frontend.dto.configuracion_clinica_dto;
+import com.hcen.periferico.frontend.dto.especialidad_dto;
 import com.hcen.periferico.frontend.dto.profesional_salud_dto;
 import com.hcen.periferico.frontend.dto.usuario_salud_dto;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -237,7 +238,7 @@ public class APIService implements Serializable {
     }
 
     public profesional_salud_dto saveProfesional(Integer ci, String nombre, String apellidos,
-                                               String especialidad, String email, String password, String tenantId) {
+                                               String especialidadId, String email, String password, String tenantId) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPost request = new HttpPost(BACKEND_URL() + "/profesionales?tenantId=" + tenantId);
 
@@ -245,7 +246,7 @@ public class APIService implements Serializable {
                 .add("ci", ci)
                 .add("nombre", nombre)
                 .add("apellidos", apellidos)
-                .add("especialidad", especialidad != null ? especialidad : "")
+                .add("especialidadId", especialidadId != null ? especialidadId : "")
                 .add("email", email != null ? email : "")
                 .add("password", password != null ? password : "")
                 .build();
@@ -254,20 +255,29 @@ public class APIService implements Serializable {
             request.setEntity(entity);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
+                String responseBody = new String(response.getEntity().getContent().readAllBytes());
+
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
                     return parseProfesionalFromJson(responseBody);
+                } else if (response.getCode() == 400) {
+                    // Error de validación - parsear mensaje de error
+                    String errorMessage = parseErrorMessage(responseBody);
+                    throw new IllegalArgumentException(errorMessage);
+                } else {
+                    // Otro error
+                    String errorMessage = parseErrorMessage(responseBody);
+                    throw new RuntimeException("Error del servidor: " + errorMessage);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+            throw new RuntimeException("Error de comunicación con el servidor");
         }
-        return null;
     }
 
-    public boolean deleteProfesional(Integer ci) {
+    public boolean deleteProfesional(Integer ci, String tenantId) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpDelete request = new HttpDelete(BACKEND_URL() + "/profesionales/" + ci);
+            HttpDelete request = new HttpDelete(BACKEND_URL() + "/profesionales/" + ci + "?tenantId=" + tenantId);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() == 200;
@@ -276,6 +286,25 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * Obtiene todas las especialidades médicas disponibles
+     */
+    public List<especialidad_dto> getEspecialidades() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(BACKEND_URL() + "/especialidades");
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    return parseEspecialidadesFromJson(responseBody);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
     }
 
     // ========== MÉTODOS DE PARSEO JSON ==========
@@ -349,7 +378,7 @@ public class APIService implements Serializable {
             dto.setCi(jsonObject.getInt("ci"));
             dto.setNombre(jsonObject.getString("nombre"));
             dto.setApellidos(jsonObject.getString("apellidos"));
-            dto.setEspecialidad(jsonObject.getString("especialidad", null));
+            dto.setEspecialidadId(jsonObject.getString("especialidadId", null));
             dto.setEmail(jsonObject.getString("email", null));
             dto.setTenantId(jsonObject.getString("tenantId", null));
 
@@ -373,9 +402,29 @@ public class APIService implements Serializable {
                 dto.setCi(jsonObject.getInt("ci"));
                 dto.setNombre(jsonObject.getString("nombre"));
                 dto.setApellidos(jsonObject.getString("apellidos"));
-                dto.setEspecialidad(jsonObject.getString("especialidad", null));
+                dto.setEspecialidadId(jsonObject.getString("especialidadId", null));
                 dto.setEmail(jsonObject.getString("email", null));
                 dto.setTenantId(jsonObject.getString("tenantId", null));
+
+                list.add(dto);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    private List<especialidad_dto> parseEspecialidadesFromJson(String jsonString) {
+        List<especialidad_dto> list = new ArrayList<>();
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonArray jsonArray = reader.readArray();
+
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JsonObject jsonObject = jsonArray.getJsonObject(i);
+
+                especialidad_dto dto = new especialidad_dto();
+                dto.setId(jsonObject.getString("id"));
+                dto.setNombre(jsonObject.getString("nombre"));
 
                 list.add(dto);
             }
@@ -820,6 +869,25 @@ public class APIService implements Serializable {
                 message = message.substring(0, 200) + "...";
             }
             return cleanExceptionPrefix(message);
+        }
+    }
+
+    /**
+     * Parsea el mensaje de error del JSON ErrorResponse
+     * Ejemplo JSON: {"message": "La contraseña debe tener..."}
+     */
+    private String parseErrorMessage(String jsonResponse) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonResponse))) {
+            JsonObject jsonObject = reader.readObject();
+            if (jsonObject.containsKey("message")) {
+                return jsonObject.getString("message");
+            } else if (jsonObject.containsKey("error")) {
+                return jsonObject.getString("error");
+            }
+            return "Error desconocido";
+        } catch (Exception e) {
+            // Si no se puede parsear el JSON, retornar el texto plano
+            return jsonResponse;
         }
     }
 

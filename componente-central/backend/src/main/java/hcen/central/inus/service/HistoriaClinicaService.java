@@ -4,6 +4,7 @@ import hcen.central.inus.dao.HistoriaClinicaDAO;
 import hcen.central.inus.dao.UsuarioSaludDAO;
 import hcen.central.inus.dto.DocumentoClinicoDTO;
 import hcen.central.inus.dto.HistoriaClinicaDocumentoDetalleResponse;
+import hcen.central.inus.dto.HistoriaClinicaIdResponse;
 import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.entity.historia_clinica;
 import hcen.central.inus.entity.historia_clinica_documento;
@@ -14,11 +15,15 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Stateless
 public class HistoriaClinicaService {
+
+    private static final Logger LOGGER = Logger.getLogger(HistoriaClinicaService.class.getName());
 
     @EJB
     private HistoriaClinicaDAO historiaDAO;
@@ -42,13 +47,9 @@ public class HistoriaClinicaService {
             throw new IllegalArgumentException("El documentoId es requerido");
         }
 
-        UsuarioSalud usuario = usuarioSaludDAO.findByCedulaAndTenant(cedula.trim(), tenantId)
+        UsuarioSalud usuario = usuarioSaludDAO.findByCedula(cedula.trim())
             .orElseThrow(() -> new IllegalArgumentException(
                 "El usuario con cédula " + cedula + " no existe en el componente central"));
-
-        if (usuario.getTenantId() == null || !tenantId.equals(usuario.getTenantId())) {
-            throw new IllegalArgumentException("El usuario no pertenece al tenant indicado");
-        }
 
         historia_clinica historia = historiaDAO.findByUsuario(usuario)
             .orElseGet(() -> crearHistoria(usuario));
@@ -70,6 +71,30 @@ public class HistoriaClinicaService {
         }
 
         return historia.getId();
+    }
+
+    /**
+     * Obtiene el ID de la historia clínica de un paciente por su cédula
+     *
+     * @param cedula Cédula del paciente
+     * @return Optional con el DTO del ID de historia clínica, vacío si no existe
+     */
+    public Optional<HistoriaClinicaIdResponse> obtenerHistoriaIdPorCedula(String cedula) {
+        if (cedula == null || cedula.isBlank()) {
+            throw new IllegalArgumentException("La cédula es requerida");
+        }
+
+        String cedulaNormalizada = cedula.trim();
+
+        Optional<UsuarioSalud> usuarioOpt = usuarioSaludDAO.findByCedula(cedulaNormalizada);
+        if (usuarioOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        UsuarioSalud usuario = usuarioOpt.get();
+        Optional<historia_clinica> historiaOpt = historiaDAO.findByUsuario(usuario);
+
+        return historiaOpt.map(HistoriaClinicaIdResponse::fromEntity);
     }
 
     public List<HistoriaClinicaDocumentoDetalleResponse> obtenerDocumentosPorCedula(String cedula) {
@@ -122,12 +147,14 @@ public class HistoriaClinicaService {
             return;
         }
 
+        // Motivo de consulta
         String motivo = periferico.getNombreMotivoConsulta();
         if (motivo == null || motivo.isBlank()) {
             motivo = periferico.getCodigoMotivoConsulta();
         }
         dto.setMotivoConsulta(motivo);
 
+        // Profesional
         String profesional = periferico.getNombreCompletoProfesional();
         if (profesional == null || profesional.isBlank()) {
             if (periferico.getProfesionalCi() != null) {
@@ -136,11 +163,28 @@ public class HistoriaClinicaService {
         }
         dto.setProfesional(profesional);
 
+        // Fecha del documento
         String fechaDocumento = periferico.getFechaInicioDiagnostico();
         if (fechaDocumento == null || fechaDocumento.isBlank()) {
             fechaDocumento = periferico.getFecCreacion();
         }
         dto.setFechaDocumento(fechaDocumento);
+
+        // Clínica
+        String nombreClinica = periferico.getNombreClinica();
+        dto.setNombreClinica(nombreClinica);
+        LOGGER.info("Mapeando nombreClinica: '" + nombreClinica + "' para documento: " + dto.getDocumentoId());
+
+        // Diagnóstico
+        dto.setDescripcionDiagnostico(periferico.getDescripcionDiagnostico());
+        dto.setFechaInicioDiagnostico(periferico.getFechaInicioDiagnostico());
+        dto.setNombreEstadoProblema(periferico.getNombreEstadoProblema());
+        dto.setNombreGradoCerteza(periferico.getNombreGradoCerteza());
+
+        // Instrucciones de seguimiento
+        dto.setFechaProximaConsulta(periferico.getFechaProximaConsulta());
+        dto.setDescripcionProximaConsulta(periferico.getDescripcionProximaConsulta());
+        dto.setReferenciaAlta(periferico.getReferenciaAlta());
     }
 
     private historia_clinica crearHistoria(UsuarioSalud usuario) {

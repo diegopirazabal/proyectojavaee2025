@@ -1,119 +1,95 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:h="http://xmlns.jcp.org/jsf/html"
-      xmlns:f="http://xmlns.jcp.org/jsf/core"
-      xmlns:p="http://primefaces.org/ui">
-<h:head>
-    <title>Portal Usuario Salud</title>
-    <h:outputStylesheet library="css" name="dashboard.css"/>
-</h:head>
-<h:body styleClass="dashboard-body">
-    <f:metadata>
-        <f:event type="preRenderView" listener="#{usuarioSaludLoginBean.checkAuthentication}"/>
-    </f:metadata>
-    <div class="dashboard-container">
-        <div class="dashboard-topbar">
-            <span>Portal Salud</span>
-            <h:form id="logoutForm">
-                <p:commandButton value="Cerrar sesión"
-                                 styleClass="logout-button"
-                                 icon="pi pi-sign-out"
-                                 action="#{usuarioSaludLoginBean.logout}"
-                                 ajax="false"/>
-            </h:form>
-        </div>
-        <header class="dashboard-header">
-            <h1>Mi perfil de salud</h1>
-            <p>Consulta la información registrada en el DNIC</p>
-        </header>
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="jakarta.faces.facelets">
 
-        <h:form id="lookupForm" styleClass="lookup-form">
-            <h:panelGroup rendered="#{not empty usuarioSaludDashboardBean.warningMessage}" styleClass="warning-banner">
-                <div class="ui-messages ui-widget">
-                    <div class="ui-messages-warn ui-corner-all">
-                        <span class="ui-messages-warn-summary">Advertencia</span>
-                        <span class="ui-messages-warn-detail">#{usuarioSaludDashboardBean.warningMessage}</span>
-                    </div>
-                </div>
-            </h:panelGroup>
-            <p:messages id="messages" closable="true" showSummary="true" showDetail="false"/>
+<f:metadata>
+    <f:event type="preRenderView" listener="#{usuarioSaludLoginBean.checkAuthentication}"/>
+</f:metadata>
 
-            <div class="lookup-grid">
-                <div class="input-group">
-                    <label for="tipoDoc">Tipo de documento</label>
-                    <p:inputText id="tipoDoc"
-                                 value="#{usuarioSaludDashboardBean.docType}"
-                                 maxlength="4"
-                                 placeholder="PA, DO, OTRO"
-                                 required="true"/>
-                </div>
-                <div class="input-group">
-                    <label for="numeroDoc">Número de documento</label>
-                    <p:inputText id="numeroDoc"
-                                 value="#{usuarioSaludDashboardBean.docNumber}"
-                                 maxlength="8"
-                                 placeholder="00000001"
-                                 required="true"/>
-                </div>
-                <div class="input-group actions">
-                    <p:commandButton value="Consultar"
-                                     styleClass="lookup-button"
-                                     actionListener="#{usuarioSaludDashboardBean.buscar}"
-                                     update=":lookupForm:messages :lookupForm:detalleCiudadano"
-                                     process="@form"/>
-                </div>
+<ui:composition template="/WEB-INF/templates/template.xhtml">
+    <ui:define name="content">
+
+        <style>
+            .welcome-container {
+                max-width: 800px;
+                margin: 0 auto;
+                text-align: center;
+            }
+            .welcome-header {
+                margin-bottom: 3rem;
+            }
+            .welcome-header h1 {
+                font-size: 2.5rem;
+                color: #333;
+                margin-bottom: 0.5rem;
+            }
+            .welcome-header p {
+                font-size: 1.1rem;
+                color: #666;
+            }
+            .cards-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 2rem;
+                margin-top: 2rem;
+            }
+            .welcome-card {
+                background: white;
+                border: 2px solid #e0e0e0;
+                border-radius: 12px;
+                padding: 2rem;
+                text-decoration: none;
+                transition: all 0.3s ease;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+                cursor: pointer;
+            }
+            .welcome-card:hover {
+                transform: translateY(-4px);
+                border-color: #2196F3;
+                box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+            }
+            .card-icon {
+                font-size: 3rem;
+                color: #2196F3;
+            }
+            .card-title {
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: #333;
+                margin: 0;
+            }
+            .card-description {
+                color: #666;
+                margin: 0;
+            }
+        </style>
+
+        <div class="welcome-container">
+            <div class="welcome-header">
+                <h1>Bienvenido al Portal de Salud</h1>
+                <p>Accede a tu información de salud de forma segura</p>
             </div>
 
-            <p:panel id="detalleCiudadano" styleClass="citizen-panel" rendered="#{not empty usuarioSaludDashboardBean.ciudadano}">
-                <h2>Datos personales</h2>
-                <p:panelGrid columns="2" columnClasses="label-column,value-column" layout="grid">
-                    <h:outputText value="Tipo de documento"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.tipoDocumento}" readonly="true"/>
+            <div class="cards-grid">
+                <h:link outcome="/historia-clinica" styleClass="welcome-card">
+                    <i class="pi pi-file-o card-icon"></i>
+                    <h2 class="card-title">Mi Historia Clínica</h2>
+                    <p class="card-description">Consulta tus documentos clínicos y registro de atenciones</p>
+                </h:link>
 
-                    <h:outputText value="Número de documento"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.numeroDocumento}" readonly="true"/>
-
-                    <h:outputText value="Primer nombre"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.primerNombre}"/>
-
-                    <h:outputText value="Segundo nombre"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.segundoNombre}"/>
-
-                    <h:outputText value="Primer apellido"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.primerApellido}"/>
-
-                    <h:outputText value="Segundo apellido"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.segundoApellido}"/>
-
-                    <h:outputText value="Nombre en cédula"/>
-                    <p:inputTextarea value="#{usuarioSaludDashboardBean.ciudadano.nombreEnCedula}" autoResize="true" rows="2"/>
-
-                    <h:outputText value="Sexo"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.sexo}"/>
-
-                    <h:outputText value="Fecha de nacimiento"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.fechaNacimientoFormateada}" readonly="true"/>
-
-                    <h:outputText value="Nacionalidad"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.descripcionNacionalidad}" readonly="true"/>
-                </p:panelGrid>
-
-                <h2>Datos de contacto</h2>
-                <p:panelGrid columns="2" columnClasses="label-column,value-column" layout="grid">
-                    <h:outputText value="Correo electrónico"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.email}" placeholder="Sin registrar"/>
-
-                    <h:outputText value="Teléfono"/>
-                    <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.telefono}" placeholder="Sin registrar"/>
-
-                    <h:outputText value="Dirección"/>
-                    <p:inputTextarea value="#{usuarioSaludDashboardBean.ciudadano.direccion}"
-                                     autoResize="true"
-                                     rows="2"
-                                     placeholder="Sin registrar"/>
-                </p:panelGrid>
-            </p:panel>
-        </h:form>
-    </div>
-</h:body>
+                <h:link outcome="/perfil" styleClass="welcome-card">
+                    <i class="pi pi-user card-icon"></i>
+                    <h2 class="card-title">Mi Perfil</h2>
+                    <p class="card-description">Consulta tus datos personales registrados en el DNIC</p>
+                </h:link>
+            </div>
+        </div>
+    </ui:define>
+</ui:composition>
 </html>

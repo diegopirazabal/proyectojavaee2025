@@ -47,7 +47,7 @@ public class TipoDocumentoDeserializer extends JsonDeserializer<String> {
                     case "68909":
                         rawValue = "CI";
                         break;
-                    case "2":
+                    case "68912":
                         rawValue = "PASAPORTE";
                         break;
                     case "3":

@@ -3,7 +3,13 @@ package hcen.central.inus.service;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
+import com.google.gson.Gson;
 import hcen.central.inus.config.FirebaseInitializer;
+import hcen.central.inus.dao.NotificacionDAO;
+import hcen.central.inus.dao.UsuarioSaludDAO;
+import hcen.central.inus.dto.SolicitudAccesoNotificacionDTO;
+import hcen.central.inus.entity.UsuarioSalud;
+import hcen.central.inus.entity.notificacion;
 import hcen.central.notifications.entity.FCMToken;
 import hcen.central.notifications.service.fcm_token_service;
 import jakarta.ejb.EJB;
@@ -11,7 +17,9 @@ import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,6 +35,14 @@ public class notification_service {
 
     @EJB
     private fcm_token_service fcmTokenService;
+
+    @EJB
+    private NotificacionDAO notificacionDAO;
+
+    @EJB
+    private UsuarioSaludDAO usuarioSaludDAO;
+
+    private final Gson gson = new Gson();
 
     public void sendBroadcastTestNotification() {
         if (!firebaseInitializer.isReady()) {
@@ -119,5 +135,94 @@ public class notification_service {
             return "desconocido";
         }
         return value.replaceAll("[^A-Za-z0-9-_.~]", "-");
+    }
+
+    /**
+     * Envía una notificación de solicitud de acceso a documento clínico
+     * El profesional solicita permiso para ver un documento del paciente
+     * TAMBIÉN guarda la notificación en la base de datos con estado PENDIENTE
+     *
+     * @param solicitud DTO con toda la información de la solicitud
+     * @return true si la notificación fue enviada exitosamente
+     */
+    public boolean enviarNotificacionSolicitudAcceso(SolicitudAccesoNotificacionDTO solicitud) {
+        try {
+            // 1. Guardar la notificación en base de datos
+            Optional<UsuarioSalud> usuarioOpt = usuarioSaludDAO.findByCedula(solicitud.getCedulaPaciente());
+            if (usuarioOpt.isEmpty()) {
+                LOGGER.warning("No se encontró usuario con cédula: " + solicitud.getCedulaPaciente());
+                return false;
+            }
+
+            UsuarioSalud usuario = usuarioOpt.get();
+
+            // Construir mensaje de notificación
+            String titulo = "Solicitud de Acceso a Documento";
+            String cuerpo = String.format(
+                "%s (CI %d) de %s solicita acceso a su documento del %s",
+                solicitud.getProfesionalNombre(),
+                solicitud.getProfesionalCi(),
+                solicitud.getNombreClinica(),
+                solicitud.getFechaDocumento()
+            );
+
+            // Crear entidad notificacion
+            notificacion notif = new notificacion();
+            notif.setTipo("SOLICITUD_ACCESO");
+            notif.setMensaje(titulo + ": " + cuerpo);
+            notif.setEstado("PENDIENTE");
+            notif.setUsuario(usuario);
+            notif.setFecCreacion(LocalDateTime.now());
+
+            // Guardar datos adicionales como JSON
+            String datosJson = gson.toJson(solicitud);
+            notif.setDatosAdicionales(datosJson);
+
+            // Persistir notificación
+            notificacionDAO.save(notif);
+            LOGGER.info("Notificación guardada en BD para usuario: " + solicitud.getCedulaPaciente());
+
+            // 2. Enviar notificación push via FCM
+            if (!firebaseInitializer.isReady()) {
+                LOGGER.warning("Firebase not initialized; notification saved in DB but not sent via FCM.");
+                return true; // Consideramos éxito porque se guardó en BD
+            }
+
+            String topic = "user-" + sanitizeTopicSegment(solicitud.getCedulaPaciente());
+
+            Message message = Message.builder()
+                .setTopic(topic)
+                .setNotification(Notification.builder()
+                    .setTitle(titulo)
+                    .setBody(cuerpo)
+                    .build())
+                // Datos adicionales para la app móvil
+                .putData("tipo", "SOLICITUD_ACCESO")
+                .putData("notificacionId", notif.getId().toString())
+                .putData("documentoId", solicitud.getDocumentoId())
+                .putData("profesionalCi", solicitud.getProfesionalCi().toString())
+                .putData("profesionalNombre", solicitud.getProfesionalNombre())
+                .putData("especialidad", solicitud.getEspecialidad() != null ? solicitud.getEspecialidad() : "")
+                .putData("tenantId", solicitud.getTenantId())
+                .putData("nombreClinica", solicitud.getNombreClinica())
+                .putData("fechaDocumento", solicitud.getFechaDocumento())
+                .putData("motivoConsulta", solicitud.getMotivoConsulta())
+                .putData("diagnostico", solicitud.getDiagnostico() != null ? solicitud.getDiagnostico() : "")
+                .putData("timestamp", String.valueOf(System.currentTimeMillis()))
+                .build();
+
+            FirebaseMessaging messaging = firebaseInitializer.getMessaging();
+            String response = messaging.send(message);
+            LOGGER.info(String.format(
+                "Notificación FCM enviada a %s. FCM response: %s",
+                solicitud.getCedulaPaciente(), response));
+            return true;
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE,
+                String.format("Error al procesar notificación de solicitud de acceso para %s",
+                    solicitud.getCedulaPaciente()), e);
+            return false;
+        }
     }
 }

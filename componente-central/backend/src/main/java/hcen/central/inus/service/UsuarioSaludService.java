@@ -1,11 +1,14 @@
 package hcen.central.inus.service;
 
 import hcen.central.inus.dao.UsuarioSaludDAO;
+import hcen.central.inus.dto.DnicCiudadanoDTO;
 import hcen.central.inus.dto.RegistrarUsuarioRequest;
 import hcen.central.inus.dto.UsuarioSaludDTO;
 import hcen.central.inus.dto.ActualizarUsuarioSaludRequest;
 import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.enums.TipoDocumento;
+import hcen.central.inus.exception.CiudadanoNoEncontradoException;
+import hcen.central.inus.exception.UsuarioMenorDeEdadException;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 
@@ -13,6 +16,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -27,6 +31,12 @@ public class UsuarioSaludService {
     @EJB
     private UsuarioSaludDAO usuarioDAO;
 
+    @EJB
+    private DnicServiceClient dnicClient;
+
+    @EJB
+    private EdadValidacionService edadValidacionService;
+
     /**
      * Verifica si un usuario existe por cédula
      */
@@ -38,29 +48,30 @@ public class UsuarioSaludService {
     }
 
     /**
-     * Registra un usuario en una clínica.
-     * Verifica si ya existe la combinación cedula+tenant_id.
-     * Si YA existe: retorna error indicando que ya está registrado en esa clínica
-     * Si NO existe: crea nuevo usuario en usuario_salud con todos los datos
+     * Registra un usuario de salud en el sistema nacional.
+     * Si el usuario ya existe por cédula: devuelve el usuario existente (no es error)
+     * Si NO existe: crea un nuevo usuario solo con cédula y tipo de documento
      */
     public UsuarioSaludDTO registrarUsuarioEnClinica(RegistrarUsuarioRequest request) {
         // Validaciones
         validateRequest(request);
 
         String cedula = request.getCedula().trim();
-        java.util.UUID tenantId = request.getTenantId();
 
-        // Verificar si ya existe un usuario con esta cedula+tenant_id
-        if (usuarioDAO.existsByCedulaAndTenantId(cedula, tenantId)) {
-            LOGGER.warning("Usuario con cédula " + cedula + " ya está registrado en la clínica " + tenantId);
-            throw new IllegalArgumentException("El usuario ya está registrado en esta clínica");
+        // Verificar si ya existe un usuario con esta cédula
+        Optional<UsuarioSalud> existente = usuarioDAO.findByCedula(cedula);
+
+        UsuarioSalud usuario;
+        if (existente.isPresent()) {
+            // Usuario ya registrado - devolver el existente
+            LOGGER.info("Usuario con cédula " + cedula + " ya está registrado en el sistema nacional");
+            usuario = existente.get();
+        } else {
+            // Usuario nuevo - crear con datos mínimos
+            LOGGER.info("Creando nuevo usuario en sistema nacional con cédula " + cedula);
+            usuario = createNuevoUsuarioMinimo(request);
+            usuario = usuarioDAO.save(usuario);
         }
-
-        // Crear nuevo usuario en usuario_salud
-        LOGGER.info("Creando nuevo usuario con cédula " + cedula + " y tenant_id " + tenantId);
-        UsuarioSalud usuario = createNuevoUsuario(request);
-        usuario.setTenantId(tenantId);
-        usuario = usuarioDAO.save(usuario);
 
         return toDTO(usuario);
     }
@@ -73,33 +84,6 @@ public class UsuarioSaludService {
             throw new IllegalArgumentException("La cédula es requerida");
         }
         return usuarioDAO.findByCedula(cedula.trim()).map(this::toDTO);
-    }
-
-    /**
-     * Lista todos los usuarios de una clínica
-     */
-    public java.util.List<UsuarioSaludDTO> getUsuariosByTenantId(java.util.UUID tenantId) {
-        if (tenantId == null) {
-            throw new IllegalArgumentException("El tenant_id es requerido");
-        }
-        return usuarioDAO.findByTenantId(tenantId).stream()
-            .map(this::toDTO)
-            .collect(java.util.stream.Collectors.toList());
-    }
-
-    /**
-     * Busca usuarios por nombre o apellido filtrados por tenant_id
-     */
-    public java.util.List<UsuarioSaludDTO> searchUsuariosByTenantId(String searchTerm, java.util.UUID tenantId) {
-        if (searchTerm == null || searchTerm.trim().isEmpty()) {
-            throw new IllegalArgumentException("El término de búsqueda es requerido");
-        }
-        if (tenantId == null) {
-            throw new IllegalArgumentException("El tenant_id es requerido");
-        }
-        return usuarioDAO.searchByNombreOrApellidoAndTenantId(searchTerm.trim(), tenantId).stream()
-            .map(this::toDTO)
-            .collect(java.util.stream.Collectors.toList());
     }
 
     /**
@@ -150,9 +134,6 @@ public class UsuarioSaludService {
             LocalDate fecha = LocalDate.parse(request.getFechaNacimiento());
             usuario.setFechaNacimiento(fecha);
         }
-        if (request.getTenantId() != null && !request.getTenantId().isBlank()) {
-            usuario.setTenantId(java.util.UUID.fromString(request.getTenantId()));
-        }
 
         usuario.setNombreCompleto(buildNombreCompleto(
             usuario.getPrimerNombre(),
@@ -175,81 +156,78 @@ public class UsuarioSaludService {
         if (request.getCedula() == null || request.getCedula().trim().isEmpty()) {
             throw new IllegalArgumentException("La cédula es requerida");
         }
-        if (request.getPrimerNombre() == null || request.getPrimerNombre().trim().isEmpty()) {
-            throw new IllegalArgumentException("El primer nombre es requerido");
-        }
-        if (request.getPrimerApellido() == null || request.getPrimerApellido().trim().isEmpty()) {
-            throw new IllegalArgumentException("El primer apellido es requerido");
-        }
-        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-            throw new IllegalArgumentException("El email es requerido");
-        }
-        if (request.getFechaNacimiento() == null) {
-            throw new IllegalArgumentException("La fecha de nacimiento es requerida");
-        }
-        LocalDate today = LocalDate.now(URUGUAY_ZONE);
-        if (request.getFechaNacimiento().isAfter(today)) {
-            throw new IllegalArgumentException("La fecha de nacimiento no puede ser en el futuro");
-        }
-        if (Period.between(request.getFechaNacimiento(), today).getYears() < 18) {
-            LOGGER.warning(() -> "Registro permitido para usuario menor de edad: " + request.getCedula());
-        }
-        if (request.getTenantId() == null) {
-            throw new IllegalArgumentException("El ID de la clínica (tenant_id) es requerido");
-        }
         if (request.getTipoDocumento() == null) {
             request.setTipoDocumento(TipoDocumento.DO); // Default
         }
     }
 
     /**
-     * Crea un nuevo usuario desde la solicitud
+     * Crea un nuevo usuario consultando DNIC para obtener datos reales.
+     * Si DNIC falla o el usuario es menor de edad, crea con datos PENDIENTE.
      */
-    private UsuarioSalud createNuevoUsuario(RegistrarUsuarioRequest request) {
+    private UsuarioSalud createNuevoUsuarioMinimo(RegistrarUsuarioRequest request) {
         UsuarioSalud usuario = new UsuarioSalud();
         usuario.setCedula(request.getCedula().trim());
         usuario.setTipoDeDocumento(request.getTipoDocumento());
-        usuario.setPrimerNombre(request.getPrimerNombre().trim());
-        usuario.setSegundoNombre(request.getSegundoNombre() != null ? request.getSegundoNombre().trim() : null);
-        usuario.setPrimerApellido(request.getPrimerApellido().trim());
-        usuario.setSegundoApellido(request.getSegundoApellido() != null ? request.getSegundoApellido().trim() : null);
-        usuario.setEmail(request.getEmail().trim());
-        usuario.setFechaNacimiento(request.getFechaNacimiento());
-        usuario.setEmailVerificado(false); // No verificado por defecto
+        usuario.setEmailVerificado(false);
         usuario.setActive(true);
 
-        // Construir nombre completo
-        String nombreCompleto = buildNombreCompleto(
-            request.getPrimerNombre(),
-            request.getSegundoNombre(),
-            request.getPrimerApellido(),
-            request.getSegundoApellido()
-        );
-        usuario.setNombreCompleto(nombreCompleto);
+        // Intentar obtener datos de DNIC
+        try {
+            LOGGER.info("Consultando DNIC para usuario con cédula: " + request.getCedula());
+
+            DnicCiudadanoDTO datosFromDnic = dnicClient.obtenerCiudadano(
+                request.getTipoDocumento().name(),
+                request.getCedula().trim()
+            );
+
+            // Validar mayoría de edad (18+)
+            if (datosFromDnic.getFechaNacimiento() != null) {
+                edadValidacionService.validarMayoriaDeEdad(datosFromDnic.getFechaNacimiento());
+            }
+
+            // Si llegamos aquí, tenemos datos válidos de DNIC y el usuario es mayor de edad
+            usuario.setPrimerNombre(datosFromDnic.getPrimerNombre());
+            usuario.setSegundoNombre(datosFromDnic.getSegundoNombre());
+            usuario.setPrimerApellido(datosFromDnic.getPrimerApellido());
+            usuario.setSegundoApellido(datosFromDnic.getSegundoApellido());
+            usuario.setFechaNacimiento(datosFromDnic.getFechaNacimiento());
+            usuario.setNombreCompleto(datosFromDnic.getNombreCompleto());
+            usuario.setEmail("pendiente@hcen.gub.uy");  // Email sigue pendiente de confirmación
+
+            LOGGER.info("Usuario creado con datos de DNIC: " + datosFromDnic.getNombreCompleto());
+
+        } catch (CiudadanoNoEncontradoException e) {
+            // DNIC no encontró al ciudadano - crear con datos PENDIENTE
+            LOGGER.warning("Ciudadano no encontrado en DNIC para cédula " + request.getCedula() +
+                          " - creando con datos PENDIENTE");
+            poblarUsuarioConDatosPendientes(usuario);
+
+        } catch (UsuarioMenorDeEdadException e) {
+            // Usuario es menor de edad - rechazar creación
+            LOGGER.warning("Usuario menor de edad detectado: " + e.getEdad() + " años - rechazando creación");
+            throw new IllegalArgumentException(
+                "No se puede registrar un usuario menor de edad. Edad: " + e.getEdad() + " años (se requieren 18+)");
+
+        } catch (Exception e) {
+            // Error general de comunicación con DNIC - crear con datos PENDIENTE (graceful degradation)
+            LOGGER.log(Level.WARNING, "Error consultando DNIC para cédula " + request.getCedula() +
+                      " - creando con datos PENDIENTE", e);
+            poblarUsuarioConDatosPendientes(usuario);
+        }
 
         return usuario;
     }
 
     /**
-     * Actualiza los datos de un usuario existente
+     * Completa el usuario con datos PENDIENTE cuando DNIC no está disponible.
      */
-    private void updateUsuarioData(UsuarioSalud usuario, RegistrarUsuarioRequest request) {
-        usuario.setPrimerNombre(request.getPrimerNombre().trim());
-        usuario.setSegundoNombre(request.getSegundoNombre() != null ? request.getSegundoNombre().trim() : null);
-        usuario.setPrimerApellido(request.getPrimerApellido().trim());
-        usuario.setSegundoApellido(request.getSegundoApellido() != null ? request.getSegundoApellido().trim() : null);
-        usuario.setEmail(request.getEmail().trim());
-        usuario.setFechaNacimiento(request.getFechaNacimiento());
-        usuario.setTipoDeDocumento(request.getTipoDocumento());
-
-        // Actualizar nombre completo
-        String nombreCompleto = buildNombreCompleto(
-            request.getPrimerNombre(),
-            request.getSegundoNombre(),
-            request.getPrimerApellido(),
-            request.getSegundoApellido()
-        );
-        usuario.setNombreCompleto(nombreCompleto);
+    private void poblarUsuarioConDatosPendientes(UsuarioSalud usuario) {
+        usuario.setPrimerNombre("PENDIENTE");
+        usuario.setPrimerApellido("PENDIENTE");
+        usuario.setEmail("pendiente@hcen.gub.uy");
+        usuario.setFechaNacimiento(LocalDate.of(1900, 1, 1));
+        usuario.setNombreCompleto("PENDIENTE PENDIENTE");
     }
 
     /**
@@ -267,32 +245,6 @@ public class UsuarioSaludService {
             sb.append(" ").append(segundoApellido.trim());
         }
         return sb.toString();
-    }
-
-    /**
-     * Desasocia un usuario de una clínica eliminando el registro
-     */
-    public boolean desasociarUsuarioDeClinica(String cedula, java.util.UUID tenantId) {
-        // Validaciones
-        if (cedula == null || cedula.trim().isEmpty()) {
-            throw new IllegalArgumentException("La cédula es requerida");
-        }
-        if (tenantId == null) {
-            throw new IllegalArgumentException("El tenant_id de la clínica es requerido");
-        }
-
-        LOGGER.info("Desasociando usuario " + cedula + " de clínica " + tenantId);
-
-        // Buscar y eliminar el usuario con esa combinación cedula+tenant_id
-        boolean deleted = usuarioDAO.deleteByCedulaAndTenantId(cedula.trim(), tenantId);
-
-        if (deleted) {
-            LOGGER.info("Usuario desasociado exitosamente");
-        } else {
-            LOGGER.warning("No se encontró el usuario en esa clínica");
-        }
-
-        return deleted;
     }
 
     /**

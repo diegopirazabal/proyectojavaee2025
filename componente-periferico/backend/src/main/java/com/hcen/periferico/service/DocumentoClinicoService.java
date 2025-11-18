@@ -1,11 +1,15 @@
 package com.hcen.periferico.service;
 
+import com.hcen.periferico.api.CentralAPIClient;
+import com.hcen.periferico.dao.ClinicaDAO;
 import com.hcen.periferico.dao.DocumentoClinicoDAO;
 import com.hcen.periferico.dao.ProfesionalSaludDAO;
 import com.hcen.periferico.dao.SincronizacionPendienteDAO;
+import com.hcen.periferico.dao.SolicitudAccesoDocumentoDAO;
 import com.hcen.periferico.dto.documento_clinico_dto;
 import com.hcen.periferico.entity.SincronizacionPendiente;
 import com.hcen.periferico.entity.UsuarioSalud;
+import com.hcen.periferico.entity.clinica;
 import com.hcen.periferico.entity.documento_clinico;
 import com.hcen.periferico.entity.profesional_salud;
 import com.hcen.periferico.enums.TipoSincronizacion;
@@ -45,6 +49,15 @@ public class DocumentoClinicoService {
     @EJB
     private SincronizacionPendienteDAO sincronizacionDAO;
 
+    @EJB
+    private ClinicaDAO clinicaDAO;
+
+    @EJB
+    private SolicitudAccesoDocumentoDAO solicitudAccesoDAO;
+
+    @EJB
+    private CentralAPIClient centralAPIClient;
+
     @PersistenceContext(unitName = "hcen-periferico-pu")
     private EntityManager em;
 
@@ -81,14 +94,11 @@ public class DocumentoClinicoService {
         }
 
         // Validar que el profesional exista y pertenezca al mismo tenant
-        Optional<profesional_salud> profesionalOpt = profesionalDAO.findByCi(profesionalCi);
+        Optional<profesional_salud> profesionalOpt = profesionalDAO.findByCiAndTenantId(profesionalCi, tenantId);
         if (profesionalOpt.isEmpty()) {
-            throw new IllegalArgumentException("El profesional con CI " + profesionalCi + " no existe");
+            throw new IllegalArgumentException("El profesional con CI " + profesionalCi + " no existe en esta clínica");
         }
         profesional_salud profesional = profesionalOpt.get();
-        if (!tenantId.equals(profesional.getTenantId())) {
-            throw new IllegalArgumentException("El profesional no pertenece a esta clínica");
-        }
 
         // Validar que las codigueras existan
         validarCodigueras(codigoMotivoConsulta, codigoEstadoProblema, codigoGradoCerteza);
@@ -100,6 +110,7 @@ public class DocumentoClinicoService {
         documento.setUsuarioSaludCedula(usuarioSaludCedula);
         documento.setPaciente(paciente);
         documento.setProfesionalFirmante(profesional);
+        documento.setProfesionalId(profesional.getId());
         documento.setFecCreacion(LocalDateTime.now());
         documento.setCodigoMotivoConsulta(codigoMotivoConsulta);
         documento.setDescripcionDiagnostico(descripcionDiagnostico.trim());
@@ -271,7 +282,22 @@ public class DocumentoClinicoService {
         // Información del profesional
         profesional_salud profesional = documento.getProfesionalFirmante();
         dto.setNombreCompletoProfesional(profesional.getNombre() + " " + profesional.getApellidos());
-        dto.setEspecialidadProfesional(profesional.getEspecialidad());
+        dto.setEspecialidadProfesional(profesional.getEspecialidad() != null ? profesional.getEspecialidad().getNombre() : null);
+
+        // Información de la clínica
+        if (documento.getTenantId() != null) {
+            LOGGER.info("Buscando clínica para tenantId: " + documento.getTenantId());
+            Optional<clinica> clinicaOpt = clinicaDAO.findByTenantId(documento.getTenantId());
+            if (clinicaOpt.isPresent()) {
+                String nombreClinica = clinicaOpt.get().getNombre();
+                dto.setNombreClinica(nombreClinica);
+                LOGGER.info("Clínica encontrada: '" + nombreClinica + "' para tenantId: " + documento.getTenantId());
+            } else {
+                LOGGER.warning("No se encontró clínica para tenantId: " + documento.getTenantId() + " del documento " + documento.getId());
+            }
+        } else {
+            LOGGER.warning("Documento " + documento.getId() + " no tiene tenantId");
+        }
 
         // Motivo de consulta
         dto.setCodigoMotivoConsulta(documento.getCodigoMotivoConsulta());
@@ -431,6 +457,143 @@ public class DocumentoClinicoService {
             // Error al guardar auditoría - loguear pero no fallar la transacción principal
             LOGGER.log(Level.SEVERE, "Error al crear registro de auditoría para documento " +
                     documento.getId(), e);
+        }
+    }
+
+    // ========== MÉTODOS PARA VALIDACIÓN DE PERMISOS DE ACCESO ==========
+
+    /**
+     * Valida si un profesional tiene permiso para acceder a un documento clínico
+     * Llama al componente central para verificar políticas de acceso
+     *
+     * @param documentoId UUID del documento
+     * @param ciProfesional CI del profesional que solicita acceso
+     * @param tenantId UUID de la clínica
+     * @param especialidad Especialidad del profesional (opcional)
+     * @return true si tiene permiso, false en caso contrario
+     */
+    public boolean validarAccesoDocumento(UUID documentoId, Integer ciProfesional, UUID tenantId, String especialidad) {
+        if (documentoId == null || ciProfesional == null || tenantId == null) {
+            LOGGER.warning("Parámetros inválidos para validar acceso");
+            return false;
+        }
+
+        try {
+            return centralAPIClient.validarAccesoDocumento(documentoId, ciProfesional, tenantId, especialidad);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al validar acceso a documento", e);
+            return false; // En caso de error, denegar acceso por seguridad
+        }
+    }
+
+    /**
+     * Solicita acceso a un documento clínico enviando notificación al paciente
+     * Solo permite una solicitud por minuto por profesional-documento
+     *
+     * @param documentoId UUID del documento
+     * @param ciProfesional CI del profesional solicitante
+     * @param nombreProfesional Nombre completo del profesional
+     * @param especialidad Especialidad del profesional
+     * @param tenantId UUID de la clínica
+     * @return ResultadoSolicitudAcceso indicando si fue exitoso o ya existe una solicitud reciente
+     * @throws IllegalArgumentException si el documento no existe
+     */
+    public ResultadoSolicitudAcceso solicitarAccesoDocumento(
+            UUID documentoId,
+            Integer ciProfesional,
+            String nombreProfesional,
+            String especialidad,
+            UUID tenantId) {
+
+        // Validar que no existe una solicitud reciente
+        if (!solicitudAccesoDAO.puedeVolverASolicitar(documentoId, ciProfesional, tenantId)) {
+            LOGGER.info(String.format(
+                "Solicitud duplicada rechazada (cooldown 1m): documento=%s, profesional=%d",
+                documentoId, ciProfesional));
+
+            return new ResultadoSolicitudAcceso(
+                false,
+                "Ya existe una solicitud de acceso reciente para este documento. " +
+                "Por favor espere 1 minuto antes de volver a solicitar."
+            );
+        }
+
+        // Obtener información del documento
+        Optional<documento_clinico> docOpt = documentoDAO.findById(documentoId);
+        if (docOpt.isEmpty()) {
+            throw new IllegalArgumentException("No se encontró el documento con ID " + documentoId);
+        }
+
+        documento_clinico documento = docOpt.get();
+        String cedulaPaciente = documento.getUsuarioSaludCedula();
+
+        // Obtener nombre de la clínica
+        Optional<clinica> clinicaOpt = clinicaDAO.findByTenantId(tenantId);
+        String nombreClinica = clinicaOpt.map(clinica::getNombre).orElse("Clínica desconocida");
+
+        // Formatear datos del documento para la notificación
+        String fechaDocumento = documento.getFecCreacion() != null ?
+            documento.getFecCreacion().toLocalDate().toString() : "Fecha desconocida";
+        String motivoConsulta = documento.getCodigoMotivoConsulta() != null ?
+            documento.getCodigoMotivoConsulta() : "No especificado";
+        String diagnostico = documento.getDescripcionDiagnostico();
+
+        // Enviar notificación al paciente vía componente central
+        boolean notificacionEnviada = centralAPIClient.solicitarAccesoDocumento(
+            cedulaPaciente,
+            documentoId,
+            ciProfesional,
+            nombreProfesional,
+            especialidad,
+            tenantId,
+            nombreClinica,
+            fechaDocumento,
+            motivoConsulta,
+            diagnostico
+        );
+
+        if (!notificacionEnviada) {
+            LOGGER.warning(String.format(
+                "No se pudo enviar la notificación de solicitud de acceso (documento=%s, profesional=%d, paciente=%s)",
+                documentoId, ciProfesional, cedulaPaciente));
+
+            return new ResultadoSolicitudAcceso(
+                false,
+                "No se pudo enviar la notificación al paciente. Por favor verifique los datos o intente nuevamente."
+            );
+        }
+
+        // Registrar solicitud en base de datos local para control de anti-spam
+        solicitudAccesoDAO.registrarSolicitud(documentoId, ciProfesional, tenantId, cedulaPaciente);
+
+        LOGGER.info(String.format(
+            "Solicitud de acceso registrada: documento=%s, profesional=%d, paciente=%s",
+            documentoId, ciProfesional, cedulaPaciente));
+
+        return new ResultadoSolicitudAcceso(
+            true,
+            "Solicitud de acceso enviada exitosamente. El paciente recibirá una notificación."
+        );
+    }
+
+    /**
+     * Clase para representar el resultado de una solicitud de acceso
+     */
+    public static class ResultadoSolicitudAcceso {
+        private final boolean exitoso;
+        private final String mensaje;
+
+        public ResultadoSolicitudAcceso(boolean exitoso, String mensaje) {
+            this.exitoso = exitoso;
+            this.mensaje = mensaje;
+        }
+
+        public boolean isExitoso() {
+            return exitoso;
+        }
+
+        public String getMensaje() {
+            return mensaje;
         }
     }
 }

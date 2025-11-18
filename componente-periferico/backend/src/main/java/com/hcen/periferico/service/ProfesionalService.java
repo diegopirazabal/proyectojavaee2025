@@ -23,7 +23,7 @@ public class ProfesionalService {
      * Crea o actualiza un profesional de salud
      */
     public profesional_salud saveProfesional(Integer ci, String nombre, String apellidos,
-                                           String especialidad, String email, String password, UUID tenantId) {
+                                           UUID especialidadId, String email, String password, UUID tenantId) {
         // Validaciones
         if (ci == null || ci <= 0) {
             throw new IllegalArgumentException("La cédula es requerida y debe ser válida");
@@ -34,42 +34,57 @@ public class ProfesionalService {
         if (apellidos == null || apellidos.trim().isEmpty()) {
             throw new IllegalArgumentException("Los apellidos son requeridos");
         }
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("El email es requerido");
+        }
         if (tenantId == null) {
             throw new IllegalArgumentException("El tenant_id es requerido");
         }
 
-        Optional<profesional_salud> existing = profesionalDAO.findByCi(ci);
+        Optional<profesional_salud> existing = profesionalDAO.findByCiAndTenantId(ci, tenantId);
         profesional_salud profesional;
 
         if (existing.isPresent()) {
             // Actualizar existente
             profesional = existing.get();
+
+            // Si se proporciona una nueva contraseña, hashearla (validación hecha en Resource)
+            if (password != null && !password.trim().isEmpty()) {
+                profesional.setPassword(hashPassword(password));
+            }
+            // Si password es null o vacío, no se cambia la contraseña actual
         } else {
             // Crear nuevo
             profesional = new profesional_salud();
             profesional.setCi(ci);
+            profesional.setTenantId(tenantId);
+            profesional.setActive(true); // Por defecto activo
 
-            // Solo hashear password si es un nuevo profesional
-            if (password == null || password.trim().isEmpty()) {
-                throw new IllegalArgumentException("La contraseña es requerida para nuevos profesionales");
-            }
+            // Hashear contraseña (validación hecha en Resource)
             profesional.setPassword(hashPassword(password));
         }
 
         profesional.setNombre(nombre.trim());
         profesional.setApellidos(apellidos.trim());
-        profesional.setEspecialidad(especialidad != null ? especialidad.trim() : null);
-        profesional.setEmail(email != null ? email.trim() : null);
-        profesional.setTenantId(tenantId);
+        profesional.setEspecialidadId(especialidadId);
+        profesional.setEmail(email.trim());
 
-        return profesionalDAO.save(profesional);
+        // Para entidades existentes ya managed, los cambios se persisten automáticamente
+        // Para nuevas entidades, necesitamos merge
+        if (existing.isPresent()) {
+            // Ya está managed, los cambios se persisten al final de la transacción
+            return profesional;
+        } else {
+            // Nueva entidad, necesita merge
+            return profesionalDAO.save(profesional);
+        }
     }
 
     /**
-     * Obtiene un profesional por su cédula
+     * Obtiene un profesional por su cédula y tenant
      */
-    public Optional<profesional_salud> getProfesionalByCi(Integer ci) {
-        return profesionalDAO.findByCi(ci);
+    public Optional<profesional_salud> getProfesionalByCi(Integer ci, UUID tenantId) {
+        return profesionalDAO.findByCiAndTenantId(ci, tenantId);
     }
 
     /**
@@ -82,8 +97,8 @@ public class ProfesionalService {
     /**
      * Busca profesionales por especialidad
      */
-    public List<profesional_salud> getProfesionalesByEspecialidad(String especialidad) {
-        return profesionalDAO.findByEspecialidad(especialidad);
+    public List<profesional_salud> getProfesionalesByEspecialidadId(UUID especialidadId) {
+        return profesionalDAO.findByEspecialidadId(especialidadId);
     }
 
     /**
@@ -97,17 +112,17 @@ public class ProfesionalService {
     }
 
     /**
-     * Elimina un profesional
+     * Elimina un profesional (borrado lógico)
      */
-    public void deleteProfesional(Integer ci) {
-        profesionalDAO.deleteByCi(ci);
+    public void deleteProfesional(Integer ci, UUID tenantId) {
+        profesionalDAO.softDelete(ci, tenantId);
     }
 
     /**
-     * Verifica si existe un profesional con una cédula dada
+     * Verifica si existe un profesional con una cédula dada en un tenant
      */
-    public boolean existsProfesional(Integer ci) {
-        return profesionalDAO.existsByCi(ci);
+    public boolean existsProfesional(Integer ci, UUID tenantId) {
+        return profesionalDAO.existsByCiAndTenantId(ci, tenantId);
     }
 
     /**

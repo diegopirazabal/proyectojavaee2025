@@ -39,7 +39,8 @@ public class fcm_token_service {
         Optional<FCMToken> existingToken = dao.findByFcmToken(fcmToken);
         if (existingToken.isPresent()) {
             FCMToken token = existingToken.get();
-            // Actualizar información del dispositivo
+            // Reasignar token al usuario autenticado
+            token.setUsuarioId(usuarioId);
             token.setDeviceModel(deviceModel);
             token.setOsVersion(osVersion);
             token.setActive(true);
@@ -53,6 +54,7 @@ public class fcm_token_service {
             FCMToken token = deviceToken.get();
             // Actualizar con el nuevo token
             token.setFcmToken(fcmToken);
+            token.setUsuarioId(usuarioId);
             token.setDeviceModel(deviceModel);
             token.setOsVersion(osVersion);
             token.setActive(true);

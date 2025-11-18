@@ -25,6 +25,7 @@ public class documento_clinico_dto implements Serializable {
     private String nombreCompletoPaciente;
     private String nombreCompletoProfesional;
     private String especialidadProfesional;
+    private String nombreClinica; // Nombre de la clínica resuelto desde tenant_id
 
     // Motivo de consulta
     private String codigoMotivoConsulta;
@@ -123,6 +124,14 @@ public class documento_clinico_dto implements Serializable {
 
     public void setEspecialidadProfesional(String especialidadProfesional) {
         this.especialidadProfesional = especialidadProfesional;
+    }
+
+    public String getNombreClinica() {
+        return nombreClinica;
+    }
+
+    public void setNombreClinica(String nombreClinica) {
+        this.nombreClinica = nombreClinica;
     }
 
     public String getCodigoMotivoConsulta() {

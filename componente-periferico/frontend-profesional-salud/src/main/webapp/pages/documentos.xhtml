@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='UTF-8' ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
@@ -5,142 +6,225 @@
       xmlns:f="jakarta.faces.core">
 
 <h:head>
-    <title>Historia Clínica Electrónica - Portal Profesional</title>
+    <title>Documentos Clínicos</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+
+    <!-- Estilos Look & Feel -->
+    <style>
+        :root {
+            --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
+            --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
+        }
+
+        /* Menú superior */
+        .app-menubar {
+            background-color: var(--primary-color) !important;
+            border: none !important;
+        }
+
+        .app-menubar .p-menuitem-link,
+        .app-menubar .p-menuitem-text,
+        .app-menubar .pi {
+            color: #ffffff !important;
+        }
+
+        /* Panel headers */
+        .panel-secundario .p-panel-header {
+            background-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+
+        /* Botón primario */
+        .btn-primario {
+            background: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+        }
+
+        /* Botón secundario */
+        .btn-secundario {
+            background: var(--secondary-color) !important;
+            border-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .acciones {
+            margin-top: 1rem;
+            display: flex;
+            gap: .5rem;
+            flex-wrap: wrap;
+        }
+
+        .paciente-info {
+            margin: 1rem 0;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+        }
+
+    </style>
 </h:head>
 
-<f:metadata>
-    <f:event type="preRenderView" listener="#{sessionBean.checkAuth()}"/>
-    <f:event type="preRenderView" listener="#{documentoClinicoBean.prepararVista}"/>
-</f:metadata>
-
 <h:body>
-    <h:form>
-        <p:menubar>
-            <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>
-            <p:menuitem value="Historia clínica" icon="pi pi-book" outcome="/pages/historia/buscar.xhtml"/>
-            <p:menuitem value="Documentos Clínicos" icon="pi pi-file-edit" outcome="/pages/documentos.xhtml"/>
 
-            <f:facet name="options">
-                <p:outputLabel value="#{sessionBean.nombreProfesional} (#{sessionBean.especialidad})" style="margin-right: 1rem;"/>
+    <!-- MENÚ SUPERIOR -->
+    <h:form id="menuForm">
+        <div style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        background-color: var(--primary-color);
+        padding: 0.7rem 1.2rem;
+        border-bottom: 3px solid var(--secondary-color);
+    ">
+
+            <!-- BOTONES DE NAVEGACIÓN -->
+            <div style="display:flex; gap:0.5rem;">
+                <p:commandButton value="Dashboard"
+                                 icon="pi pi-home"
+                                 action="/pages/dashboard.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+
+                <p:commandButton value="Historia Clínica"
+                                 icon="pi pi-book"
+                                 action="/pages/historia/buscar.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+
+                <p:commandButton value="Documentos Clínicos"
+                                 icon="pi pi-file"
+                                 action="/pages/documentos.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+            </div>
+
+            <!-- USUARIO + CERRAR SESIÓN -->
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span style="color:white; font-weight:500;">
+                #{sessionBean.nombreProfesional}
+            </span>
+
                 <p:commandButton value="Cerrar Sesión"
-                                icon="pi pi-sign-out"
-                                action="#{sessionBean.logout}"
-                                styleClass="p-button-danger"/>
-            </f:facet>
-        </p:menubar>
+                                 icon="pi pi-sign-out"
+                                 action="#{sessionBean.logout}"
+                                 styleClass="btn-secundario"/>
+            </div>
+
+        </div>
     </h:form>
 
-    <div style="padding: 2rem;">
-        <h:form id="documentosForm">
-            <p:messages id="messages" showDetail="false" closable="true"/>
+    <!-- CONTENIDO -->
+    <div class="container">
 
-            <p:panel header="Historia Clínica Electrónica Ambulatoria">
+        <h2>Documentos Clínicos</h2>
 
-                <!-- Selector de Paciente -->
-                <p:panel header="Seleccionar Paciente" style="margin-bottom: 1rem;">
-                    <p:panelGrid columns="2" layout="grid">
-                        <p:outputLabel for="paciente" value="Paciente:"/>
-                        <p:selectOneMenu id="paciente"
-                                        value="#{documentoClinicoBean.cedulaPacienteSeleccionado}"
-                                        filter="true"
-                                        filterMatchMode="contains"
-                                        style="width: 100%;">
-                            <f:selectItem itemLabel="Seleccione un paciente..." itemValue="#{null}"/>
-                            <f:selectItems value="#{documentoClinicoBean.pacientes}"
-                                          var="p"
-                                          itemLabel="#{p.nombreCompleto} - CI: #{p.cedula}"
-                                          itemValue="#{p.cedula}"/>
-                        </p:selectOneMenu>
-                    </p:panelGrid>
+        <!-- SELECCIÓN DE PACIENTE -->
+        <h:form id="pacienteForm">
+            <p:panel header="Seleccionar Paciente" styleClass="panel-secundario">
 
+                <p:messages id="messages" showDetail="true"/>
+
+                <p:outputLabel value="Cédula del Paciente:" for="cedulaInput"/>
+                <p:inputText id="cedulaInput"
+                             value="#{documentoClinicoBean.cedulaPacienteSeleccionado}"
+                             placeholder="Ingrese la cédula del paciente"
+                             style="width:100%;"
+                             maxlength="20"/>
+
+                <div class="acciones">
                     <p:commandButton value="Cargar Historia Clínica"
-                                    icon="pi pi-search"
-                                    action="#{documentoClinicoBean.cargarDocumentosPorPaciente}"
-                                    update=":documentosForm:documentosTable,:documentosForm:messages,:documentosForm:pacienteInfo"
-                                    style="margin-top: 1rem;"/>
-                </p:panel>
+                                     icon="pi pi-search"
+                                     action="#{documentoClinicoBean.cargarDocumentosPorPaciente}"
+                                     update=":documentosForm:documentosTable :pacienteForm:messages :pacienteForm:infoPaciente"
+                                     process="@form"
+                                     styleClass="btn-primario"/>
+                </div>
 
-                <!-- Información del Paciente Seleccionado -->
-                <p:panel id="pacienteInfo"
-                        header="Paciente: #{documentoClinicoBean.pacienteSeleccionado.nombreCompleto}"
-                        rendered="#{documentoClinicoBean.pacienteSeleccionado != null}"
-                        style="margin-bottom: 1rem;">
-                    <p:panelGrid columns="2" layout="grid">
-                        <h:outputText value="Cédula:"/>
-                        <h:outputText value="#{documentoClinicoBean.pacienteSeleccionado.cedula}"/>
+            </p:panel>
 
-                        <h:outputText value="Email:"/>
-                        <h:outputText value="#{documentoClinicoBean.pacienteSeleccionado.email}"/>
+            <!-- Info del paciente -->
+            <h:panelGroup id="infoPaciente" layout="block" rendered="#{not empty documentoClinicoBean.pacienteSeleccionado}">
+                <div class="paciente-info">
+                    <strong>Paciente seleccionado:</strong><br/>
+                    CI: #{documentoClinicoBean.pacienteSeleccionado.cedula}<br/>
+                    Nombre: #{documentoClinicoBean.pacienteSeleccionado.nombreCompleto}
+                </div>
+            </h:panelGroup>
+        </h:form>
 
-                        <h:outputText value="Fecha Nacimiento:"/>
-                        <h:outputText value="#{documentoClinicoBean.pacienteSeleccionado.fechaNacimiento}">
-                            <f:convertDateTime pattern="dd/MM/yyyy"/>
-                        </h:outputText>
-                    </p:panelGrid>
-                </p:panel>
 
-                <!-- Toolbar -->
-                <p:toolbar style="margin-bottom: 1rem;" rendered="#{documentoClinicoBean.cedulaPacienteSeleccionado != null}">
-                    <p:toolbarGroup>
-                    <p:commandButton value="Nueva Consulta"
-                                    icon="pi pi-plus"
-                                    styleClass="p-button-success"
-                                    update=":dlgNuevoDocumento"
-                                    action="#{documentoClinicoBean.prepararNuevoDocumento}"
-                                    oncomplete="PF('dlgNuevoDocumento').show();"/>
+        <!-- LISTA DE DOCUMENTOS -->
+        <h:form id="documentosForm">
 
-                    <p:commandButton value="🔄 Sincronizar Pendientes"
-                                    icon="pi pi-sync"
-                                    styleClass="p-button-warning"
-                                    action="#{documentoClinicoBean.forzarSincronizacion}"
-                                    update=":documentosForm:messages"
-                                    style="margin-left: 0.5rem;"
-                                    title="Fuerza la sincronización manual de documentos pendientes con el componente central (DEBUG)"/>
-                    </p:toolbarGroup>
-                </p:toolbar>
+            <p:panel header="Documentos del Paciente" styleClass="panel-secundario">
 
-                <!-- Tabla de Documentos -->
+                <p:messages id="messages" showDetail="true"/>
+
                 <p:dataTable id="documentosTable"
-                            value="#{documentoClinicoBean.documentos}"
-                            var="doc"
-                            paginator="true"
-                            rows="10"
-                            emptyMessage="No hay documentos clínicos registrados para este paciente">
+                             value="#{documentoClinicoBean.documentos}"
+                             var="doc" emptyMessage="No hay documentos para mostrar"
+                             paginator="true" rows="10"
+                             paginatorPosition="bottom"
+                             style="margin-top:1rem;">
 
-                    <p:column headerText="Fecha Creación" sortBy="#{doc.fecCreacion}">
-                        <h:outputText value="#{doc.fecCreacion}">
-                            <f:convertDateTime pattern="dd/MM/yyyy HH:mm"/>
-                        </h:outputText>
+                    <p:column headerText="Tipo">
+                        #{doc.nombreMotivoConsulta}
                     </p:column>
 
-                    <p:column headerText="Motivo Consulta">
-                        <h:outputText value="#{doc.nombreMotivoConsulta}"/>
+                    <p:column headerText="Fecha">
+                        #{doc.fechaInicioDiagnostico}
                     </p:column>
 
-                    <p:column headerText="Diagnóstico" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
-                        <h:outputText value="#{doc.descripcionDiagnostico}"/>
-                    </p:column>
-
-                    <p:column headerText="Grado Certeza">
-                        <h:outputText value="#{doc.nombreGradoCerteza}"/>
-                    </p:column>
-
-                    <p:column headerText="Profesional">
-                        <h:outputText value="#{doc.nombreCompletoProfesional}"/>
-                    </p:column>
-
-                    <p:column headerText="Acciones" style="width: 120px;">
+                    <p:column headerText="Acciones" style="width: 150px;">
+                        <!-- Botón Ver (si tiene permiso) -->
                         <p:commandButton icon="pi pi-eye"
-                                        styleClass="p-button-info"
+                                        styleClass="btn-primario"
                                         onclick="PF('dlgVerDocumento').show();"
                                         action="#{documentoClinicoBean.seleccionarDocumento(doc)}"
                                         update=":verDocumentoPanel"
-                                        title="Ver detalles"/>
+                                        title="Ver detalles"
+                                        rendered="#{doc.tienePermiso}"/>
+
+                        <!-- Botón Solicitar Acceso (si no tiene permiso) -->
+                        <p:commandButton icon="pi pi-lock"
+                                        styleClass="btn-secundario"
+                                        action="#{documentoClinicoBean.solicitarAcceso(doc)}"
+                                        update=":documentosForm:messages,:documentosForm:documentosTable"
+                                        title="Solicitar acceso al paciente"
+                                        rendered="#{!doc.tienePermiso}">
+                            <p:confirm header="Solicitar Acceso"
+                                      message="¿Desea solicitar acceso a este documento? El paciente recibirá una notificación en su dispositivo móvil."
+                                      icon="pi pi-exclamation-triangle"/>
+                        </p:commandButton>
                     </p:column>
                 </p:dataTable>
+
+
+                <div class="acciones">
+                    <p:commandButton value="Actualizar permisos"
+                                     icon="pi pi-refresh"
+                                     action="#{documentoClinicoBean.refrescarPermisosDocumentos}"
+                                     process="@this"
+                                     update="documentosForm:documentosTable :documentosForm:messages"
+                                     styleClass="btn-secundario"/>
+
+                    <p:commandButton value="Nuevo Documento"
+                                     icon="pi pi-plus"
+                                     action="#{documentoClinicoBean.prepararNuevoDocumento}"
+                                     update=":dlgNuevoDocumento"
+                                     oncomplete="PF('dlgNuevoDocumento').show();"
+                                     styleClass="btn-primario"/>
+                </div>
+
             </p:panel>
+
         </h:form>
+
     </div>
 
     <!-- Dialog: Nuevo Documento -->
@@ -148,7 +232,9 @@
               widgetVar="dlgNuevoDocumento"
               header="Nueva Consulta No Urgente"
               modal="true"
-              width="800"
+              width="700"
+              height="600"
+              fitViewport="true"
               responsive="true">
         <h:form id="newDocumentoPanel">
             <p:messages id="dlgMessages" showDetail="false" closable="true"/>
@@ -260,7 +346,9 @@
               widgetVar="dlgVerDocumento"
               header="Documento Clínico"
               modal="true"
-              width="800"
+              width="700"
+              height="500"
+              fitViewport="true"
               responsive="true">
         <h:form id="verDocumentoPanel">
             <p:panel header="Información General">
@@ -336,6 +424,14 @@
             </div>
         </h:form>
     </p:dialog>
+
+    <!-- Confirmation Dialog -->
+    <p:confirmDialog global="true" showEffect="fade" hideEffect="fade">
+        <h:form>
+            <p:commandButton value="Sí" type="button" styleClass="ui-confirmdialog-yes" icon="pi pi-check"/>
+            <p:commandButton value="No" type="button" styleClass="ui-confirmdialog-no" icon="pi pi-times"/>
+        </h:form>
+    </p:confirmDialog>
 
 </h:body>
 </html>

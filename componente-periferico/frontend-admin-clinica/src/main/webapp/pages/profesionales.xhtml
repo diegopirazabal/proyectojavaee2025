@@ -33,7 +33,7 @@
 
     <div style="padding: 2rem;">
         <h:form id="profesionalesForm">
-            <p:messages id="messages" showDetail="false" closable="true"/>
+            <p:messages id="messages" showDetail="false" closable="true" globalOnly="true"/>
 
             <p:panel header="Gestión de Profesionales de Salud">
                 <p:toolbar style="margin-bottom: 1rem;">
@@ -84,8 +84,8 @@
                         <h:outputText value="#{prof.apellidos}"/>
                     </p:column>
 
-                    <p:column headerText="Especialidad" sortBy="#{prof.especialidad}">
-                        <h:outputText value="#{prof.especialidad}"/>
+                    <p:column headerText="Especialidad" sortBy="#{profesionalBean.getEspecialidadNombre(prof.especialidadId)}">
+                        <h:outputText value="#{profesionalBean.getEspecialidadNombre(prof.especialidadId)}"/>
                     </p:column>
 
                     <p:column headerText="Email">
@@ -96,12 +96,11 @@
                         <p:commandButton icon="pi pi-pencil"
                                         title="Editar"
                                         styleClass="p-button-warning"
-                                        process="@this"
-                                        update=":profesionalesForm:editProfesionalPanel"
-                                        oncomplete="PF('dlgEditProfesional').show();">
-                            <f:setPropertyActionListener value="#{prof}"
-                                                        target="#{profesionalBean.selectedProfesional}"/>
-                        </p:commandButton>
+                                        action="#{profesionalBean.prepareEdit(prof)}"
+                                        update=":profesionalesForm:dlgEditProfesional"
+                                        oncomplete="PF('dlgEditProfesional').show();" />
+
+
 
                         <p:commandButton icon="pi pi-trash"
                                         title="Eliminar"
@@ -124,34 +123,42 @@
                      header="Nuevo Profesional"
                      widgetVar="dlgNuevoProfesional"
                      modal="true"
-                     width="500">
+                     width="500"
+                     dynamic="true">
                 <h:panelGrid id="newProfesionalPanel" columns="2" styleClass="p-fluid">
-                    <p:outputLabel for="newCi" value="Cédula*"/>
+                    <p:outputLabel for="newCi" value="Cédula"/>
                     <p:inputNumber id="newCi"
                                   value="#{profesionalBean.newProfesional.ci}"
                                   decimalPlaces="0"
                                   required="true"/>
 
-                    <p:outputLabel for="newNombre" value="Nombre*"/>
+                    <p:outputLabel for="newNombre" value="Nombre"/>
                     <p:inputText id="newNombre"
                                 value="#{profesionalBean.newProfesional.nombre}"
                                 required="true"/>
 
-                    <p:outputLabel for="newApellidos" value="Apellidos*"/>
+                    <p:outputLabel for="newApellidos" value="Apellidos"/>
                     <p:inputText id="newApellidos"
                                 value="#{profesionalBean.newProfesional.apellidos}"
                                 required="true"/>
 
                     <p:outputLabel for="newEspecialidad" value="Especialidad"/>
-                    <p:inputText id="newEspecialidad"
-                                value="#{profesionalBean.newProfesional.especialidad}"/>
+                    <p:selectOneMenu id="newEspecialidad"
+                                     value="#{profesionalBean.newProfesional.especialidadId}">
+                        <f:selectItem itemLabel="-- Seleccione especialidad --" itemValue="#{null}" noSelectionOption="true"/>
+                        <f:selectItems value="#{profesionalBean.especialidades}"
+                                      var="esp"
+                                      itemValue="#{esp.id}"
+                                      itemLabel="#{esp.nombre}"/>
+                    </p:selectOneMenu>
 
                     <p:outputLabel for="newEmail" value="Email"/>
                     <p:inputText id="newEmail"
                                 value="#{profesionalBean.newProfesional.email}"
-                                type="email"/>
+                                type="email"
+                                required="true"/>
 
-                    <p:outputLabel for="newPassword" value="Contraseña*"/>
+                    <p:outputLabel for="newPassword" value="Contraseña"/>
                     <p:password id="newPassword"
                                 value="#{profesionalBean.newProfesional.password}"
                                 required="true"/>
@@ -176,7 +183,9 @@
                      header="Editar Profesional"
                      widgetVar="dlgEditProfesional"
                      modal="true"
-                     width="500">
+                     width="650"
+                     dynamic="true">
+                <p:messages id="editMessages" showDetail="false" closable="true"/>
                 <h:panelGrid id="editProfesionalPanel" columns="2" styleClass="p-fluid">
                     <p:outputLabel for="editCi" value="Cédula"/>
                     <p:inputNumber id="editCi"
@@ -184,24 +193,45 @@
                                   disabled="true" 
                                   decimalPlaces="0"/>
 
-                    <p:outputLabel for="editNombre" value="Nombre*"/>
+                    <p:outputLabel for="editNombre" value="Nombre"/>
                     <p:inputText id="editNombre"
                                 value="#{profesionalBean.selectedProfesional.nombre}"
                                 required="true"/>
 
-                    <p:outputLabel for="editApellidos" value="Apellidos*"/>
+                    <p:outputLabel for="editApellidos" value="Apellidos"/>
                     <p:inputText id="editApellidos"
                                 value="#{profesionalBean.selectedProfesional.apellidos}"
                                 required="true"/>
 
                     <p:outputLabel for="editEspecialidad" value="Especialidad"/>
-                    <p:inputText id="editEspecialidad"
-                                value="#{profesionalBean.selectedProfesional.especialidad}"/>
+                    <p:selectOneMenu id="editEspecialidad"
+                                     value="#{profesionalBean.selectedProfesional.especialidadId}">
+                        <f:selectItem itemLabel="-- Seleccione especialidad --" itemValue="#{null}" noSelectionOption="true"/>
+                        <f:selectItems value="#{profesionalBean.especialidades}"
+                                      var="esp"
+                                      itemValue="#{esp.id}"
+                                      itemLabel="#{esp.nombre}"/>
+                    </p:selectOneMenu>
 
                     <p:outputLabel for="editEmail" value="Email"/>
                     <p:inputText id="editEmail"
                                 value="#{profesionalBean.selectedProfesional.email}"
-                                type="email"/>
+                                type="email"
+                                required="true"/>
+
+                    <p:outputLabel for="editPassword" value="Nueva Contraseña"/>
+                    <h:panelGroup>
+                        <p:password id="editPassword"
+                                   value="#{profesionalBean.newPasswordForEdit}"
+                                   toggleMask="true"
+                                   feedback="true"
+                                   weakLabel="Débil"
+                                   goodLabel="Buena"
+                                   strongLabel="Fuerte"
+                                   placeholder="Dejar en blanco para mantener la actual"/>
+                        <p:outputLabel value="Requisitos: mínimo 8 caracteres, incluir mayúsculas, minúsculas y números"
+                                      style="font-size: 0.85em; color: #666; display: block; margin-top: 0.25rem;"/>
+                    </h:panelGroup>
                 </h:panelGrid>
 
                 <f:facet name="footer">
@@ -209,8 +239,8 @@
                                     icon="pi pi-check"
                                     action="#{profesionalBean.updateProfesional}"
                                     process="@this,editProfesionalPanel"
-                                    update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages"
-                                    oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dlgEditProfesional').hide();"/>
+                                    update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages,editMessages"
+                                    oncomplete="if (args &amp;&amp; !args.validationFailed &amp;&amp; args.updateSuccess) PF('dlgEditProfesional').hide();"/>
                     <p:commandButton value="Cancelar"
                                     icon="pi pi-times"
                                     onclick="PF('dlgEditProfesional').hide();"
@@ -218,9 +248,9 @@
                 </f:facet>
             </p:dialog>
 
-            <p:confirmDialog global="true" showEffect="fade" hideEffect="fade">
-                <p:commandButton value="Sí" styleClass="ui-confirmdialog-yes" icon="pi pi-check"/>
-                <p:commandButton value="No" styleClass="ui-confirmdialog-no" icon="pi pi-times"/>
+            <p:confirmDialog global="true" showEffect="fade" hideEffect="fade" appendTo="@(body)">
+                <p:commandButton value="Sí" type="button" styleClass="ui-confirmdialog-yes" icon="pi pi-check"/>
+                <p:commandButton value="No" type="button" styleClass="ui-confirmdialog-no" icon="pi pi-times"/>
             </p:confirmDialog>
 
         </h:form>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="jakarta.faces.facelets">
+
+<f:metadata>
+    <f:event type="preRenderView" listener="#{usuarioSaludLoginBean.checkAuthentication}"/>
+</f:metadata>
+
+<ui:composition template="/WEB-INF/templates/template.xhtml">
+    <ui:define name="content">
+
+        <h:outputStylesheet library="css" name="dashboard.css"/>
+
+        <style>
+            .profile-container {
+                max-width: 900px;
+                margin: 0 auto;
+            }
+            .profile-header {
+                margin-bottom: 2rem;
+            }
+            .profile-header h1 {
+                color: #333;
+                margin-bottom: 0.5rem;
+            }
+            .profile-header p {
+                color: #666;
+            }
+            .lookup-form {
+                background: white;
+                padding: 2rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                margin-bottom: 2rem;
+            }
+            .lookup-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr auto;
+                gap: 1rem;
+                align-items: end;
+            }
+            .input-group label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+                color: #333;
+            }
+            .citizen-panel {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                margin-top: 2rem;
+            }
+            .citizen-panel h2 {
+                color: #2196F3;
+                margin-top: 2rem;
+                margin-bottom: 1rem;
+            }
+            .citizen-panel h2:first-child {
+                margin-top: 0;
+            }
+            .warning-banner {
+                margin-bottom: 1rem;
+            }
+            @media (max-width: 768px) {
+                .lookup-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+
+        <div class="profile-container">
+            <div class="profile-header">
+                <h1>Mi Perfil de Salud</h1>
+                <p>Consulta la información registrada en el DNIC</p>
+            </div>
+
+            <h:form id="lookupForm" styleClass="lookup-form">
+                <!-- Mensajes de feedback -->
+                <p:messages id="messages" showDetail="true" closable="true"/>
+
+                <h:panelGroup rendered="#{not empty usuarioSaludDashboardBean.warningMessage}" styleClass="warning-banner">
+                    <div class="ui-messages ui-widget" style="margin-bottom: 1rem;">
+                        <div class="ui-messages-warn ui-corner-all">
+                            <span class="ui-messages-warn-icon pi pi-exclamation-triangle"></span>
+                            <ul>
+                                <li>
+                                    <span class="ui-messages-warn-summary">Advertencia: </span>
+                                    <span class="ui-messages-warn-detail">#{usuarioSaludDashboardBean.warningMessage}</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </h:panelGroup>
+
+                <div class="lookup-grid">
+                    <div class="input-group">
+                        <label for="tipoDoc">Tipo de documento</label>
+                        <p:inputText id="tipoDoc"
+                                     value="#{usuarioSaludDashboardBean.docType}"
+                                     maxlength="4"
+                                     placeholder="CI, DO, OTRO"
+                                     required="true"
+                                     style="width: 100%;"/>
+                    </div>
+                    <div class="input-group">
+                        <label for="numeroDoc">Número de documento</label>
+                        <p:inputText id="numeroDoc"
+                                     value="#{usuarioSaludDashboardBean.docNumber}"
+                                     maxlength="8"
+                                     placeholder="00000001"
+                                     required="true"
+                                     style="width: 100%;"/>
+                    </div>
+                    <div class="input-group">
+                        <p:commandButton value="Consultar"
+                                         icon="pi pi-search"
+                                         actionListener="#{usuarioSaludDashboardBean.buscar}"
+                                         update="@form"
+                                         process="@form"/>
+                    </div>
+                </div>
+
+                <p:panel id="detalleCiudadano" styleClass="citizen-panel" rendered="#{not empty usuarioSaludDashboardBean.ciudadano.numeroDocumento}">
+                    <h2>Datos Personales</h2>
+                    <p:panelGrid columns="2" layout="grid" styleClass="ui-noborder" style="width: 100%;">
+                        <h:outputLabel value="Tipo de documento" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.tipoDocumento}" readonly="true" style="width: 100%;"/>
+
+                        <h:outputLabel value="Número de documento" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.numeroDocumento}" readonly="true" style="width: 100%;"/>
+
+                        <h:outputLabel value="Primer nombre" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.primerNombre}" readonly="true" style="width: 100%;"/>
+
+                        <h:outputLabel value="Segundo nombre" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.segundoNombre}" readonly="true" style="width: 100%;"/>
+
+                        <h:outputLabel value="Primer apellido" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.primerApellido}" readonly="true" style="width: 100%;"/>
+
+                        <h:outputLabel value="Segundo apellido" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.segundoApellido}" readonly="true" style="width: 100%;"/>
+
+                        <h:outputLabel value="Nombre en cédula" style="font-weight: 500;"/>
+                        <p:inputTextarea value="#{usuarioSaludDashboardBean.ciudadano.nombreEnCedula}" readonly="true" autoResize="true" rows="2" style="width: 100%;"/>
+
+                        <h:outputLabel value="Sexo" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.sexo}" readonly="true" style="width: 100%;"/>
+
+                        <h:outputLabel value="Fecha de nacimiento" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.fechaNacimientoFormateada}" readonly="true" style="width: 100%;"/>
+
+                        <h:outputLabel value="Nacionalidad" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.descripcionNacionalidad}" readonly="true" style="width: 100%;"/>
+                    </p:panelGrid>
+
+                    <h2>Datos de Contacto</h2>
+                    <p:panelGrid columns="2" layout="grid" styleClass="ui-noborder" style="width: 100%;">
+                        <h:outputLabel value="Correo electrónico" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.email}" placeholder="Sin registrar" style="width: 100%;"/>
+
+                        <h:outputLabel value="Teléfono" style="font-weight: 500;"/>
+                        <p:inputText value="#{usuarioSaludDashboardBean.ciudadano.telefono}" placeholder="Sin registrar" style="width: 100%;"/>
+
+                        <h:outputLabel value="Dirección" style="font-weight: 500;"/>
+                        <p:inputTextarea value="#{usuarioSaludDashboardBean.ciudadano.direccion}"
+                                         autoResize="true"
+                                         rows="2"
+                                         placeholder="Sin registrar"
+                                         style="width: 100%;"/>
+                    </p:panelGrid>
+                </p:panel>
+            </h:form>
+        </div>
+    </ui:define>
+</ui:composition>
+</html>

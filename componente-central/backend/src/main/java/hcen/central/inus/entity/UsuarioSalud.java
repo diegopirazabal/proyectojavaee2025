@@ -35,9 +35,6 @@ public class UsuarioSalud {
     @JoinColumn(name = "historia_clinica_id")
     private historia_clinica historiaClinica;
 
-    @OneToMany(mappedBy = "usuarioSalud", cascade = CascadeType.ALL)
-    private List<politica_acceso> politicasAcceso = new ArrayList<>();
-
     @Convert(converter = TipoDocumentoAttributeConverter.class)
     @Column(name = "tipo_documento", length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'DO'")
     private TipoDocumento tipoDeDocumento;
@@ -78,9 +75,6 @@ public class UsuarioSalud {
     @Column(name = "last_login")
     private Instant lastLogin;
 
-    @Column(name = "tenant_id", columnDefinition = "UUID")
-    private UUID tenantId;
-
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
@@ -110,24 +104,6 @@ public class UsuarioSalud {
 
     public historia_clinica getHistoriaClinica() {
         return historiaClinica;
-    }
-
-    public List<politica_acceso> getPoliticasAcceso() {
-        return politicasAcceso;
-    }
-
-    public void setPoliticasAcceso(List<politica_acceso> politicasAcceso) {
-        this.politicasAcceso = politicasAcceso;
-    }
-
-    public void agregarPoliticaAcceso(politica_acceso politica) {
-        this.politicasAcceso.add(politica);
-        politica.setUsuarioSalud(this);
-    }
-
-    public void removerPoliticaAcceso(politica_acceso politica) {
-        this.politicasAcceso.remove(politica);
-        politica.setUsuarioSalud(null);
     }
     
     public String getCedula() { return cedula; }
@@ -176,9 +152,6 @@ public class UsuarioSalud {
     
     public Instant getLastLogin() { return lastLogin; }
     public void setLastLogin(Instant lastLogin) { this.lastLogin = lastLogin; }
-
-    public UUID getTenantId() { return tenantId; }
-    public void setTenantId(UUID tenantId) { this.tenantId = tenantId; }
 
     @Override
     public boolean equals(Object o) {

@@ -69,8 +69,15 @@ public class MainActivity extends AppCompatActivity {
                 R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_notifications)
                 .build();
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
-        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(binding.navView, navController);
+
+        navView.setOnItemSelectedListener(item -> {
+            if (item.getItemId() == R.id.navigation_logout) {
+                mostrarDialogoLogout();
+                return false;
+            }
+            return NavigationUI.onNavDestinationSelected(item, navController);
+        });
 
         // Solicitar permisos de notificaciones y obtener token de Firebase
         solicitarPermisosNotificaciones();
@@ -198,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Muestra un diálogo de confirmación para el logout
      */
-    private void mostrarDialogoLogout() {
+    public void mostrarDialogoLogout() {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.logout_confirmation_title)
                 .setMessage(R.string.logout_confirmation_message)

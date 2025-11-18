@@ -1,0 +1,191 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="jakarta.faces.core">
+
+<h:head>
+    <title>Detalle del Documento</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        :root {
+            --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
+            --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
+        }
+
+        .app-menubar {
+            background-color: var(--primary-color) !important;
+            border: none !important;
+        }
+
+        .app-menubar .p-menuitem-link,
+        .app-menubar .p-menuitem-text,
+        .app-menubar .pi {
+            color: #ffffff !important;
+        }
+
+        .panel-secundario .p-panel-header {
+            background-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-primario {
+            background: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-secundario {
+            background: var(--secondary-color) !important;
+            border-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+        }
+
+        .acciones {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: .5rem;
+            flex-wrap: wrap;
+        }
+
+        .detalle-grid {
+            width: 100%;
+        }
+
+        .detalle-grid td {
+            padding: .35rem .75rem;
+            vertical-align: top;
+        }
+
+        .detalle-grid td:first-child {
+            font-weight: bold;
+            width: 30%;
+            color: #495057;
+        }
+    </style>
+</h:head>
+
+<h:body>
+
+    <!-- NAVBAR UNIFICADO -->
+    <h:form id="menuForm">
+        <div style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        background-color: var(--primary-color);
+        padding: 0.7rem 1.2rem;
+        border-bottom: 3px solid var(--secondary-color);
+    ">
+
+            <!-- BOTONES DE NAVEGACIÓN -->
+            <div style="display:flex; gap:0.5rem;">
+                <p:commandButton value="Dashboard"
+                                 icon="pi pi-home"
+                                 action="/pages/dashboard.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+
+                <p:commandButton value="Historia Clínica"
+                                 icon="pi pi-book"
+                                 action="/pages/historia/buscar.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+
+                <p:commandButton value="Documentos Clínicos"
+                                 icon="pi pi-file"
+                                 action="/pages/documentos.xhtml?faces-redirect=true"
+                                 styleClass="btn-secundario" />
+            </div>
+
+            <!-- USUARIO + CERRAR SESIÓN -->
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span style="color:white; font-weight:500;">
+                #{sessionBean.nombreProfesional}
+            </span>
+
+                <p:commandButton value="Cerrar Sesión"
+                                 icon="pi pi-sign-out"
+                                 action="#{sessionBean.logout}"
+                                 styleClass="btn-secundario"/>
+            </div>
+
+        </div>
+    </h:form>
+
+
+    <div class="container">
+        <h2>Detalle del Documento Clínico</h2>
+
+        <h:panelGroup rendered="#{not empty documentoClinicoBean.selectedDocumento}">
+            <p:panel header="Datos Generales" styleClass="panel-secundario">
+                <h:panelGrid columns="2" styleClass="detalle-grid">
+                    <h:outputText value="Paciente"/>
+                    <h:outputText value="#{empty documentoClinicoBean.selectedDocumento.nombreCompletoPaciente ? documentoClinicoBean.selectedDocumento.usuarioSaludCedula : documentoClinicoBean.selectedDocumento.nombreCompletoPaciente}"/>
+
+                    <h:outputText value="Profesional"/>
+                    <h:outputText value="#{empty documentoClinicoBean.selectedDocumento.nombreCompletoProfesional ? sessionBean.nombreProfesional : documentoClinicoBean.selectedDocumento.nombreCompletoProfesional}"/>
+
+                    <h:outputText value="Especialidad"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.especialidadProfesional}"/>
+
+                    <h:outputText value="Motivo de consulta"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.nombreMotivoConsulta}"/>
+
+                    <h:outputText value="Fecha del diagn��stico"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.fechaInicioDiagnostico}"/>
+                </h:panelGrid>
+            </p:panel>
+
+            <p:panel header="Diagnóstico" styleClass="panel-secundario" style="margin-top:1rem;">
+                <h:panelGrid columns="2" styleClass="detalle-grid">
+                    <h:outputText value="Descripción"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.descripcionDiagnostico}"/>
+
+                    <h:outputText value="Estado del problema"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.nombreEstadoProblema}"/>
+
+                    <h:outputText value="Grado de certeza"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.nombreGradoCerteza}"/>
+                </h:panelGrid>
+            </p:panel>
+
+            <p:panel header="Seguimiento" styleClass="panel-secundario" style="margin-top:1rem;">
+                <h:panelGrid columns="2" styleClass="detalle-grid">
+                    <h:outputText value="Próxima consulta"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.fechaProximaConsulta}">
+                        <f:convertDateTime pattern="yyyy-MM-dd"/>
+                    </h:outputText>
+
+                    <h:outputText value="Indicaciones"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.descripcionProximaConsulta}"/>
+
+                    <h:outputText value="Referencia de alta"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.referenciaAlta}"/>
+                </h:panelGrid>
+            </p:panel>
+
+            <div class="acciones">
+                <p:button value="Volver" outcome="/pages/documentos.xhtml"
+                          icon="pi pi-arrow-left" styleClass="btn-secundario"/>
+            </div>
+        </h:panelGroup>
+
+        <h:panelGroup rendered="#{empty documentoClinicoBean.selectedDocumento}">
+            <p:panel header="Aviso" styleClass="panel-secundario">
+                <h:outputText value="No hay documento seleccionado. Regrese a la lista para elegir uno."/>
+            </p:panel>
+            <div class="acciones">
+                <p:button value="Volver" outcome="/pages/documentos.xhtml"
+                          icon="pi pi-arrow-left" styleClass="btn-secundario"/>
+            </div>
+        </h:panelGroup>
+
+    </div>
+
+</h:body>
+</html>

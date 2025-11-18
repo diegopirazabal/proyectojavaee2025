@@ -46,8 +46,12 @@ public class documento_clinico {
 
     // Profesional que firma el documento
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PROFESIONAL_CI", nullable = false)
+    @JoinColumn(name = "profesional_id", referencedColumnName = "ID", insertable = false, updatable = false)
     private profesional_salud profesionalFirmante;
+
+    // Columna para el ID del profesional
+    @Column(name = "profesional_id", nullable = false, columnDefinition = "UUID")
+    private UUID profesionalId;
 
     // ============ MOTIVO DE CONSULTA ============
 
@@ -131,6 +135,14 @@ public class documento_clinico {
 
     public void setProfesionalFirmante(profesional_salud profesionalFirmante) {
         this.profesionalFirmante = profesionalFirmante;
+    }
+
+    public UUID getProfesionalId() {
+        return profesionalId;
+    }
+
+    public void setProfesionalId(UUID profesionalId) {
+        this.profesionalId = profesionalId;
     }
 
     public String getCodigoMotivoConsulta() {

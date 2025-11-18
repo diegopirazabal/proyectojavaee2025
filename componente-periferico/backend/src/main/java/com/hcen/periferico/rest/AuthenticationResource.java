@@ -92,7 +92,7 @@ public class AuthenticationResource {
             entity.getCi(),
             entity.getNombre(),
             entity.getApellidos(),
-            entity.getEspecialidad(),
+            entity.getEspecialidadId() != null ? entity.getEspecialidadId().toString() : null,
             entity.getEmail()
         );
         dto.setTenantId(entity.getTenantId() != null ? entity.getTenantId().toString() : null);

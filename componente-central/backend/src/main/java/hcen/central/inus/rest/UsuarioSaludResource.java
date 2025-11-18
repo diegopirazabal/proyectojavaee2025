@@ -14,7 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * REST Resource para gestión de usuarios de salud desde clínicas periféricas
+ * REST Resource para gestión de usuarios de salud en el sistema nacional
  * Base path: /api/usuarios
  */
 @Path("/usuarios")
@@ -26,44 +26,6 @@ public class UsuarioSaludResource {
 
     @EJB
     private UsuarioSaludService usuarioService;
-
-    /**
-     * Lista todos los usuarios de una clínica
-     * GET /api/usuarios?tenantId={uuid}
-     */
-    @GET
-    public Response getUsuariosByTenantId(@QueryParam("tenantId") String tenantIdStr,
-                                          @QueryParam("search") String searchTerm) {
-        try {
-            if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
-                return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("error", "El parámetro tenantId es requerido"))
-                    .build();
-            }
-
-            java.util.UUID tenantId = java.util.UUID.fromString(tenantIdStr);
-            java.util.List<UsuarioSaludDTO> usuarios;
-
-            if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-                // Búsqueda con filtro
-                usuarios = usuarioService.searchUsuariosByTenantId(searchTerm, tenantId);
-            } else {
-                // Listar todos
-                usuarios = usuarioService.getUsuariosByTenantId(tenantId);
-            }
-
-            return Response.ok(usuarios).build();
-        } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(Map.of("error", e.getMessage()))
-                .build();
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error al obtener usuarios", e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(Map.of("error", "Error interno del servidor"))
-                .build();
-        }
-    }
 
     /**
      * Verifica si un usuario existe por cédula
@@ -88,16 +50,17 @@ public class UsuarioSaludResource {
     }
 
     /**
-     * Registra un usuario en una clínica
-     * Si el usuario existe, actualiza sus datos y crea la asociación
-     * Si no existe, lo crea y crea la asociación
+     * Registra un usuario en el sistema nacional
+     * Si el usuario ya existe por cédula: devuelve el existente (status OK)
+     * Si no existe: crea un nuevo usuario con datos mínimos
      * POST /api/usuarios/registrar
      */
     @POST
     @Path("/registrar")
     public Response registrarUsuario(RegistrarUsuarioRequest request) {
         try {
-            LOGGER.info("Recibida solicitud de registro: " + request);
+            LOGGER.info("Recibida solicitud de registro para cédula: " +
+                (request != null ? request.getCedula() : "null"));
             UsuarioSaludDTO usuarioDTO = usuarioService.registrarUsuarioEnClinica(request);
             return Response.ok(usuarioDTO).build();
         } catch (IllegalArgumentException e) {
@@ -141,33 +104,4 @@ public class UsuarioSaludResource {
         }
     }
 
-    /**
-     * Desasocia un usuario de una clínica (elimina el registro con esa combinación cedula+tenant_id)
-     * DELETE /api/usuarios/{cedula}/clinica/{tenantId}
-     */
-    @DELETE
-    @Path("/{cedula}/clinica/{tenantId}")
-    public Response desasociarUsuarioDeClinica(@PathParam("cedula") String cedula,
-                                               @PathParam("tenantId") String tenantIdStr) {
-        try {
-            java.util.UUID tenantId = java.util.UUID.fromString(tenantIdStr);
-            boolean deleted = usuarioService.desasociarUsuarioDeClinica(cedula, tenantId);
-            if (deleted) {
-                return Response.ok(Map.of("message", "Usuario desasociado de la clínica exitosamente")).build();
-            } else {
-                return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("error", "No se encontró el usuario en esa clínica"))
-                    .build();
-            }
-        } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(Map.of("error", e.getMessage()))
-                .build();
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error al desasociar usuario de clínica", e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(Map.of("error", "Error interno del servidor: " + e.getMessage()))
-                .build();
-        }
-    }
 }
