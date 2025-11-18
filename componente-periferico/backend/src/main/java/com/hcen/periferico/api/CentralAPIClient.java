@@ -508,9 +508,6 @@ public class CentralAPIClient {
                 .add("especialidad", especialidad != null ? especialidad : "")
                 .build();
 
-            LOGGER.info(String.format("Validando acceso a documento %s para profesional CI=%d, tenant=%s",
-                documentoId, ciProfesional, tenantId));
-
             HttpResponse<String> response = executeAuthenticatedPost(url, body.toString());
 
             if (response.statusCode() == 200) {
@@ -518,12 +515,9 @@ public class CentralAPIClient {
                     JsonObject json = reader.readObject();
                     JsonObject data = json.getJsonObject("data");
                     boolean tienePermiso = data.getBoolean("tienePermiso", false);
-
-                    LOGGER.info(String.format("Resultado validación: %s", tienePermiso ? "PERMITIDO" : "DENEGADO"));
                     return tienePermiso;
                 }
             } else {
-                LOGGER.warning(String.format("Error al validar acceso. Status code: %d", response.statusCode()));
                 return false; // En caso de error, denegar acceso por seguridad
             }
 
@@ -541,7 +535,7 @@ public class CentralAPIClient {
      * @param documentoId UUID del documento
      * @param ciProfesional CI del profesional solicitante
      * @param nombreProfesional Nombre completo del profesional
-     * @param especialidad Especialidad del profesional
+     * @param especialidad Nombre de la especialidad del profesional (puede ser null)
      * @param tenantId UUID de la clínica
      * @param nombreClinica Nombre de la clínica
      * @param fechaDocumento Fecha del documento (para contexto)
@@ -564,7 +558,8 @@ public class CentralAPIClient {
         try {
             String url = getCentralBaseUrl() + "/api/notifications/solicitudes-acceso";
 
-            JsonObject body = Json.createObjectBuilder()
+            // Construir el JSON del request
+            var jsonBuilder = Json.createObjectBuilder()
                 .add("cedulaPaciente", cedulaPaciente)
                 .add("documentoId", documentoId.toString())
                 .add("profesionalCi", ciProfesional)
@@ -574,17 +569,19 @@ public class CentralAPIClient {
                 .add("nombreClinica", nombreClinica)
                 .add("fechaDocumento", fechaDocumento)
                 .add("motivoConsulta", motivoConsulta)
-                .add("diagnostico", diagnostico != null ? diagnostico : "No especificado")
-                .build();
+                .add("diagnostico", diagnostico != null ? diagnostico : "No especificado");
 
-            LOGGER.info(String.format("Solicitando acceso a documento %s para profesional %s (CI=%d) de %s",
-                documentoId, nombreProfesional, ciProfesional, nombreClinica));
+            // Solo agregar especialidad si no es null
+            if (especialidad != null && !especialidad.isBlank()) {
+                jsonBuilder.add("especialidad", especialidad);
+            }
+
+            JsonObject body = jsonBuilder.build();
 
             HttpResponse<String> response = executeAuthenticatedPost(url, body.toString());
             int statusCode = response.statusCode();
 
             if (statusCode == 200 || statusCode == 201) {
-                LOGGER.info("Notificación de solicitud de acceso enviada exitosamente");
                 return true;
             } else if (isAuthStatus(statusCode)) {
                 LOGGER.warning(String.format(

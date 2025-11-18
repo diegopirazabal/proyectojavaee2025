@@ -52,7 +52,7 @@ public class DocumentoClinicoDAO {
     }
 
     /**
-     * Lista todos los documentos de un paciente específico
+     * Lista todos los documentos de un paciente específico (solo de una clínica)
      */
     public List<documento_clinico> findByPaciente(String cedula, UUID tenantId) {
         TypedQuery<documento_clinico> query = em.createQuery(
@@ -63,6 +63,21 @@ public class DocumentoClinicoDAO {
         );
         query.setParameter("cedula", cedula);
         query.setParameter("tenantId", tenantId);
+        return query.getResultList();
+    }
+
+    /**
+     * Lista todos los documentos de un paciente de TODAS las clínicas
+     * Útil para visualizar la historia clínica completa del paciente
+     */
+    public List<documento_clinico> findByPacienteAllTenants(String cedula) {
+        TypedQuery<documento_clinico> query = em.createQuery(
+            "SELECT d FROM documento_clinico d " +
+            "WHERE d.usuarioSaludCedula = :cedula " +
+            "ORDER BY d.fecCreacion DESC",
+            documento_clinico.class
+        );
+        query.setParameter("cedula", cedula);
         return query.getResultList();
     }
 
@@ -111,7 +126,7 @@ public class DocumentoClinicoDAO {
     }
 
     /**
-     * Cuenta documentos de un paciente
+     * Cuenta documentos de un paciente (solo de una clínica)
      */
     public long countByPaciente(String cedula, UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
@@ -121,6 +136,19 @@ public class DocumentoClinicoDAO {
         );
         query.setParameter("cedula", cedula);
         query.setParameter("tenantId", tenantId);
+        return query.getSingleResult();
+    }
+
+    /**
+     * Cuenta documentos de un paciente de TODAS las clínicas
+     */
+    public long countByPacienteAllTenants(String cedula) {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(d) FROM documento_clinico d " +
+            "WHERE d.usuarioSaludCedula = :cedula",
+            Long.class
+        );
+        query.setParameter("cedula", cedula);
         return query.getSingleResult();
     }
 

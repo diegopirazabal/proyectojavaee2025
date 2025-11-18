@@ -127,6 +127,12 @@ public class UsuarioSaludService {
             }
             usuario.setEmail(email);
         }
+        if (request.getTelefono() != null) {
+            usuario.setTelefono(request.getTelefono().trim().isEmpty() ? null : request.getTelefono().trim());
+        }
+        if (request.getDireccion() != null) {
+            usuario.setDireccion(request.getDireccion().trim().isEmpty() ? null : request.getDireccion().trim());
+        }
         if (request.getActivo() != null) {
             usuario.setActive(request.getActivo());
         }
@@ -258,6 +264,8 @@ public class UsuarioSaludService {
         dto.setFechaNacimiento(entity.getFechaNacimiento());
         dto.setEmail(entity.getEmail());
         dto.setEmailVerificado(entity.getEmailVerificado());
+        dto.setTelefono(entity.getTelefono());
+        dto.setDireccion(entity.getDireccion());
         dto.setNombreCompleto(entity.getNombreCompleto());
         dto.setPrimerNombre(entity.getPrimerNombre());
         dto.setSegundoNombre(entity.getSegundoNombre());

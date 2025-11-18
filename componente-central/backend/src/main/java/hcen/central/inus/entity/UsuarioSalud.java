@@ -44,9 +44,15 @@ public class UsuarioSalud {
     
     @Column(name = "email", nullable = false, length = 255)
     private String email;
-    
+
     @Column(name = "email_verificado", columnDefinition = "BOOLEAN DEFAULT true")
     private Boolean emailVerificado = true;
+
+    @Column(name = "telefono", length = 20)
+    private String telefono;
+
+    @Column(name = "direccion", length = 500)
+    private String direccion;
     
     @Column(name = "nombre_completo", length = 255)
     private String nombreCompleto;
@@ -124,7 +130,13 @@ public class UsuarioSalud {
     public Boolean getEmailVerificado() { return emailVerificado; }
     public void setEmailVerificado(Boolean emailVerificado) { this.emailVerificado = emailVerificado; }
     public Boolean isEmailVerificado() { return emailVerificado; }
-    
+
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public String getDireccion() { return direccion; }
+    public void setDireccion(String direccion) { this.direccion = direccion; }
+
     public String getNombreCompleto() { return nombreCompleto; }
     public void setNombreCompleto(String nombreCompleto) { this.nombreCompleto = nombreCompleto; }
     

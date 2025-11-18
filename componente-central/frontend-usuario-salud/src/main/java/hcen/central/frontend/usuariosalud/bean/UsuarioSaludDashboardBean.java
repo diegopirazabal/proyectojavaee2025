@@ -2,6 +2,8 @@ package hcen.central.frontend.usuariosalud.bean;
 
 import com.hcen.periferico.usuariosalud.util.JwtUtil;
 import hcen.central.frontend.usuariosalud.dto.CiudadanoDetalle;
+import hcen.central.frontend.usuariosalud.dto.UsuarioSaludDTO;
+import hcen.central.frontend.usuariosalud.service.APIService;
 import hcen.central.frontend.usuariosalud.service.DnicServiceClient;
 import hcen.central.frontend.usuariosalud.service.DocumentoNoEncontradoException;
 import jakarta.annotation.PostConstruct;
@@ -36,9 +38,13 @@ public class UsuarioSaludDashboardBean implements Serializable {
     private DnicServiceClient dnicServiceClient;
 
     @Inject
+    private APIService apiService;
+
+    @Inject
     private UsuarioSaludLoginBean loginBean;
 
-    private CiudadanoDetalle ciudadano;
+    private UsuarioSaludDTO usuarioDB;  // Datos del usuario desde la base de datos
+    private CiudadanoDetalle ciudadano;  // Datos complementarios del DNIC (sexo, nacionalidad)
     private String docType;
     private String docNumber;
     private String warningMessage;
@@ -120,13 +126,72 @@ public class UsuarioSaludDashboardBean implements Serializable {
         String tipo = docType.trim().toUpperCase();
         String numero = docNumber.trim();
 
-        ciudadano.setTipoDocumento(tipo);
-        ciudadano.setNumeroDocumento(numero);
+        // Paso 1: Cargar datos principales desde la base de datos
+        try {
+            usuarioDB = apiService.obtenerUsuario(numero);
+            if (usuarioDB != null) {
+                LOGGER.info("Datos del usuario cargados desde BD para cédula: " + numero);
 
+                // Inicializar ciudadano con datos de la BD
+                ciudadano = new CiudadanoDetalle();
+                ciudadano.setTipoDocumento(usuarioDB.getTipoDocumento() != null ? usuarioDB.getTipoDocumento() : tipo);
+                ciudadano.setNumeroDocumento(numero);
+                ciudadano.setPrimerNombre(usuarioDB.getPrimerNombre());
+                ciudadano.setSegundoNombre(usuarioDB.getSegundoNombre());
+                ciudadano.setPrimerApellido(usuarioDB.getPrimerApellido());
+                ciudadano.setSegundoApellido(usuarioDB.getSegundoApellido());
+                ciudadano.setEmail(usuarioDB.getEmail() != null ? usuarioDB.getEmail() : "");
+                ciudadano.setTelefono(usuarioDB.getTelefono() != null ? usuarioDB.getTelefono() : "");
+                ciudadano.setDireccion(usuarioDB.getDireccion() != null ? usuarioDB.getDireccion() : "");
+
+                // Formatear fecha de nacimiento para mostrar
+                if (usuarioDB.getFechaNacimiento() != null) {
+                    ciudadano.setFechaNacimiento(usuarioDB.getFechaNacimiento().toString());
+                    updateWarningFromBirthDate(usuarioDB.getFechaNacimiento().toString());
+                }
+
+                // Paso 2: Complementar con datos demográficos del DNIC (sexo, nacionalidad)
+                try {
+                    CiudadanoDetalle datosDnic = dnicServiceClient.obtenerCiudadano(tipo, numero);
+                    // Solo complementar campos que no están en la BD
+                    ciudadano.setSexo(datosDnic.getSexo());
+                    ciudadano.setCodigoNacionalidad(datosDnic.getCodigoNacionalidad());
+                    ciudadano.setNombreEnCedula(datosDnic.getNombreEnCedula());
+                    LOGGER.info("Datos demográficos complementados desde DNIC");
+                } catch (DocumentoNoEncontradoException e) {
+                    LOGGER.warning("No se encontraron datos en DNIC para complementar: " + e.getMessage());
+                    // No es crítico, continuar con datos de la BD
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error al consultar DNIC para complementar datos", e);
+                    // No es crítico, continuar con datos de la BD
+                }
+
+                context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
+                        "Datos cargados", "Información obtenida desde el sistema"));
+            } else {
+                // Usuario no existe en la BD, intentar consultar solo DNIC (comportamiento legacy)
+                LOGGER.info("Usuario no encontrado en BD, consultando solo DNIC");
+                cargarSoloDesdeDnic(tipo, numero, context);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al cargar datos del usuario desde BD", e);
+            // Fallback: intentar cargar solo desde DNIC
+            cargarSoloDesdeDnic(tipo, numero, context);
+        }
+
+        docType = tipo;
+        docNumber = numero;
+    }
+
+    /**
+     * Método auxiliar para cargar datos solo desde DNIC (comportamiento legacy/fallback)
+     */
+    private void cargarSoloDesdeDnic(String tipo, String numero, FacesContext context) {
         try {
             CiudadanoDetalle respuesta = dnicServiceClient.obtenerCiudadano(tipo, numero);
             ciudadano = respuesta;
-            LOGGER.info(() -> "Fecha de nacimiento recibida de DNIC para " + numero + ": '" + ciudadano.getFechaNacimiento() + "'");
+            usuarioDB = null;  // No hay datos en BD
+
             if (ciudadano.getEmail() == null) {
                 ciudadano.setEmail("");
             }
@@ -137,27 +202,70 @@ public class UsuarioSaludDashboardBean implements Serializable {
                 ciudadano.setDireccion("");
             }
             updateWarningFromBirthDate(ciudadano.getFechaNacimiento());
-            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
-                    "Datos cargados", "Información obtenida desde DNIC"));
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN,
+                    "Usuario no registrado", "Información obtenida solo desde DNIC. El usuario no está registrado en el sistema."));
         } catch (DocumentoNoEncontradoException e) {
             ciudadano = new CiudadanoDetalle();
+            usuarioDB = null;
             ciudadano.setTipoDocumento(tipo);
             ciudadano.setNumeroDocumento(numero);
             warningMessage = null;
-            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN,
-                    "Documento no se encuentra en DNIC", e.getMessage()));
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR,
+                    "Documento no encontrado", "No se encontró el documento en DNIC ni en el sistema"));
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error consultando DNIC", e);
             ciudadano = new CiudadanoDetalle();
+            usuarioDB = null;
             ciudadano.setTipoDocumento(tipo);
             ciudadano.setNumeroDocumento(numero);
             warningMessage = null;
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR,
                     "Error al consultar DNIC", "No se pudo obtener la información del ciudadano"));
         }
+    }
 
-        docType = tipo;
-        docNumber = numero;
+    /**
+     * Guarda los cambios realizados a los datos de contacto del usuario
+     */
+    public void guardarCambios() {
+        FacesContext context = FacesContext.getCurrentInstance();
+
+        if (usuarioDB == null) {
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR,
+                    "Error", "No hay datos de usuario para actualizar"));
+            return;
+        }
+
+        // Validar email
+        if (ciudadano.getEmail() == null || ciudadano.getEmail().trim().isEmpty()) {
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR,
+                    "Error de validación", "El email es requerido"));
+            return;
+        }
+
+        try {
+            // Actualizar usuario en la BD
+            UsuarioSaludDTO actualizado = apiService.actualizarUsuario(
+                usuarioDB.getCedula(),
+                ciudadano.getEmail(),
+                ciudadano.getTelefono(),
+                ciudadano.getDireccion()
+            );
+
+            // Actualizar datos locales
+            usuarioDB = actualizado;
+            ciudadano.setEmail(actualizado.getEmail());
+            ciudadano.setTelefono(actualizado.getTelefono() != null ? actualizado.getTelefono() : "");
+            ciudadano.setDireccion(actualizado.getDireccion() != null ? actualizado.getDireccion() : "");
+
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
+                    "Éxito", "Los datos de contacto se actualizaron correctamente"));
+            LOGGER.info("Datos de contacto actualizados para usuario: " + usuarioDB.getCedula());
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al actualizar datos del usuario", e);
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR,
+                    "Error", "No se pudieron guardar los cambios: " + e.getMessage()));
+        }
     }
 
     private void updateWarningFromBirthDate(String fechaNacimiento) {
@@ -173,6 +281,14 @@ public class UsuarioSaludDashboardBean implements Serializable {
             ciudadano = new CiudadanoDetalle();
         }
         return ciudadano;
+    }
+
+    public UsuarioSaludDTO getUsuarioDB() {
+        return usuarioDB;
+    }
+
+    public boolean isUsuarioRegistrado() {
+        return usuarioDB != null;
     }
 
     public String getWarningMessage() {
