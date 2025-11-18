@@ -61,7 +61,7 @@ public class JWTAuthenticationFilter implements Filter {
             "/api/politicas-acceso/historia",   // Usuario salud obtiene sus permisos
             "/api/politicas-acceso/extender",   // Usuario salud extiende permisos
             "/api/politicas-acceso/modificar-tipo",  // Usuario salud modifica tipo de permiso
-            "/api/politicas-acceso/revocar",// Usuario salud revoca permisos
+            "/api/politicas-acceso/revocar"// Usuario salud revoca permisos
     );
 
     @Override

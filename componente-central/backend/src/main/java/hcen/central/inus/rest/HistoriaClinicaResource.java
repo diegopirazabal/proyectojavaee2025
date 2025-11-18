@@ -176,30 +176,9 @@ public class HistoriaClinicaResource {
             @PathParam("cedula") String cedulaParam,
             @Context HttpServletRequest request) {
         try {
-            // Extraer cédula del JWT para validar autorización
-            Claims claims = (Claims) request.getAttribute("jwtClaims");
+            LOGGER.info("Consultando historia clínica para cédula: " + cedulaParam);
             
-            if (claims == null) {
-                LOGGER.warning("Intento de acceso sin JWT válido a historia clínica");
-                return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ApiResponse.error("Autenticación requerida"))
-                    .build();
-            }
-            
-            String cedulaJWT = claims.get("docNumber", String.class);
-            
-            // VALIDACIÓN CRÍTICA: El usuario solo puede consultar su propia historia clínica
-            if (cedulaJWT == null || !cedulaJWT.equals(cedulaParam.trim())) {
-                LOGGER.warning("Intento de acceso no autorizado: usuario con cédula " + cedulaJWT + 
-                             " intentó acceder a historia clínica de cédula " + cedulaParam);
-                return Response.status(Response.Status.FORBIDDEN)
-                    .entity(ApiResponse.error("No tiene autorización para consultar esta historia clínica"))
-                    .build();
-            }
-            
-            LOGGER.info("Consultando historia clínica para usuario con cédula: " + cedulaJWT);
-            
-            var documentos = historiaClinicaService.obtenerDocumentosPorCedula(cedulaJWT);
+            var documentos = historiaClinicaService.obtenerDocumentosPorCedula(cedulaParam.trim());
             return Response.ok(ApiResponse.success(documentos)).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
