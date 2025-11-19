@@ -61,3 +61,6 @@ backup_hcen_*.json
 WARP.md
 AGENTS.md
 docs/
+
+# Repositorio maven local
+tmp_m2
