@@ -1,6 +1,7 @@
 package hcen.central.frontend.usuariosalud.bean;
 
 import hcen.central.frontend.usuariosalud.dto.ApiResponse;
+import hcen.central.frontend.usuariosalud.dto.HistoriaClinicaDocumentoDTO;
 import hcen.central.frontend.usuariosalud.dto.HistoriaClinicaIdResponse;
 import hcen.central.frontend.usuariosalud.dto.PoliticaAccesoDTO;
 import jakarta.annotation.PostConstruct;
@@ -27,7 +28,9 @@ import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,6 +66,7 @@ public class PermisosAccesoBean implements Serializable {
 
     // Datos para revocar
     private String motivoRevocacion;
+    private final Map<String, HistoriaClinicaDocumentoDTO> documentosPorId = new HashMap<>();
 
     @PostConstruct
     public void init() {
@@ -148,6 +152,8 @@ public class PermisosAccesoBean implements Serializable {
                 if (apiResponse.isSuccess() && apiResponse.getData() != null) {
                     permisos = apiResponse.getData();
                     LOGGER.info("Permisos cargados: " + permisos.size());
+                    cargarDocumentosHistoria();
+                    enriquecerPermisosConDocumentos();
 
                     if (permisos.isEmpty()) {
                         addMessage(FacesMessage.SEVERITY_INFO, "Sin permisos",
@@ -165,6 +171,56 @@ public class PermisosAccesoBean implements Serializable {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error", "No se pudieron cargar los permisos");
         } finally {
             loading = false;
+        }
+    }
+
+    private void cargarDocumentosHistoria() {
+        documentosPorId.clear();
+        String cedula = loginBean.getCedulaUsuarioActual();
+        if (cedula == null || cedula.isBlank()) {
+            return;
+        }
+
+        String backendUrl = obtenerBackendUrl();
+        String endpoint = backendUrl + "/api/historia-clinica/" + cedula + "/documentos";
+
+        try (Client client = createBackendClient()) {
+            Response response = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON)
+                    .get();
+
+            if (response.getStatus() == 200) {
+                ApiResponse<List<HistoriaClinicaDocumentoDTO>> apiResponse =
+                        response.readEntity(new GenericType<ApiResponse<List<HistoriaClinicaDocumentoDTO>>>() {});
+                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                    for (HistoriaClinicaDocumentoDTO doc : apiResponse.getData()) {
+                        if (doc.getDocumentoId() != null) {
+                            documentosPorId.put(doc.getDocumentoId(), doc);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "No se pudieron cargar los documentos de historia clínica", e);
+        }
+    }
+
+    private void enriquecerPermisosConDocumentos() {
+        if (permisos == null || permisos.isEmpty()) {
+            return;
+        }
+        for (PoliticaAccesoDTO permiso : permisos) {
+            if (permiso.getDocumentoId() == null) {
+                continue;
+            }
+            HistoriaClinicaDocumentoDTO doc = documentosPorId.get(permiso.getDocumentoId());
+            if (doc == null) {
+                continue;
+            }
+            permiso.setMotivoDocumento(doc.getMotivoDisplay());
+            permiso.setNombreClinica(doc.getClinicaDisplay());
+            permiso.setFechaDocumento(doc.getFechaFormateada());
+            permiso.setFechaRegistroDocumento(doc.getFechaRegistroFormateada());
         }
     }
 

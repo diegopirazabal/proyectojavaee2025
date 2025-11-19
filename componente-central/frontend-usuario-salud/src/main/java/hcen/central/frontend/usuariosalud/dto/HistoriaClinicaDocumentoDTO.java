@@ -165,18 +165,14 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
     }
 
     /**
-     * Formatea la fecha del documento en formato legible: "dd/MM/yyyy HH:mm"
+     * Formatea la fecha del documento en formato legible.
      */
     public String getFechaFormateada() {
-        if (fechaDocumento == null || fechaDocumento.isBlank()) {
-            return "";
-        }
-        try {
-            LocalDateTime dateTime = LocalDateTime.parse(fechaDocumento);
-            return dateTime.format(FORMATTER);
-        } catch (DateTimeParseException e) {
-            return fechaDocumento;
-        }
+        return formatDate(fechaDocumento);
+    }
+
+    public String getFechaRegistroFormateada() {
+        return formatDate(fechaRegistro);
     }
 
     /**
@@ -207,5 +203,17 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
             return nombreClinica;
         }
         return "Clínica no especificada";
+    }
+
+    private String formatDate(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        try {
+            LocalDateTime dateTime = LocalDateTime.parse(raw);
+            return dateTime.format(FORMATTER);
+        } catch (DateTimeParseException e) {
+            return raw;
+        }
     }
 }
