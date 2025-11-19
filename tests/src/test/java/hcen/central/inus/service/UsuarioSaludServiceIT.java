@@ -14,6 +14,7 @@ import hcen.central.inus.entity.UsuarioClinica;
 import hcen.central.inus.entity.UsuarioSalud;
 import hcen.central.inus.enums.TipoDocumento;
 import hcen.central.inus.testsupport.ArquillianMavenResolver;
+import hcen.central.inus.testsupport.data.TestRegistrarUsuarioRequestFactory;
 import jakarta.ejb.EJB;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -76,7 +77,7 @@ public class UsuarioSaludServiceIT {
         UUID tenantId = UUID.randomUUID();
         String cedula = "12345670";
 
-        RegistrarUsuarioRequest request = buildRequest(cedula, tenantId);
+        RegistrarUsuarioRequest request = TestRegistrarUsuarioRequestFactory.buildBasic(cedula, tenantId);
         UsuarioSaludDTO dto = usuarioSaludService.registrarUsuarioEnClinica(request);
 
         assertEquals(cedula, dto.getCedula());
@@ -90,10 +91,10 @@ public class UsuarioSaludServiceIT {
         UUID tenantId = UUID.randomUUID();
         String cedula = "45678901";
 
-        usuarioSaludService.registrarUsuarioEnClinica(buildRequest(cedula, tenantId));
+        usuarioSaludService.registrarUsuarioEnClinica(TestRegistrarUsuarioRequestFactory.buildBasic(cedula, tenantId));
 
         try {
-            usuarioSaludService.registrarUsuarioEnClinica(buildRequest(cedula, tenantId));
+            usuarioSaludService.registrarUsuarioEnClinica(TestRegistrarUsuarioRequestFactory.buildBasic(cedula, tenantId));
             throw new AssertionError("Se esperaba IllegalArgumentException envuelta en EJBException");
         } catch (jakarta.ejb.EJBException ex) {
             Throwable cause = ex.getCause();
@@ -108,7 +109,8 @@ public class UsuarioSaludServiceIT {
         UUID tenantId = UUID.randomUUID();
         String cedula = "99911122";
 
-        usuarioSaludService.registrarUsuarioEnClinica(buildRequest(cedula, tenantId, "Lucia", "Suarez"));
+        usuarioSaludService.registrarUsuarioEnClinica(
+            TestRegistrarUsuarioRequestFactory.build(cedula, tenantId, "Lucia", "Suarez"));
 
         assertTrue(usuarioSaludService.verificarUsuarioExiste(cedula));
         assertTrue(usuarioSaludDAO.existsByCedulaAndTenantId(cedula, tenantId));
@@ -125,8 +127,10 @@ public class UsuarioSaludServiceIT {
     @Test
     public void listaUsuariosPorTenantOrdenados() {
         UUID tenantId = UUID.randomUUID();
-        usuarioSaludService.registrarUsuarioEnClinica(buildRequest("10020030", tenantId, "Maria", "Rodriguez"));
-        usuarioSaludService.registrarUsuarioEnClinica(buildRequest("10020031", tenantId, "Andrea", "Alonso"));
+        usuarioSaludService.registrarUsuarioEnClinica(
+            TestRegistrarUsuarioRequestFactory.build("10020030", tenantId, "Maria", "Rodriguez"));
+        usuarioSaludService.registrarUsuarioEnClinica(
+            TestRegistrarUsuarioRequestFactory.build("10020031", tenantId, "Andrea", "Alonso"));
 
         List<UsuarioSaludDTO> usuarios = usuarioSaludService.getUsuariosByTenantId(tenantId);
         assertEquals(2, usuarios.size());
@@ -139,7 +143,8 @@ public class UsuarioSaludServiceIT {
     public void actualizaUsuarioYNormalizaDatos() {
         UUID tenantId = UUID.randomUUID();
         String cedula = "77733388";
-        usuarioSaludService.registrarUsuarioEnClinica(buildRequest(cedula, tenantId, "Pablo", "Pereyra"));
+        usuarioSaludService.registrarUsuarioEnClinica(
+            TestRegistrarUsuarioRequestFactory.build(cedula, tenantId, "Pablo", "Pereyra"));
 
         ActualizarUsuarioSaludRequest update = new ActualizarUsuarioSaludRequest();
         update.setPrimerNombre("PABLO  ");
@@ -163,27 +168,10 @@ public class UsuarioSaludServiceIT {
         UUID tenantId = UUID.randomUUID();
         String cedula = "31415926";
 
-        usuarioSaludService.registrarUsuarioEnClinica(buildRequest(cedula, tenantId));
+        usuarioSaludService.registrarUsuarioEnClinica(TestRegistrarUsuarioRequestFactory.buildBasic(cedula, tenantId));
         assertTrue(usuarioSaludService.desasociarUsuarioDeClinica(cedula, tenantId));
         assertFalse(usuarioSaludService.desasociarUsuarioDeClinica(cedula, tenantId));
         assertFalse(usuarioSaludDAO.existsByCedulaAndTenantId(cedula, tenantId));
     }
 
-    private RegistrarUsuarioRequest buildRequest(String cedula, UUID tenantId) {
-        return buildRequest(cedula, tenantId, "Ana", "Test");
-    }
-
-    private RegistrarUsuarioRequest buildRequest(String cedula, UUID tenantId, String primerNombre, String primerApellido) {
-        RegistrarUsuarioRequest request = new RegistrarUsuarioRequest();
-        request.setCedula(cedula);
-        request.setTipoDocumento(TipoDocumento.DO);
-        request.setPrimerNombre(primerNombre);
-        request.setSegundoNombre(null);
-        request.setPrimerApellido(primerApellido);
-        request.setSegundoApellido(null);
-        request.setEmail(primerNombre.toLowerCase() + ".test@example.com");
-        request.setFechaNacimiento(LocalDate.of(1990, 1, 15));
-        request.setTenantId(tenantId);
-        return request;
-    }
 }

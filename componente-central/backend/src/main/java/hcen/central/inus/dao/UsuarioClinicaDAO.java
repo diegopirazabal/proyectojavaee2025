@@ -34,7 +34,7 @@ public class UsuarioClinicaDAO {
                 UsuarioClinica.class
             );
             query.setParameter("cedula", usuarioCedula);
-            query.setParameter("tenantId", tenantId);
+            query.setParameter("tenantId", normalizeTenantId(tenantId));
             return Optional.of(query.getSingleResult());
         } catch (NoResultException e) {
             return Optional.empty();
@@ -48,7 +48,7 @@ public class UsuarioClinicaDAO {
             Long.class
         );
         query.setParameter("cedula", usuarioCedula);
-        query.setParameter("tenantId", tenantId);
+        query.setParameter("tenantId", normalizeTenantId(tenantId));
         return query.getSingleResult() > 0;
     }
 
@@ -59,7 +59,7 @@ public class UsuarioClinicaDAO {
                 "ORDER BY uc.fechaAsociacion DESC",
             UsuarioClinica.class
         );
-        query.setParameter("tenantId", tenantId);
+        query.setParameter("tenantId", normalizeTenantId(tenantId));
         return query.getResultList();
     }
 
@@ -70,7 +70,7 @@ public class UsuarioClinicaDAO {
                 "ORDER BY uc.fechaAsociacion DESC",
             UsuarioClinica.class
         );
-        query.setParameter("tenantId", tenantId);
+        query.setParameter("tenantId", normalizeTenantId(tenantId));
         query.setFirstResult(page * size);
         query.setMaxResults(size);
         return query.getResultList();
@@ -82,7 +82,7 @@ public class UsuarioClinicaDAO {
                 "WHERE uc.tenantId = :tenantId AND uc.active = true",
             Long.class
         );
-        query.setParameter("tenantId", tenantId);
+        query.setParameter("tenantId", normalizeTenantId(tenantId));
         return query.getSingleResult();
     }
 
@@ -119,5 +119,9 @@ public class UsuarioClinicaDAO {
             return true;
         }
         return false;
+    }
+
+    private String normalizeTenantId(UUID tenantId) {
+        return tenantId != null ? tenantId.toString() : null;
     }
 }

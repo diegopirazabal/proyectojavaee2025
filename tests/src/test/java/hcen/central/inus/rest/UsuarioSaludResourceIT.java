@@ -23,11 +23,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import hcen.central.inus.testsupport.data.TestRegistrarUsuarioRequestFactory;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -82,8 +82,10 @@ public class UsuarioSaludResourceIT {
     @Test
     public void listaUsuariosPorTenant() {
         UUID tenantId = UUID.randomUUID();
-        usuarioSaludService.registrarUsuarioEnClinica(buildRequest("55566677", tenantId, "Lucia", "Suarez"));
-        usuarioSaludService.registrarUsuarioEnClinica(buildRequest("55566678", tenantId, "Luis", "Suarez"));
+        usuarioSaludService.registrarUsuarioEnClinica(
+            TestRegistrarUsuarioRequestFactory.build("55566677", tenantId, "Lucia", "Suarez"));
+        usuarioSaludService.registrarUsuarioEnClinica(
+            TestRegistrarUsuarioRequestFactory.build("55566678", tenantId, "Luis", "Suarez"));
 
         Response listarTodos = resource.getUsuariosByTenantId(tenantId.toString(), null);
         assertEquals(Response.Status.OK.getStatusCode(), listarTodos.getStatus());
@@ -105,7 +107,8 @@ public class UsuarioSaludResourceIT {
     public void verificarUsuarioExisteRetornaResultado() {
         UUID tenantId = UUID.randomUUID();
         String cedula = "88119933";
-        usuarioSaludService.registrarUsuarioEnClinica(buildRequest(cedula, tenantId, "Mauro", "Gomez"));
+        usuarioSaludService.registrarUsuarioEnClinica(
+            TestRegistrarUsuarioRequestFactory.build(cedula, tenantId, "Mauro", "Gomez"));
 
         Response response = resource.verificarUsuarioExiste(cedula);
         assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
@@ -118,7 +121,8 @@ public class UsuarioSaludResourceIT {
     @Test
     public void registrarYConsultarUsuario() {
         UUID tenantId = UUID.randomUUID();
-        Response respuesta = resource.registrarUsuario(buildRequest("88112233", tenantId, "Maria", "Lopez"));
+        Response respuesta = resource.registrarUsuario(
+            TestRegistrarUsuarioRequestFactory.build("88112233", tenantId, "Maria", "Lopez"));
         assertEquals(Response.Status.OK.getStatusCode(), respuesta.getStatus());
         UsuarioSaludDTO dto = (UsuarioSaludDTO) respuesta.getEntity();
         assertEquals("88112233", dto.getCedula());
@@ -135,7 +139,8 @@ public class UsuarioSaludResourceIT {
     public void desasociarUsuarioPropagaEstadoHttp() {
         UUID tenantId = UUID.randomUUID();
         String cedula = "77118855";
-        usuarioSaludService.registrarUsuarioEnClinica(buildRequest(cedula, tenantId, "Pablo", "Ramos"));
+        usuarioSaludService.registrarUsuarioEnClinica(
+            TestRegistrarUsuarioRequestFactory.build(cedula, tenantId, "Pablo", "Ramos"));
 
         Response ok = resource.desasociarUsuarioDeClinica(cedula, tenantId.toString());
         assertEquals(Response.Status.OK.getStatusCode(), ok.getStatus());
@@ -147,15 +152,4 @@ public class UsuarioSaludResourceIT {
         assertEquals(Response.Status.NOT_FOUND.getStatusCode(), notFound.getStatus());
     }
 
-    private RegistrarUsuarioRequest buildRequest(String cedula, UUID tenantId, String nombre, String apellido) {
-        RegistrarUsuarioRequest request = new RegistrarUsuarioRequest();
-        request.setCedula(cedula);
-        request.setTipoDocumento(TipoDocumento.DO);
-        request.setPrimerNombre(nombre);
-        request.setPrimerApellido(apellido);
-        request.setEmail(nombre.toLowerCase() + "." + apellido.toLowerCase() + "@example.com");
-        request.setFechaNacimiento(LocalDate.of(1990, 1, 15));
-        request.setTenantId(tenantId);
-        return request;
-    }
 }
