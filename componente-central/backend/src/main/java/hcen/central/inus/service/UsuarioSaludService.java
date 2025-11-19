@@ -136,6 +136,9 @@ public class UsuarioSaludService {
         if (request.getActivo() != null) {
             usuario.setActive(request.getActivo());
         }
+        if (request.getNotificacionesHabilitadas() != null) {
+            usuario.setNotificacionesHabilitadas(request.getNotificacionesHabilitadas());
+        }
         if (request.getFechaNacimiento() != null) {
             LocalDate fecha = LocalDate.parse(request.getFechaNacimiento());
             usuario.setFechaNacimiento(fecha);
@@ -177,6 +180,7 @@ public class UsuarioSaludService {
         usuario.setTipoDeDocumento(request.getTipoDocumento());
         usuario.setEmailVerificado(false);
         usuario.setActive(true);
+        usuario.setNotificacionesHabilitadas(Boolean.TRUE);
 
         // Intentar obtener datos de DNIC
         try {
@@ -234,6 +238,7 @@ public class UsuarioSaludService {
         usuario.setEmail("pendiente@hcen.gub.uy");
         usuario.setFechaNacimiento(LocalDate.of(1900, 1, 1));
         usuario.setNombreCompleto("PENDIENTE PENDIENTE");
+        usuario.setNotificacionesHabilitadas(Boolean.TRUE);
     }
 
     /**
@@ -272,6 +277,7 @@ public class UsuarioSaludService {
         dto.setPrimerApellido(entity.getPrimerApellido());
         dto.setSegundoApellido(entity.getSegundoApellido());
         dto.setActive(entity.getActive());
+        dto.setNotificacionesHabilitadas(entity.getNotificacionesHabilitadas());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
         return dto;

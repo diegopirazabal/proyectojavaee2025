@@ -15,6 +15,7 @@ public class ActualizarUsuarioSaludRequest implements Serializable {
     private String direccion;
     private Boolean activo;
     private String fechaNacimiento;
+    private Boolean notificacionesHabilitadas;
 
     public String getPrimerNombre() {
         return primerNombre;
@@ -86,5 +87,13 @@ public class ActualizarUsuarioSaludRequest implements Serializable {
 
     public void setFechaNacimiento(String fechaNacimiento) {
         this.fechaNacimiento = fechaNacimiento;
+    }
+
+    public Boolean getNotificacionesHabilitadas() {
+        return notificacionesHabilitadas;
+    }
+
+    public void setNotificacionesHabilitadas(Boolean notificacionesHabilitadas) {
+        this.notificacionesHabilitadas = notificacionesHabilitadas;
     }
 }

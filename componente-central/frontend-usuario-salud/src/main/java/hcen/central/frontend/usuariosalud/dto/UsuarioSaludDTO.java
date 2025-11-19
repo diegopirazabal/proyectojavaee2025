@@ -25,6 +25,7 @@ public class UsuarioSaludDTO implements Serializable {
     private String primerApellido;
     private String segundoApellido;
     private Boolean active;
+    private Boolean notificacionesHabilitadas = Boolean.TRUE;
 
     // Constructores
     public UsuarioSaludDTO() {}
@@ -157,6 +158,14 @@ public class UsuarioSaludDTO implements Serializable {
         this.active = active;
     }
 
+    public Boolean getNotificacionesHabilitadas() {
+        return notificacionesHabilitadas;
+    }
+
+    public void setNotificacionesHabilitadas(Boolean notificacionesHabilitadas) {
+        this.notificacionesHabilitadas = notificacionesHabilitadas;
+    }
+
     @Override
     public String toString() {
         return "UsuarioSaludDTO{" +
@@ -166,6 +175,7 @@ public class UsuarioSaludDTO implements Serializable {
                 ", primerApellido='" + primerApellido + '\'' +
                 ", email='" + email + '\'' +
                 ", active=" + active +
+                ", notificacionesHabilitadas=" + notificacionesHabilitadas +
                 '}';
     }
 }

@@ -46,6 +46,18 @@
             .warning-banner {
                 margin-bottom: 1rem;
             }
+            .notifications-switch {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+            .notifications-switch .ui-inputswitch {
+                margin-right: 0.5rem;
+            }
+            .switch-hint {
+                color: #666;
+                font-size: 0.85rem;
+            }
         </style>
 
         <div class="profile-container">
@@ -131,6 +143,20 @@
                                          placeholder="Calle, número, ciudad..."
                                          disabled="#{not usuarioSaludDashboardBean.usuarioRegistrado}"
                                          style="width: 100%;"/>
+
+                        <h:outputLabel value="Notificaciones móviles" style="font-weight: 500;"/>
+                        <h:panelGroup styleClass="notifications-switch">
+                            <p:inputSwitch id="notificacionesSwitch"
+                                           value="#{usuarioSaludDashboardBean.notificacionesHabilitadas}"
+                                           disabled="#{not usuarioSaludDashboardBean.usuarioRegistrado}">
+                                <p:ajax listener="#{usuarioSaludDashboardBean.actualizarPreferenciasNotificaciones}"
+                                        update="profileForm:messages"
+                                        process="@this"/>
+                            </p:inputSwitch>
+                            <span class="switch-hint">
+                                Activa para recibir alertas en la app mobile.
+                            </span>
+                        </h:panelGroup>
                     </p:panelGrid>
 
                     <!-- Botón guardar cambios (solo visible si el usuario está registrado en BD) -->

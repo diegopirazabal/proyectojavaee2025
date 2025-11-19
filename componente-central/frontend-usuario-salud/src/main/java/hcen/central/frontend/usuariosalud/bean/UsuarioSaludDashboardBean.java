@@ -48,6 +48,7 @@ public class UsuarioSaludDashboardBean implements Serializable {
     private String docType;
     private String docNumber;
     private String warningMessage;
+    private Boolean notificacionesHabilitadas = Boolean.TRUE;
 
     @PostConstruct
     public void init() {
@@ -143,6 +144,9 @@ public class UsuarioSaludDashboardBean implements Serializable {
                 ciudadano.setEmail(usuarioDB.getEmail() != null ? usuarioDB.getEmail() : "");
                 ciudadano.setTelefono(usuarioDB.getTelefono() != null ? usuarioDB.getTelefono() : "");
                 ciudadano.setDireccion(usuarioDB.getDireccion() != null ? usuarioDB.getDireccion() : "");
+                notificacionesHabilitadas = usuarioDB.getNotificacionesHabilitadas() != null
+                        ? usuarioDB.getNotificacionesHabilitadas()
+                        : Boolean.TRUE;
 
                 // Formatear fecha de nacimiento para mostrar
                 if (usuarioDB.getFechaNacimiento() != null) {
@@ -191,6 +195,7 @@ public class UsuarioSaludDashboardBean implements Serializable {
             CiudadanoDetalle respuesta = dnicServiceClient.obtenerCiudadano(tipo, numero);
             ciudadano = respuesta;
             usuarioDB = null;  // No hay datos en BD
+            notificacionesHabilitadas = Boolean.TRUE;
 
             if (ciudadano.getEmail() == null) {
                 ciudadano.setEmail("");
@@ -207,6 +212,7 @@ public class UsuarioSaludDashboardBean implements Serializable {
         } catch (DocumentoNoEncontradoException e) {
             ciudadano = new CiudadanoDetalle();
             usuarioDB = null;
+            notificacionesHabilitadas = Boolean.TRUE;
             ciudadano.setTipoDocumento(tipo);
             ciudadano.setNumeroDocumento(numero);
             warningMessage = null;
@@ -216,6 +222,7 @@ public class UsuarioSaludDashboardBean implements Serializable {
             LOGGER.log(Level.SEVERE, "Error consultando DNIC", e);
             ciudadano = new CiudadanoDetalle();
             usuarioDB = null;
+            notificacionesHabilitadas = Boolean.TRUE;
             ciudadano.setTipoDocumento(tipo);
             ciudadano.setNumeroDocumento(numero);
             warningMessage = null;
@@ -249,7 +256,8 @@ public class UsuarioSaludDashboardBean implements Serializable {
                 usuarioDB.getCedula(),
                 ciudadano.getEmail(),
                 ciudadano.getTelefono(),
-                ciudadano.getDireccion()
+                ciudadano.getDireccion(),
+                getNotificacionesHabilitadas()
             );
 
             // Actualizar datos locales
@@ -257,6 +265,9 @@ public class UsuarioSaludDashboardBean implements Serializable {
             ciudadano.setEmail(actualizado.getEmail());
             ciudadano.setTelefono(actualizado.getTelefono() != null ? actualizado.getTelefono() : "");
             ciudadano.setDireccion(actualizado.getDireccion() != null ? actualizado.getDireccion() : "");
+            notificacionesHabilitadas = actualizado.getNotificacionesHabilitadas() != null
+                    ? actualizado.getNotificacionesHabilitadas()
+                    : Boolean.TRUE;
 
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
                     "Éxito", "Los datos de contacto se actualizaron correctamente"));
@@ -265,6 +276,47 @@ public class UsuarioSaludDashboardBean implements Serializable {
             LOGGER.log(Level.SEVERE, "Error al actualizar datos del usuario", e);
             context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR,
                     "Error", "No se pudieron guardar los cambios: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Permite activar o desactivar las notificaciones push para el usuario.
+     */
+    public void actualizarPreferenciasNotificaciones() {
+        FacesContext context = FacesContext.getCurrentInstance();
+        if (usuarioDB == null) {
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN,
+                    "Acción no disponible", "Registra tus datos en el sistema antes de gestionar notificaciones."));
+            return;
+        }
+
+        Boolean estadoSolicitado = getNotificacionesHabilitadas();
+        try {
+            UsuarioSaludDTO actualizado = apiService.actualizarUsuario(
+                usuarioDB.getCedula(),
+                ciudadano.getEmail(),
+                ciudadano.getTelefono(),
+                ciudadano.getDireccion(),
+                estadoSolicitado
+            );
+
+            usuarioDB = actualizado;
+            notificacionesHabilitadas = actualizado.getNotificacionesHabilitadas() != null
+                    ? actualizado.getNotificacionesHabilitadas()
+                    : Boolean.TRUE;
+
+            String detalle = Boolean.TRUE.equals(notificacionesHabilitadas)
+                    ? "Las notificaciones móviles fueron habilitadas."
+                    : "Las notificaciones móviles fueron desactivadas.";
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO,
+                    "Preferencias actualizadas", detalle));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al actualizar preferencias de notificaciones", e);
+            context.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR,
+                    "Error", "No se pudieron actualizar las notificaciones. Intenta nuevamente."));
+            notificacionesHabilitadas = usuarioDB.getNotificacionesHabilitadas() != null
+                    ? usuarioDB.getNotificacionesHabilitadas()
+                    : Boolean.TRUE;
         }
     }
 
@@ -289,6 +341,14 @@ public class UsuarioSaludDashboardBean implements Serializable {
 
     public boolean isUsuarioRegistrado() {
         return usuarioDB != null;
+    }
+
+    public Boolean getNotificacionesHabilitadas() {
+        return notificacionesHabilitadas != null ? notificacionesHabilitadas : Boolean.TRUE;
+    }
+
+    public void setNotificacionesHabilitadas(Boolean notificacionesHabilitadas) {
+        this.notificacionesHabilitadas = notificacionesHabilitadas;
     }
 
     public String getWarningMessage() {

@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.faces.context.FacesContext;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonValue;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -140,18 +141,27 @@ public class APIService implements Serializable {
     }
 
     /**
-     * Actualiza datos de contacto de un usuario (email, teléfono, dirección)
+     * Actualiza datos de contacto y preferencias de un usuario
      * PUT /api/usuarios/{cedula}
      */
-    public UsuarioSaludDTO actualizarUsuario(String cedula, String email, String telefono, String direccion) throws IOException {
+    public UsuarioSaludDTO actualizarUsuario(String cedula,
+                                             String email,
+                                             String telefono,
+                                             String direccion,
+                                             Boolean notificacionesHabilitadas) throws IOException {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPut request = new HttpPut(getBackendUrl() + "/api/usuarios/" + cedula);
 
-            JsonObject updateData = Json.createObjectBuilder()
+            JsonObjectBuilder builder = Json.createObjectBuilder()
                 .add("email", email != null ? email : "")
                 .add("telefono", telefono != null ? telefono : "")
-                .add("direccion", direccion != null ? direccion : "")
-                .build();
+                .add("direccion", direccion != null ? direccion : "");
+
+            if (notificacionesHabilitadas != null) {
+                builder.add("notificacionesHabilitadas", notificacionesHabilitadas);
+            }
+
+            JsonObject updateData = builder.build();
 
             StringEntity entity = new StringEntity(updateData.toString(), ContentType.APPLICATION_JSON);
             request.setEntity(entity);
@@ -188,6 +198,9 @@ public class APIService implements Serializable {
             dto.setDireccion(obj.getString("direccion", null));
             dto.setNombreCompleto(obj.getString("nombreCompleto", null));
             dto.setActive(obj.getBoolean("active", true));
+            if (obj.containsKey("notificacionesHabilitadas") && !obj.isNull("notificacionesHabilitadas")) {
+                dto.setNotificacionesHabilitadas(obj.getBoolean("notificacionesHabilitadas", true));
+            }
 
             // Fecha de nacimiento (puede venir como string ISO "2000-01-15" o como array [2000,1,15])
             if (obj.containsKey("fechaNacimiento") && !obj.isNull("fechaNacimiento")) {

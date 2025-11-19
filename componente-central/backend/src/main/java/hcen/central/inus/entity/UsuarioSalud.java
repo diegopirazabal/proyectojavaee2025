@@ -71,6 +71,9 @@ public class UsuarioSalud {
 
     @Column(name = "active", nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
     private Boolean active = true;
+
+    @Column(name = "notificaciones_habilitadas", nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
+    private Boolean notificacionesHabilitadas = true;
     
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -155,6 +158,11 @@ public class UsuarioSalud {
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }
     public Boolean isActive() { return active; }
+
+    public Boolean getNotificacionesHabilitadas() { return notificacionesHabilitadas; }
+    public void setNotificacionesHabilitadas(Boolean notificacionesHabilitadas) {
+        this.notificacionesHabilitadas = notificacionesHabilitadas;
+    }
     
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
@@ -216,6 +224,7 @@ public class UsuarioSalud {
                 ", email='" + email + '\'' +
                 ", nombreCompleto='" + nombreCompleto + '\'' +
                 ", active=" + active +
+                ", notificacionesHabilitadas=" + notificacionesHabilitadas +
                 '}';
     }
 }

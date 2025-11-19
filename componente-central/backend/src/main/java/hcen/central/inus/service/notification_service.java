@@ -18,7 +18,9 @@ import jakarta.inject.Inject;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,6 +61,7 @@ public class notification_service {
         }
 
         LOGGER.info("Enviando notificación broadcast a " + activeTokens.size() + " dispositivos");
+        Map<Long, Boolean> permisosNotificaciones = new HashMap<>();
 
         // Crear notificación
         Notification notification = Notification.builder()
@@ -72,6 +75,30 @@ public class notification_service {
 
         // Enviar notificación a cada token individualmente
         for (FCMToken token : activeTokens) {
+            Long usuarioId = token.getUsuarioId();
+            if (usuarioId == null) {
+                LOGGER.fine(() -> "Token " + token.getId() + " no tiene usuario asociado. Omitiendo.");
+                continue;
+            }
+
+            Boolean puedeRecibir = permisosNotificaciones.get(usuarioId);
+            if (puedeRecibir == null) {
+                Optional<UsuarioSalud> usuarioOpt = usuarioSaludDAO.findById(usuarioId);
+                if (usuarioOpt.isEmpty()) {
+                    LOGGER.fine(() -> "No se encontró usuario " + usuarioId + " para token " + token.getId());
+                    permisosNotificaciones.put(usuarioId, Boolean.FALSE);
+                    continue;
+                }
+                puedeRecibir = puedeRecibirNotificaciones(usuarioOpt.get());
+                permisosNotificaciones.put(usuarioId, puedeRecibir);
+            }
+
+            if (!puedeRecibir) {
+                LOGGER.fine(() -> "Usuario " + usuarioId + " tiene notificaciones deshabilitadas. Token " +
+                        token.getId() + " omitido.");
+                continue;
+            }
+
             try {
                 Message message = Message.builder()
                         .setToken(token.getFcmToken())
@@ -104,6 +131,16 @@ public class notification_service {
         if (!firebaseInitializer.isReady()) {
             LOGGER.warning("Firebase not initialized; skipping direct notification.");
             return false;
+        }
+
+        Optional<UsuarioSalud> usuarioOpt = usuarioSaludDAO.findByCedula(cedula);
+        if (usuarioOpt.isEmpty()) {
+            LOGGER.warning("Intento de notificar a cédula " + cedula + " que no está registrada.");
+            return false;
+        }
+        if (!puedeRecibirNotificaciones(usuarioOpt.get())) {
+            LOGGER.info(() -> "Usuario " + cedula + " tiene notificaciones deshabilitadas. Se omite el envío push.");
+            return true;
         }
 
         String sanitizedCedula = sanitizeTopicSegment(cedula);
@@ -182,6 +219,12 @@ public class notification_service {
             notificacionDAO.save(notif);
             LOGGER.info("Notificación guardada en BD para usuario: " + solicitud.getCedulaPaciente());
 
+            if (!puedeRecibirNotificaciones(usuario)) {
+                LOGGER.info(() -> "Usuario " + solicitud.getCedulaPaciente() +
+                        " deshabilitó las notificaciones. Se registró en BD pero no se enviará push.");
+                return true;
+            }
+
             // 2. Enviar notificación push via FCM
             if (!firebaseInitializer.isReady()) {
                 LOGGER.warning("Firebase not initialized; notification saved in DB but not sent via FCM.");
@@ -225,5 +268,14 @@ public class notification_service {
                     solicitud.getCedulaPaciente()), e);
             return false;
         }
+    }
+
+    private boolean puedeRecibirNotificaciones(UsuarioSalud usuario) {
+        if (usuario == null) {
+            return false;
+        }
+        boolean activo = usuario.getActive() == null || usuario.getActive();
+        boolean habilitado = usuario.getNotificacionesHabilitadas() == null || usuario.getNotificacionesHabilitadas();
+        return activo && habilitado;
     }
 }
