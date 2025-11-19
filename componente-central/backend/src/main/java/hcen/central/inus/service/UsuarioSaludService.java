@@ -98,7 +98,7 @@ public class UsuarioSaludService {
         }
 
         UsuarioSalud usuario = usuarioDAO.findByCedula(cedula.trim())
-            .orElseThrow(() -> new IllegalArgumentException("No existe un usuario con la cédula indicada"));
+                .orElseThrow(() -> new IllegalArgumentException("No existe un usuario con la cédula indicada"));
 
         if (request.getPrimerNombre() != null) {
             String primerNombre = request.getPrimerNombre().trim();
@@ -145,10 +145,10 @@ public class UsuarioSaludService {
         }
 
         usuario.setNombreCompleto(buildNombreCompleto(
-            usuario.getPrimerNombre(),
-            usuario.getSegundoNombre(),
-            usuario.getPrimerApellido(),
-            usuario.getSegundoApellido()
+                usuario.getPrimerNombre(),
+                usuario.getSegundoNombre(),
+                usuario.getPrimerApellido(),
+                usuario.getSegundoApellido()
         ));
 
         UsuarioSalud actualizado = usuarioDAO.save(usuario);
@@ -187,8 +187,8 @@ public class UsuarioSaludService {
             LOGGER.info("Consultando DNIC para usuario con cédula: " + request.getCedula());
 
             DnicCiudadanoDTO datosFromDnic = dnicClient.obtenerCiudadano(
-                request.getTipoDocumento().name(),
-                request.getCedula().trim()
+                    request.getTipoDocumento().name(),
+                    request.getCedula().trim()
             );
 
             // Validar mayoría de edad (18+)
@@ -210,19 +210,19 @@ public class UsuarioSaludService {
         } catch (CiudadanoNoEncontradoException e) {
             // DNIC no encontró al ciudadano - crear con datos PENDIENTE
             LOGGER.warning("Ciudadano no encontrado en DNIC para cédula " + request.getCedula() +
-                          " - creando con datos PENDIENTE");
+                    " - creando con datos PENDIENTE");
             poblarUsuarioConDatosPendientes(usuario);
 
         } catch (UsuarioMenorDeEdadException e) {
             // Usuario es menor de edad - rechazar creación
             LOGGER.warning("Usuario menor de edad detectado: " + e.getEdad() + " años - rechazando creación");
             throw new IllegalArgumentException(
-                "No se puede registrar un usuario menor de edad. Edad: " + e.getEdad() + " años (se requieren 18+)");
+                    "No se puede registrar un usuario menor de edad. Edad: " + e.getEdad() + " años (se requieren 18+)");
 
         } catch (Exception e) {
             // Error general de comunicación con DNIC - crear con datos PENDIENTE (graceful degradation)
             LOGGER.log(Level.WARNING, "Error consultando DNIC para cédula " + request.getCedula() +
-                      " - creando con datos PENDIENTE", e);
+                    " - creando con datos PENDIENTE", e);
             poblarUsuarioConDatosPendientes(usuario);
         }
 
@@ -245,7 +245,7 @@ public class UsuarioSaludService {
      * Construye el nombre completo del usuario
      */
     private String buildNombreCompleto(String primerNombre, String segundoNombre,
-                                      String primerApellido, String segundoApellido) {
+                                       String primerApellido, String segundoApellido) {
         StringBuilder sb = new StringBuilder();
         sb.append(primerNombre.trim());
         if (segundoNombre != null && !segundoNombre.trim().isEmpty()) {
