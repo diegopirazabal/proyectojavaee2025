@@ -174,6 +174,17 @@ public class DocumentoClinicoDAO {
         return false;
     }
 
+    /**
+     * Cuenta todos los documentos registrados (todas las clínicas)
+     */
+    public long countAll() {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(d) FROM documento_clinico d",
+            Long.class
+        );
+        return query.getSingleResult();
+    }
+
     // ============ MÉTODOS PARA CODIGUERAS ============
 
     /**

@@ -188,4 +188,30 @@ public class SolicitudAccesoDocumentoDAO {
             save(solicitud);
         }
     }
+
+    /**
+     * Cuenta solicitudes por tenant y estado
+     */
+    public long countByTenantIdAndEstado(UUID tenantId, EstadoSolicitud estado) {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(s) FROM solicitud_acceso_documento s " +
+            "WHERE s.tenantId = :tenantId AND s.estado = :estado",
+            Long.class
+        );
+        query.setParameter("tenantId", tenantId);
+        query.setParameter("estado", estado);
+        return query.getSingleResult();
+    }
+
+    /**
+     * Cuenta solicitudes por estado (todas las clínicas)
+     */
+    public long countByEstado(EstadoSolicitud estado) {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(s) FROM solicitud_acceso_documento s WHERE s.estado = :estado",
+            Long.class
+        );
+        query.setParameter("estado", estado);
+        return query.getSingleResult();
+    }
 }

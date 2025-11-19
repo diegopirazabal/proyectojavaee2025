@@ -159,10 +159,21 @@ public class UsuarioSaludDAO {
      */
     public long countByTenantId(UUID tenantId) {
         TypedQuery<Long> query = em.createQuery(
-            "SELECT COUNT(u) FROM UsuarioSaludPeriferico u WHERE u.tenantId = :tenantId AND u.active = true",
+            "SELECT COUNT(u) FROM UsuarioSalud u WHERE u.tenantId = :tenantId AND u.active = true",
             Long.class
         );
         query.setParameter("tenantId", tenantId);
+        return query.getSingleResult();
+    }
+
+    /**
+     * Cuenta usuarios activos en todas las clínicas
+     */
+    public long countActivos() {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(u) FROM UsuarioSalud u WHERE u.active = true",
+            Long.class
+        );
         return query.getSingleResult();
     }
 
