@@ -49,7 +49,7 @@ public class DashboardFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        adapter = new HistoriaClinicaAdapter();
+        adapter = new HistoriaClinicaAdapter(this::mostrarDetalleDocumento);
         binding.recyclerHistoria.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerHistoria.setAdapter(adapter);
         binding.swipeRefresh.setColorSchemeResources(R.color.blue_500, R.color.blue_700);
@@ -79,6 +79,14 @@ public class DashboardFragment extends Fragment {
         boolean hasItems = items != null && !items.isEmpty();
         binding.recyclerHistoria.setVisibility(hasItems ? View.VISIBLE : View.GONE);
         binding.layoutEmpty.setVisibility(!hasItems ? View.VISIBLE : View.GONE);
+    }
+
+    private void mostrarDetalleDocumento(@NonNull HistoriaClinicaItem item) {
+        if (!isAdded()) {
+            return;
+        }
+        HistoriaClinicaDetalleDialogFragment dialog = HistoriaClinicaDetalleDialogFragment.newInstance(item);
+        dialog.show(getParentFragmentManager(), "historiaDetalle");
     }
 
     private void renderLoading(Boolean isLoading) {

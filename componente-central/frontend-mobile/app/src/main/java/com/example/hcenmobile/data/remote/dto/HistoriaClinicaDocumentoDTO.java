@@ -31,6 +31,9 @@ public class HistoriaClinicaDocumentoDTO {
     @SerializedName("profesional")
     private String profesional;
 
+    @SerializedName("nombreClinica")
+    private String nombreClinica;
+
     public String getHistoriaId() {
         return historiaId;
     }
@@ -93,5 +96,13 @@ public class HistoriaClinicaDocumentoDTO {
 
     public void setProfesional(String profesional) {
         this.profesional = profesional;
+    }
+
+    public String getNombreClinica() {
+        return nombreClinica;
+    }
+
+    public void setNombreClinica(String nombreClinica) {
+        this.nombreClinica = nombreClinica;
     }
 }

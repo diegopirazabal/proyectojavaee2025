@@ -83,4 +83,13 @@
     <string name="button_cancel">Cancelar</string>
     <string name="button_logout">Cerrar sesión</string>
     <string name="navigation_logout_label"></string>
+
+    <!-- Detalle Historia Clínica -->
+    <string name="historia_detalle_title">Detalle del documento</string>
+    <string name="historia_detalle_fecha_registro_label">Registrado en</string>
+    <string name="historia_detalle_documento_label">Motivo de consulta</string>
+    <string name="historia_detalle_tenant_label">Clínica</string>
+    <string name="historia_detalle_cedula_label">Cédula del paciente</string>
+    <string name="historia_detalle_no_disponible">No disponible</string>
+    <string name="button_close">Cerrar</string>
 </resources>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textDetalleMotivo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceHeadline6"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:text="@string/historia_detalle_no_disponible" />
+
+        <TextView
+            android:id="@+id/textDetalleProfesional"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceSubtitle2"
+            android:text="@string/historia_detalle_no_disponible" />
+
+        <TextView
+            android:id="@+id/textDetalleFechaPrincipal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textAppearance="?attr/textAppearanceCaption"
+            android:text="@string/historia_detalle_no_disponible" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:background="@color/gray_200" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="12dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/historia_detalle_fecha_registro_label"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textAllCaps="true" />
+
+            <TextView
+                android:id="@+id/textDetalleFechaRegistro"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/historia_detalle_no_disponible"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/historia_detalle_documento_label"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textAllCaps="true" />
+
+            <TextView
+                android:id="@+id/textDetalleDocumentoId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/historia_detalle_no_disponible"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/historia_detalle_tenant_label"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textAllCaps="true" />
+
+            <TextView
+                android:id="@+id/textDetalleTenant"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/historia_detalle_no_disponible"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/historia_detalle_cedula_label"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textAllCaps="true" />
+
+            <TextView
+                android:id="@+id/textDetalleCedula"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/historia_detalle_no_disponible"
+                android:textAppearance="?attr/textAppearanceBody2" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

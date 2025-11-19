@@ -54,4 +54,6 @@
     <color name="notifications_header_gradient_end">#FFFFFFFF</color>
     <color name="notifications_header_title">#0F1E3D</color>
     <color name="notifications_header_subtitle">#4B5D73</color>
+
+    <color name="gray_200">#E0E0E0</color>
 </resources>

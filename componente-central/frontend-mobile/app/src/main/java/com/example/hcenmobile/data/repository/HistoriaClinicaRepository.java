@@ -111,17 +111,29 @@ public class HistoriaClinicaRepository {
                 dto.getFechaDocumento(),
                 dto.getFechaRegistro());
 
+        String fechaDocDetalle = DateFormatterUtil.formatDateTime(dto.getFechaDocumento(), null);
+        String fechaRegistroDetalle = DateFormatterUtil.formatDateTime(dto.getFechaRegistro(), null);
+
         String profesional = dto.getProfesional();
         if (TextUtils.isEmpty(profesional)) {
             profesional = context.getString(R.string.historia_profesional_indefinido);
         }
 
+        String nombreClinica = dto.getNombreClinica();
+        if (TextUtils.isEmpty(nombreClinica)) {
+            nombreClinica = context.getString(R.string.historia_detalle_no_disponible);
+        }
+
         return new HistoriaClinicaItem(
                 dto.getDocumentoId(),
                 dto.getTenantId(),
+                dto.getUsuarioCedula(),
                 motivo,
                 fecha,
-                profesional
+                fechaDocDetalle,
+                fechaRegistroDetalle,
+                profesional,
+                nombreClinica
         );
     }
 
