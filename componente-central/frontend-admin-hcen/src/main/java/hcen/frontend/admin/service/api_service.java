@@ -7,6 +7,7 @@ import hcen.frontend.admin.dto.prestador_dto;
 import hcen.frontend.admin.dto.prestador_form;
 import hcen.frontend.admin.dto.usuario_salud_dto;
 import hcen.frontend.admin.dto.usuario_sistema_dto;
+import hcen.frontend.admin.dto.reportes_estadisticas_dto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
@@ -332,6 +333,22 @@ public class api_service {
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Error al obtener clínicas", e);
             throw new RuntimeException("No se pudo obtener la lista de clínicas", e);
+        }
+    }
+
+    public reportes_estadisticas_dto obtenerReportesEstadisticas() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpGet request = new HttpGet(peripheralUrl + "/reportes/estadisticas");
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = readEntityContent(response);
+                    return parseReportesEstadisticas(responseBody);
+                }
+                throw new IOException("Código inesperado al obtener las estadísticas: " + response.getCode());
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener estadísticas de reportes", e);
+            throw new RuntimeException("No se pudo obtener el resumen de reportes", e);
         }
     }
 
@@ -926,8 +943,63 @@ public class api_service {
         return clinicas;
     }
 
+    private reportes_estadisticas_dto parseReportesEstadisticas(String jsonString) {
+        reportes_estadisticas_dto resultado = new reportes_estadisticas_dto();
+        try (JsonReader reader = Json.createReader(new StringReader(jsonString))) {
+            JsonObject root = reader.readObject();
+            resultado.setGeneratedAt(getString(root, "generatedAt"));
+            resultado.setTotalClinicas(root.getInt("totalClinicas", 0));
+
+            if (root.containsKey("totals") && !root.isNull("totals")) {
+                JsonObject totalsObj = root.getJsonObject("totals");
+                reportes_estadisticas_dto.Totales totales = new reportes_estadisticas_dto.Totales();
+                totales.setPacientes(getLong(totalsObj, "pacientes"));
+                totales.setDocumentos(getLong(totalsObj, "documentos"));
+                totales.setAccesosDocumentos(getLong(totalsObj, "accesosDocumentos"));
+                totales.setProfesionales(getLong(totalsObj, "profesionales"));
+                resultado.setTotals(totales);
+            }
+
+            if (root.containsKey("clinicas") && !root.isNull("clinicas")) {
+                JsonArray clinicasArray = root.getJsonArray("clinicas");
+                List<reportes_estadisticas_dto.ClinicaEstadistica> clinicas = new ArrayList<>();
+                for (JsonValue value : clinicasArray) {
+                    if (value.getValueType() != JsonValue.ValueType.OBJECT) {
+                        continue;
+                    }
+                    JsonObject clinicaObj = value.asJsonObject();
+                    reportes_estadisticas_dto.ClinicaEstadistica dto =
+                        new reportes_estadisticas_dto.ClinicaEstadistica();
+                    dto.setTenantId(getString(clinicaObj, "tenantId"));
+                    dto.setNombre(getString(clinicaObj, "nombre"));
+                    dto.setEmail(getString(clinicaObj, "email"));
+                    dto.setPacientes(getLong(clinicaObj, "pacientes"));
+                    dto.setDocumentos(getLong(clinicaObj, "documentos"));
+                    dto.setAccesosDocumentos(getLong(clinicaObj, "accesosDocumentos"));
+                    dto.setProfesionales(getLong(clinicaObj, "profesionales"));
+                    clinicas.add(dto);
+                }
+                resultado.setClinicas(clinicas);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error parseando las estadísticas de reportes", e);
+            throw new RuntimeException("No se pudo interpretar el resumen de estadísticas", e);
+        }
+        return resultado;
+    }
+
     private String getString(JsonObject obj, String key) {
         return obj.containsKey(key) && !obj.isNull(key) ? obj.getString(key) : null;
+    }
+
+    private long getLong(JsonObject obj, String key) {
+        if (obj.containsKey(key) && !obj.isNull(key)) {
+            JsonValue value = obj.get(key);
+            if (value.getValueType() == JsonValue.ValueType.NUMBER) {
+                return obj.getJsonNumber(key).longValue();
+            }
+        }
+        return 0L;
     }
 
     private Boolean getBoolean(JsonObject obj, String key) {

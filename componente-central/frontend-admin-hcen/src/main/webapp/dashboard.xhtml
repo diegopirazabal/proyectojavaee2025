@@ -40,21 +40,25 @@
                                          styleClass="nav-action-button"
                                          icon="pi pi-users"
                                          action="usuarios?faces-redirect=true"
+                                         ajax="false"
                                          process="@this"/>
                         <p:commandButton value="Gestionar Permisos"
                                          styleClass="nav-action-button"
                                          icon="pi pi-key"
                                          action="permisos?faces-redirect=true"
+                                         ajax="false"
                                          process="@this"/>
                         <p:commandButton type="button"
                                          value="Crear Clínica"
                                          styleClass="nav-action-button"
                                          icon="pi pi-building"
                                          onclick="PF('altaClinicaDialog').show()"/>
-                        <p:commandButton type="button"
-                                         value="Ver Reportes"
+                        <p:commandButton value="Ver Reportes"
                                          styleClass="nav-action-button"
-                                         icon="pi pi-chart-bar"/>
+                                         icon="pi pi-chart-bar"
+                                         action="reportes?faces-redirect=true"
+                                         ajax="false"
+                                         process="@this"/>
                         <p:commandButton type="button"
                                          value="Configuración"
                                          styleClass="nav-action-button"

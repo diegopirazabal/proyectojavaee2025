@@ -6,7 +6,7 @@
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
 
 <h:head>
-    <title>HCEN - Reportes</title>
+    <title>HCEN - Reportes y Estadísticas</title>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" type="text/css" href="#{request.contextPath}/resources/css/dashboard.css"/>
@@ -25,7 +25,7 @@
             <div class="header-content">
                 <div class="logo-section">
                     <h1>HCEN</h1>
-                    <span>Reportes Operativos</span>
+                    <span>Reportes y Estadísticas</span>
                 </div>
 
                 <div class="nav-actions">
@@ -61,69 +61,85 @@
             <div class="dashboard-content full-bleed">
 
                 <h:form id="reportsForm">
-                    <div class="dashboard-grid reports-grid">
+                    <p:messages id="messages" showDetail="true" closable="true"/>
 
-                        <!-- Resumen Ejecutivo -->
-                        <div class="dashboard-card full-width">
-                            <div class="card-header">
-                                <h3><i class="pi pi-chart-pie"></i> Resumen Ejecutivo</h3>
-                            </div>
-                            <div class="card-content">
-                                <div class="metrics-grid">
-                                    <ui:repeat value="#{reportes_bean.resumenMetricas}" var="metric">
-                                        <div class="metric-card">
-                                            <span class="metric-label">#{metric.label}</span>
-                                            <span class="metric-value">#{metric.value}</span>
-                                            <span class="metric-subtext #{metric.positive ? 'trend-positive' : 'trend-negative'}">
-                                                #{metric.trendText}
-                                            </span>
-                                        </div>
-                                    </ui:repeat>
-                                </div>
-                            </div>
+                    <div class="reportes-toolbar">
+                        <div class="toolbar-info">
+                            <span class="last-update-label">Última actualización:</span>
+                            <span class="last-update-value">#{reportes_bean.generatedAtFormatted}</span>
                         </div>
-
-                        <!-- Clínicas con mayor actividad -->
-                        <div class="dashboard-card full-width">
-                            <div class="card-header">
-                                <h3><i class="pi pi-briefcase"></i> Clínicas con Mayor Actividad</h3>
-                            </div>
-                            <div class="card-content reports-table">
-                                <p:dataTable value="#{reportes_bean.actividadClinicas}"
-                                             var="clinica"
-                                             responsiveLayout="scroll">
-                                    <p:column headerText="Clínica">
-                                        <h:outputText value="#{clinica.nombre}"/>
-                                    </p:column>
-                                    <p:column headerText="Documentos RNDC">
-                                        <h:outputText value="#{clinica.documentos}"/>
-                                    </p:column>
-                                    <p:column headerText="Usuarios Activos">
-                                        <h:outputText value="#{clinica.usuariosActivos}"/>
-                                    </p:column>
-                                    <p:column headerText="Estado">
-                                        <span class="#{clinica.estado eq 'Operativa' ? 'status-active' : 'status-inactive'}">
-                                            #{clinica.estado}
-                                        </span>
-                                    </p:column>
-                                </p:dataTable>
-                            </div>
+                        <div class="toolbar-actions">
+                            <p:commandButton value="Actualizar datos"
+                                             icon="pi pi-refresh"
+                                             actionListener="#{reportes_bean.refrescarDatos}"
+                                             update="reportsForm"
+                                             styleClass="action-button"/>
                         </div>
-
-                        <!-- Gráfico de tendencia -->
-                        <div class="dashboard-card full-width">
-                            <div class="card-header">
-                                <h3><i class="pi pi-chart-line"></i> Usuarios Activos por Trimestre</h3>
-                                <span class="card-hint">Incluye clínicas con onboarding completo</span>
-                            </div>
-                            <div class="card-content">
-                                <p:chart type="bar"
-                                         model="#{reportes_bean.usuariosClinicasChart}"
-                                         styleClass="report-chart"/>
-                            </div>
-                        </div>
-
                     </div>
+
+                    <div class="metrics-grid reports-metrics">
+                        <div class="metric-card">
+                            <span class="metric-label">Pacientes integrados</span>
+                            <span class="metric-value">#{reportes_bean.totales.pacientes}</span>
+                            <span class="metric-subtext">Total nacional</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Documentos clínicos</span>
+                            <span class="metric-value">#{reportes_bean.totales.documentos}</span>
+                            <span class="metric-subtext">Sincronizados en el RNDC</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Accesos aprobados</span>
+                            <span class="metric-value">#{reportes_bean.totales.accesosDocumentos}</span>
+                            <span class="metric-subtext">Permisos otorgados por pacientes</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Profesionales</span>
+                            <span class="metric-value">#{reportes_bean.totales.profesionales}</span>
+                            <span class="metric-subtext">En clínicas integradas</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card full-width">
+                        <div class="card-header">
+                            <h3><i class="pi pi-briefcase"></i>Detalle por Clínica</h3>
+                            <span class="card-hint">
+                                #{reportes_bean.estadisticas != null ? reportes_bean.estadisticas.totalClinicas : 0} clínicas reportando
+                            </span>
+                        </div>
+                        <div class="card-content reports-table">
+                            <p:dataTable id="clinicasEstadisticas"
+                                         value="#{reportes_bean.clinicas}"
+                                         var="clinica"
+                                         paginator="true"
+                                         rows="8"
+                                         responsiveLayout="scroll"
+                                         emptyMessage="No hay datos disponibles para las clínicas registradas.">
+                                <p:column headerText="Clínica" sortBy="#{clinica.nombre}">
+                                    <h:outputText value="#{clinica.nombre}"/>
+                                    <div class="clinic-meta">
+                                        <h:outputText value="#{clinica.email}" rendered="#{not empty clinica.email}"/>
+                                    </div>
+                                </p:column>
+                                <p:column headerText="Tenant" sortBy="#{clinica.tenantId}">
+                                    <code>#{clinica.tenantId}</code>
+                                </p:column>
+                                <p:column headerText="Pacientes" sortBy="#{clinica.pacientes}">
+                                    <h:outputText value="#{clinica.pacientes}"/>
+                                </p:column>
+                                <p:column headerText="Documentos" sortBy="#{clinica.documentos}">
+                                    <h:outputText value="#{clinica.documentos}"/>
+                                </p:column>
+                                <p:column headerText="Accesos aprobados" sortBy="#{clinica.accesosDocumentos}">
+                                    <h:outputText value="#{clinica.accesosDocumentos}"/>
+                                </p:column>
+                                <p:column headerText="Profesionales" sortBy="#{clinica.profesionales}">
+                                    <h:outputText value="#{clinica.profesionales}"/>
+                                </p:column>
+                            </p:dataTable>
+                        </div>
+                    </div>
+
                 </h:form>
 
             </div>
