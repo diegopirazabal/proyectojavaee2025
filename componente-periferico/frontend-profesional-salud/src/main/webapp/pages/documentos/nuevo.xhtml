@@ -8,50 +8,11 @@
 <h:head>
     <title>Nuevo Documento Clínico</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <h:outputStylesheet library="css" name="app.css"/>
     <style>
         :root {
             --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
             --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
-        }
-
-        .app-menubar {
-            background-color: var(--primary-color) !important;
-            border: none !important;
-        }
-
-        .app-menubar .p-menuitem-link,
-        .app-menubar .p-menuitem-text,
-        .app-menubar .pi {
-            color: #ffffff !important;
-        }
-
-        .panel-secundario .p-panel-header {
-            background-color: var(--secondary-color) !important;
-            color: #ffffff !important;
-        }
-
-        .btn-primario {
-            background: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
-            color: #ffffff !important;
-        }
-
-        .btn-secundario {
-            background: var(--secondary-color) !important;
-            border-color: var(--secondary-color) !important;
-            color: #ffffff !important;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 2rem auto;
-        }
-
-        .acciones {
-            margin-top: 1rem;
-            display: flex;
-            gap: .5rem;
-            flex-wrap: wrap;
         }
     </style>
 </h:head>
@@ -63,17 +24,8 @@
     </f:metadata>
 
     <h:form id="menuForm">
-        <div style="
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        background-color: var(--primary-color);
-        padding: 0.7rem 1.2rem;
-        border-bottom: 3px solid var(--secondary-color);
-    ">
-
-            <!-- BOTONES DE NAVEGACIÓN -->
-            <div style="display:flex; gap:0.5rem;">
+        <div class="app-topbar">
+            <div class="nav-group">
                 <p:commandButton value="Dashboard"
                                  icon="pi pi-home"
                                  action="/pages/dashboard.xhtml?faces-redirect=true"
@@ -87,12 +39,11 @@
                 <p:commandButton value="Documentos Clínicos"
                                  icon="pi pi-file"
                                  action="/pages/documentos.xhtml?faces-redirect=true"
-                                 styleClass="btn-secundario" />
+                                 styleClass="btn-light" />
             </div>
 
-            <!-- USUARIO + CERRAR SESIÓN -->
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-            <span style="color:white; font-weight:500;">
+            <div class="user-box">
+            <span class="user-name">
                 #{sessionBean.nombreProfesional}
             </span>
 
@@ -105,9 +56,11 @@
         </div>
     </h:form>
 
-    <div class="container">
+    <div class="app-shell">
 
-        <h2>Nuevo Documento Clínico</h2>
+        <div class="app-header">
+            <h1>Nuevo Documento Clínico</h1>
+        </div>
 
         <h:form id="formDoc">
             <p:panel header="Registrar Documento" styleClass="panel-secundario">

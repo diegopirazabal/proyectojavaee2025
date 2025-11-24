@@ -8,84 +8,20 @@
 <h:head>
     <title>Detalle del Documento</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <h:outputStylesheet library="css" name="app.css"/>
     <style>
         :root {
             --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
             --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
-        }
-
-        .app-menubar {
-            background-color: var(--primary-color) !important;
-            border: none !important;
-        }
-
-        .app-menubar .p-menuitem-link,
-        .app-menubar .p-menuitem-text,
-        .app-menubar .pi {
-            color: #ffffff !important;
-        }
-
-        .panel-secundario .p-panel-header {
-            background-color: var(--secondary-color) !important;
-            color: #ffffff !important;
-        }
-
-        .btn-primario {
-            background: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
-            color: #ffffff !important;
-        }
-
-        .btn-secundario {
-            background: var(--secondary-color) !important;
-            border-color: var(--secondary-color) !important;
-            color: #ffffff !important;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 2rem auto;
-        }
-
-        .acciones {
-            margin-top: 1.5rem;
-            display: flex;
-            gap: .5rem;
-            flex-wrap: wrap;
-        }
-
-        .detalle-grid {
-            width: 100%;
-        }
-
-        .detalle-grid td {
-            padding: .35rem .75rem;
-            vertical-align: top;
-        }
-
-        .detalle-grid td:first-child {
-            font-weight: bold;
-            width: 30%;
-            color: #495057;
         }
     </style>
 </h:head>
 
 <h:body>
 
-    <!-- NAVBAR UNIFICADO -->
     <h:form id="menuForm">
-        <div style="
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        background-color: var(--primary-color);
-        padding: 0.7rem 1.2rem;
-        border-bottom: 3px solid var(--secondary-color);
-    ">
-
-            <!-- BOTONES DE NAVEGACIÓN -->
-            <div style="display:flex; gap:0.5rem;">
+        <div class="app-topbar">
+            <div class="nav-group">
                 <p:commandButton value="Dashboard"
                                  icon="pi pi-home"
                                  action="/pages/dashboard.xhtml?faces-redirect=true"
@@ -99,12 +35,11 @@
                 <p:commandButton value="Documentos Clínicos"
                                  icon="pi pi-file"
                                  action="/pages/documentos.xhtml?faces-redirect=true"
-                                 styleClass="btn-secundario" />
+                                 styleClass="btn-light" />
             </div>
 
-            <!-- USUARIO + CERRAR SESIÓN -->
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-            <span style="color:white; font-weight:500;">
+            <div class="user-box">
+            <span class="user-name">
                 #{sessionBean.nombreProfesional}
             </span>
 
@@ -118,8 +53,10 @@
     </h:form>
 
 
-    <div class="container">
-        <h2>Detalle del Documento Clínico</h2>
+    <div class="app-shell">
+        <div class="app-header">
+            <h1>Detalle del Documento Clínico</h1>
+        </div>
 
         <h:panelGroup rendered="#{not empty documentoClinicoBean.selectedDocumento}">
             <p:panel header="Datos Generales" styleClass="panel-secundario">

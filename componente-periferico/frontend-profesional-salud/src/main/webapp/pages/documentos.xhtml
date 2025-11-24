@@ -8,67 +8,12 @@
 <h:head>
     <title>Documentos Clínicos</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-
-    <!-- Estilos Look & Feel -->
+    <h:outputStylesheet library="css" name="app.css"/>
     <style>
         :root {
             --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
             --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
         }
-
-        /* Menú superior */
-        .app-menubar {
-            background-color: var(--primary-color) !important;
-            border: none !important;
-        }
-
-        .app-menubar .p-menuitem-link,
-        .app-menubar .p-menuitem-text,
-        .app-menubar .pi {
-            color: #ffffff !important;
-        }
-
-        /* Panel headers */
-        .panel-secundario .p-panel-header {
-            background-color: var(--secondary-color) !important;
-            color: #ffffff !important;
-        }
-
-        /* Botón primario */
-        .btn-primario {
-            background: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
-            color: #ffffff !important;
-        }
-
-        /* Botón secundario */
-        .btn-secundario {
-            background: var(--secondary-color) !important;
-            border-color: var(--secondary-color) !important;
-            color: #ffffff !important;
-        }
-
-        /* Layout */
-        .container {
-            max-width: 900px;
-            margin: 2rem auto;
-        }
-
-        .acciones {
-            margin-top: 1rem;
-            display: flex;
-            gap: .5rem;
-            flex-wrap: wrap;
-        }
-
-        .paciente-info {
-            margin: 1rem 0;
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 6px;
-        }
-
     </style>
 </h:head>
 
@@ -76,17 +21,8 @@
 
     <!-- MENÚ SUPERIOR -->
     <h:form id="menuForm">
-        <div style="
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        background-color: var(--primary-color);
-        padding: 0.7rem 1.2rem;
-        border-bottom: 3px solid var(--secondary-color);
-    ">
-
-            <!-- BOTONES DE NAVEGACIÓN -->
-            <div style="display:flex; gap:0.5rem;">
+        <div class="app-topbar">
+            <div class="nav-group">
                 <p:commandButton value="Dashboard"
                                  icon="pi pi-home"
                                  action="/pages/dashboard.xhtml?faces-redirect=true"
@@ -100,12 +36,11 @@
                 <p:commandButton value="Documentos Clínicos"
                                  icon="pi pi-file"
                                  action="/pages/documentos.xhtml?faces-redirect=true"
-                                 styleClass="btn-secundario" />
+                                 styleClass="btn-light" />
             </div>
 
-            <!-- USUARIO + CERRAR SESIÓN -->
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-            <span style="color:white; font-weight:500;">
+            <div class="user-box">
+            <span class="user-name">
                 #{sessionBean.nombreProfesional}
             </span>
 
@@ -118,10 +53,11 @@
         </div>
     </h:form>
 
-    <!-- CONTENIDO -->
-    <div class="container">
+    <div class="app-shell">
 
-        <h2>Documentos Clínicos</h2>
+        <div class="app-header">
+            <h1>Documentos Clínicos</h1>
+        </div>
 
         <!-- SELECCIÓN DE PACIENTE -->
         <h:form id="pacienteForm">
