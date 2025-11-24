@@ -46,9 +46,19 @@ public class HistoriaClinicaBean implements Serializable {
     private boolean loading;
     private HistoriaClinicaDocumentoDTO documentoSeleccionado;
 
+    private boolean initialized;
+
     @PostConstruct
     public void init() {
-        cargarDocumentos();
+        documentos = new ArrayList<>();
+        initialized = false;
+    }
+
+    public void onPreRenderView() {
+        if (!initialized && !FacesContext.getCurrentInstance().isPostback()) {
+            cargarDocumentos();
+            initialized = true;
+        }
     }
 
     public void cargarDocumentos() {
