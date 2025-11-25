@@ -108,24 +108,28 @@ public class DocumentoClinicoBean implements Serializable {
             // Cargar documentos desde el backend
             List<documento_clinico_dto> docs = apiService.getDocumentosPorPaciente(cedulaPacienteSeleccionado, UUID.fromString(tenantId));
 
-            // Validar permisos para cada documento
+            // Validar permisos para TODOS los documentos en una sola llamada (batch)
             Integer ciProfesional = sessionBean.getProfesionalCi();
             String especialidad = sessionBean.getEspecialidad();
 
+            // Extraer IDs de documentos
+            List<UUID> documentoIds = docs.stream()
+                .map(doc -> UUID.fromString(doc.getId()))
+                .collect(Collectors.toList());
+
+            // Validar acceso batch (1 sola llamada HTTP en lugar de N)
+            Map<UUID, Boolean> permisos = apiService.validarAccesoDocumentos(
+                documentoIds,
+                UUID.fromString(tenantId),
+                ciProfesional,
+                especialidad
+            );
+
+            // Combinar documentos con permisos
             documentos = docs.stream()
                 .map(doc -> {
-                    boolean tienePermiso = false;
-                    try {
-                        tienePermiso = apiService.validarAccesoDocumento(
-                            UUID.fromString(doc.getId()),
-                            UUID.fromString(tenantId),
-                            ciProfesional,
-                            especialidad
-                        );
-                    } catch (Exception e) {
-                        // Si hay error al validar, por seguridad negamos acceso
-                        System.err.println("Error al validar acceso al documento " + doc.getId() + ": " + e.getMessage());
-                    }
+                    UUID docId = UUID.fromString(doc.getId());
+                    boolean tienePermiso = permisos.getOrDefault(docId, false);
                     return new documento_con_permiso_dto(doc, tienePermiso);
                 })
                 .collect(Collectors.toList());
@@ -320,33 +324,48 @@ public class DocumentoClinicoBean implements Serializable {
             return;
         }
 
-        int documentosActualizados = 0;
         UUID tenantUuid = UUID.fromString(tenantId);
 
-        for (documento_con_permiso_dto doc : documentos) {
-            if (doc.getId() == null || doc.getId().isBlank()) {
-                continue;
-            }
-            try {
-                boolean tienePermiso = apiService.validarAccesoDocumento(
-                    UUID.fromString(doc.getId()),
-                    tenantUuid,
-                    ciProfesional,
-                    especialidad
-                );
-                doc.setTienePermiso(tienePermiso);
-                documentosActualizados++;
-            } catch (Exception e) {
-                System.err.println("Error al refrescar permiso para documento " + doc.getId() + ": " + e.getMessage());
-            }
+        // Extraer IDs de documentos válidos
+        List<UUID> documentoIds = documentos.stream()
+            .filter(doc -> doc.getId() != null && !doc.getId().isBlank())
+            .map(doc -> UUID.fromString(doc.getId()))
+            .collect(Collectors.toList());
+
+        if (documentoIds.isEmpty()) {
+            addMessage(FacesMessage.SEVERITY_WARN, "No hay documentos válidos para refrescar.");
+            return;
         }
 
-        addMessage(
-            FacesMessage.SEVERITY_INFO,
-            documentosActualizados > 0
-                ? "Permisos actualizados para " + documentosActualizados + " documentos."
-                : "No se encontraron documentos para actualizar."
-        );
+        try {
+            // Validar acceso batch (1 sola llamada HTTP en lugar de N)
+            Map<UUID, Boolean> permisos = apiService.validarAccesoDocumentos(
+                documentoIds,
+                tenantUuid,
+                ciProfesional,
+                especialidad
+            );
+
+            // Actualizar permisos en la lista
+            int documentosActualizados = 0;
+            for (documento_con_permiso_dto doc : documentos) {
+                if (doc.getId() != null && !doc.getId().isBlank()) {
+                    UUID docId = UUID.fromString(doc.getId());
+                    doc.setTienePermiso(permisos.getOrDefault(docId, false));
+                    documentosActualizados++;
+                }
+            }
+
+            addMessage(
+                FacesMessage.SEVERITY_INFO,
+                documentosActualizados > 0
+                    ? "Permisos actualizados para " + documentosActualizados + " documentos."
+                    : "No se encontraron documentos para actualizar."
+            );
+        } catch (Exception e) {
+            addMessage(FacesMessage.SEVERITY_ERROR, "Error al refrescar permisos: " + e.getMessage());
+            e.printStackTrace();
+        }
         PrimeFaces current = PrimeFaces.current();
         if (current != null) {
             current.ajax().update("documentosForm:documentosTable", "documentosForm:messages");

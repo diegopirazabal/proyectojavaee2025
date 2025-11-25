@@ -561,6 +561,65 @@ public class APIService implements Serializable {
     }
 
     /**
+     * Valida si un profesional tiene permiso para acceder a múltiples documentos (batch)
+     * Optimización para evitar N+1 HTTP calls
+     */
+    public Map<UUID, Boolean> validarAccesoDocumentos(List<UUID> documentoIds, UUID tenantId,
+                                                        Integer ciProfesional, String especialidad) {
+        Map<UUID, Boolean> resultado = new LinkedHashMap<>();
+
+        if (documentoIds == null || documentoIds.isEmpty()) {
+            return resultado;
+        }
+
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            String url = getBackendUrl() + "/documentos/validar-acceso?tenantId=" + tenantId;
+            HttpPost request = new HttpPost(url);
+
+            // Construir array de IDs
+            jakarta.json.JsonArrayBuilder idsBuilder = Json.createArrayBuilder();
+            for (UUID id : documentoIds) {
+                idsBuilder.add(id.toString());
+            }
+
+            JsonObject json = Json.createObjectBuilder()
+                .add("documentoIds", idsBuilder)
+                .add("ciProfesional", ciProfesional)
+                .add("especialidad", especialidad != null ? especialidad : "")
+                .build();
+
+            request.setEntity(new StringEntity(json.toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    try (JsonReader reader = Json.createReader(new StringReader(responseBody))) {
+                        JsonObject responseJson = reader.readObject();
+                        JsonObject permisos = responseJson.getJsonObject("permisos");
+
+                        // Convertir JsonObject a Map<UUID, Boolean>
+                        for (String key : permisos.keySet()) {
+                            UUID docId = UUID.fromString(key);
+                            boolean tienePermiso = permisos.getBoolean(key);
+                            resultado.put(docId, tienePermiso);
+                        }
+                    }
+                } else {
+                    // En caso de error, denegar todos por seguridad
+                    documentoIds.forEach(id -> resultado.put(id, false));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al validar acceso batch a documentos: " + e.getMessage());
+            e.printStackTrace();
+            // En caso de error, denegar todos por seguridad
+            documentoIds.forEach(id -> resultado.put(id, false));
+        }
+
+        return resultado;
+    }
+
+    /**
      * Solicita acceso a un documento clínico enviando notificación al paciente
      */
     public void solicitarAccesoDocumento(UUID documentoId, UUID tenantId, Integer ciProfesional,

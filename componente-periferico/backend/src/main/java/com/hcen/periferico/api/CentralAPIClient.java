@@ -22,7 +22,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -528,6 +528,64 @@ public class CentralAPIClient {
     }
 
     /**
+     * Valida si un profesional tiene permiso para acceder a múltiples documentos (batch)
+     * Optimización para evitar N+1 HTTP calls
+     */
+    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
+    public Map<UUID, Boolean> validarAccesoDocumentos(List<UUID> documentoIds, Integer ciProfesional,
+                                                        UUID tenantId, String especialidad) {
+        Map<UUID, Boolean> resultado = new HashMap<>();
+
+        if (documentoIds == null || documentoIds.isEmpty()) {
+            return resultado;
+        }
+
+        try {
+            String url = getCentralBaseUrl() + "/api/politicas-acceso/validar";
+
+            // Construir array de IDs
+            jakarta.json.JsonArrayBuilder idsBuilder = Json.createArrayBuilder();
+            for (UUID id : documentoIds) {
+                idsBuilder.add(id.toString());
+            }
+
+            JsonObject body = Json.createObjectBuilder()
+                .add("documentoIds", idsBuilder)
+                .add("ciProfesional", ciProfesional)
+                .add("tenantId", tenantId.toString())
+                .add("especialidad", especialidad != null ? especialidad : "")
+                .build();
+
+            HttpResponse<String> response = executeAuthenticatedPost(url, body.toString());
+
+            if (response.statusCode() == 200) {
+                try (JsonReader reader = Json.createReader(new StringReader(response.body()))) {
+                    JsonObject json = reader.readObject();
+                    JsonObject data = json.getJsonObject("data");
+                    JsonObject permisos = data.getJsonObject("permisos");
+
+                    // Convertir JsonObject a Map<UUID, Boolean>
+                    for (String key : permisos.keySet()) {
+                        UUID docId = UUID.fromString(key);
+                        boolean tienePermiso = permisos.getBoolean(key);
+                        resultado.put(docId, tienePermiso);
+                    }
+                }
+            } else {
+                // En caso de error, denegar todos por seguridad
+                documentoIds.forEach(id -> resultado.put(id, false));
+            }
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al validar acceso batch a documentos", e);
+            // En caso de error, denegar todos por seguridad
+            documentoIds.forEach(id -> resultado.put(id, false));
+        }
+
+        return resultado;
+    }
+
+    /**
      * Envía una notificación al paciente solicitando acceso a un documento
      * Llama al endpoint POST /api/notifications/solicitudes-acceso del componente central
      *
@@ -536,6 +594,7 @@ public class CentralAPIClient {
      * @param ciProfesional CI del profesional solicitante
      * @param nombreProfesional Nombre completo del profesional
      * @param especialidad Nombre de la especialidad del profesional (puede ser null)
+     * @param especialidadId UUID de la especialidad del profesional (puede ser null)
      * @param tenantId UUID de la clínica
      * @param nombreClinica Nombre de la clínica
      * @param fechaDocumento Fecha del documento (para contexto)
@@ -550,6 +609,7 @@ public class CentralAPIClient {
             Integer ciProfesional,
             String nombreProfesional,
             String especialidad,
+            UUID especialidadId,
             UUID tenantId,
             String nombreClinica,
             String fechaDocumento,
@@ -564,16 +624,22 @@ public class CentralAPIClient {
                 .add("documentoId", documentoId.toString())
                 .add("profesionalCi", ciProfesional)
                 .add("profesionalNombre", nombreProfesional)
-                .add("especialidad", especialidad != null ? especialidad : "Sin especialidad")
                 .add("tenantId", tenantId.toString())
                 .add("nombreClinica", nombreClinica)
                 .add("fechaDocumento", fechaDocumento)
                 .add("motivoConsulta", motivoConsulta)
                 .add("diagnostico", diagnostico != null ? diagnostico : "No especificado");
 
-            // Solo agregar especialidad si no es null
+            // Agregar especialidad (nombre) si está disponible
             if (especialidad != null && !especialidad.isBlank()) {
                 jsonBuilder.add("especialidad", especialidad);
+            } else {
+                jsonBuilder.add("especialidad", "Sin especialidad");
+            }
+
+            // Agregar especialidadId (UUID) si está disponible
+            if (especialidadId != null) {
+                jsonBuilder.add("especialidadId", especialidadId.toString());
             }
 
             JsonObject body = jsonBuilder.build();

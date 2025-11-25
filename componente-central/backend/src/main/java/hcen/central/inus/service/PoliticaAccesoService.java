@@ -12,6 +12,7 @@ import jakarta.ejb.Stateless;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -99,6 +100,35 @@ public class PoliticaAccesoService {
             documentoId, ciProfesional, tenantId, tienePermiso));
 
         return tienePermiso;
+    }
+
+    /**
+     * Valida si un profesional tiene permiso para acceder a múltiples documentos (batch)
+     *
+     * @param documentoIds Lista de UUIDs de documentos
+     * @param ciProfesional CI del profesional
+     * @param tenantId UUID de la clínica
+     * @param especialidad Especialidad del profesional
+     * @return Map con documentoId como key y boolean (tiene permiso) como value
+     */
+    public Map<UUID, Boolean> validarAccesoBatch(List<UUID> documentoIds, Integer ciProfesional,
+                                                   UUID tenantId, String especialidad) {
+        if (documentoIds == null || documentoIds.isEmpty()) {
+            throw new IllegalArgumentException("La lista de documentoIds es requerida y no puede estar vacía");
+        }
+        if (ciProfesional == null) {
+            throw new IllegalArgumentException("El CI del profesional es requerido");
+        }
+        if (tenantId == null) {
+            throw new IllegalArgumentException("El tenantId es requerido");
+        }
+
+        Map<UUID, Boolean> permisos = politicaDAO.tienePermisoAccesoBatch(documentoIds, ciProfesional, tenantId, especialidad);
+
+        LOGGER.info(String.format("Validación batch de acceso: %d documentos, profesional=%s, tenant=%s",
+            documentoIds.size(), ciProfesional, tenantId));
+
+        return permisos;
     }
 
     /**

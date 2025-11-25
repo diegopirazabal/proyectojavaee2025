@@ -44,7 +44,7 @@
     <!-- URL del backend central para consumir endpoints REST -->
     <context-param>
         <param-name>hcen.backendUrl</param-name>
-        <param-value>https://hcen-uy.web.elasticloud.uy</param-value>
+        <param-value>http://localhost:8080</param-value>
     </context-param>
 
     <!-- Solo para entornos controlados: permite consumir HTTPS con certificados autofirmados -->

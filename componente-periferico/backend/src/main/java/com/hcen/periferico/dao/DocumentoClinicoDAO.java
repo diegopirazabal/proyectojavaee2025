@@ -52,6 +52,41 @@ public class DocumentoClinicoDAO {
     }
 
     /**
+     * Busca múltiples documentos por IDs y tenant (batch)
+     * Útil para evitar N+1 queries
+     */
+    public List<documento_clinico> findByIdsAndTenantId(List<UUID> ids, UUID tenantId) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        TypedQuery<documento_clinico> query = em.createQuery(
+            "SELECT d FROM documento_clinico d " +
+            "WHERE d.id IN :ids AND d.tenantId = :tenantId",
+            documento_clinico.class
+        );
+        query.setParameter("ids", ids);
+        query.setParameter("tenantId", tenantId);
+        return query.getResultList();
+    }
+
+    /**
+     * Busca múltiples documentos por IDs SIN filtrar por tenant (batch cross-tenant)
+     * Usado por el componente central para recuperar documentos de un paciente
+     * que pueden estar distribuidos en múltiples clínicas/tenants
+     */
+    public List<documento_clinico> findByIds(List<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        TypedQuery<documento_clinico> query = em.createQuery(
+            "SELECT d FROM documento_clinico d WHERE d.id IN :ids",
+            documento_clinico.class
+        );
+        query.setParameter("ids", ids);
+        return query.getResultList();
+    }
+
+    /**
      * Lista todos los documentos de un paciente específico (solo de una clínica)
      */
     public List<documento_clinico> findByPaciente(String cedula, UUID tenantId) {
@@ -333,6 +368,127 @@ public class DocumentoClinicoDAO {
             // Log error si es necesario
         }
         return grados;
+    }
+
+    /**
+     * Obtiene nombres de múltiples motivos de consulta en una sola query (batch)
+     * Optimizado para evitar N consultas individuales
+     *
+     * @param codigos Lista de códigos de motivos
+     * @return Map con código -> nombre (solo incluye los que existen en BD)
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, String> getNombresMotivosConsultaBatch(Collection<String> codigos) {
+        Map<String, String> resultado = new HashMap<>();
+        if (codigos == null || codigos.isEmpty()) {
+            return resultado;
+        }
+
+        try {
+            // Convertir códigos String a Integer y filtrar nulls
+            List<Integer> ids = codigos.stream()
+                .map(this::parseCodigo)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+
+            if (ids.isEmpty()) {
+                return resultado;
+            }
+
+            // UNA sola consulta con IN clause
+            List<Object[]> results = em.createNativeQuery(
+                "SELECT id, concepto FROM motivo_consulta WHERE id IN (:ids)"
+            )
+            .setParameter("ids", ids)
+            .getResultList();
+
+            for (Object[] row : results) {
+                resultado.put(row[0].toString(), row[1].toString());
+            }
+        } catch (Exception e) {
+            // Log error si es necesario
+            e.printStackTrace();
+        }
+        return resultado;
+    }
+
+    /**
+     * Obtiene nombres de múltiples estados de problema en una sola query (batch)
+     *
+     * @param codigos Lista de códigos de estados
+     * @return Map con código -> nombre (solo incluye los que existen en BD)
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, String> getNombresEstadosProblemaBatch(Collection<String> codigos) {
+        Map<String, String> resultado = new HashMap<>();
+        if (codigos == null || codigos.isEmpty()) {
+            return resultado;
+        }
+
+        try {
+            List<Integer> ids = codigos.stream()
+                .map(this::parseCodigo)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+
+            if (ids.isEmpty()) {
+                return resultado;
+            }
+
+            List<Object[]> results = em.createNativeQuery(
+                "SELECT id, concepto FROM estado_problema WHERE id IN (:ids)"
+            )
+            .setParameter("ids", ids)
+            .getResultList();
+
+            for (Object[] row : results) {
+                resultado.put(row[0].toString(), row[1].toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return resultado;
+    }
+
+    /**
+     * Obtiene nombres de múltiples grados de certeza en una sola query (batch)
+     *
+     * @param codigos Lista de códigos de grados
+     * @return Map con código -> nombre (solo incluye los que existen en BD)
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, String> getNombresGradosCertezaBatch(Collection<String> codigos) {
+        Map<String, String> resultado = new HashMap<>();
+        if (codigos == null || codigos.isEmpty()) {
+            return resultado;
+        }
+
+        try {
+            List<Integer> ids = codigos.stream()
+                .map(this::parseCodigo)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+
+            if (ids.isEmpty()) {
+                return resultado;
+            }
+
+            List<Object[]> results = em.createNativeQuery(
+                "SELECT id, concepto FROM grado_certeza WHERE id IN (:ids)"
+            )
+            .setParameter("ids", ids)
+            .getResultList();
+
+            for (Object[] row : results) {
+                resultado.put(row[0].toString(), row[1].toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return resultado;
     }
 
     private Integer parseCodigo(String codigo) {
