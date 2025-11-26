@@ -38,30 +38,15 @@ public class JWTAuthenticationFilter implements Filter {
     private ClientAuthenticationService clientAuthService;
 
     // Rutas públicas que NO requieren autenticación
+    // IMPORTANTE: Todas las demás rutas de /api/* requieren JWT en header Authorization o cookie
     private static final List<String> PUBLIC_PATHS = Arrays.asList(
             "/api/auth/login",
             "/api/auth/callback",
             "/api/auth/refresh",
-            "/api/auth/token",                // Autenticación de clientes
+            "/api/auth/token",                // Autenticación de clientes (componente-periferico)
             "/api/notifications/broadcast-test",  // Envío de notificación de prueba desde AdminHCEN
             "/api/fcm/register",              // Registro de token FCM desde mobile
-            "/api/fcm/unregister",            // Eliminación de token FCM
-            "/api/usuarios-salud",            // Listado de usuarios (usado por AdminHCEN)
-            "/api/usuarios/registrar",        // Registro de usuario desde clínicas periféricas
-            "/api/usuarios/verificar",        // Verificación de existencia de usuario (se usa /verificar/{cedula})
-            "/api/historia-clinica/documentos",  // Sincronización de documentos desde clínicas periféricas
-            "/api/politicas-acceso/validar",
-            "/api/notifications/solicitudes-acceso",
-            "/api/historia-clinica/documentos",  // Sincronización de documentos desde clínicas periféricas
-            "/api/politicas-acceso/pendientes",
-            "/api/politicas-acceso/activas",
-            "/api/politicas-acceso/aprobar-solicitud",
-            "/api/politicas-acceso/",
-            "/api/historia-clinica/by-cedula",  // Usuario salud obtiene su historia clínica ID
-            "/api/politicas-acceso/historia",   // Usuario salud obtiene sus permisos
-            "/api/politicas-acceso/extender",   // Usuario salud extiende permisos
-            "/api/politicas-acceso/modificar-tipo",  // Usuario salud modifica tipo de permiso
-            "/api/politicas-acceso/revocar"// Usuario salud revoca permisos
+            "/api/fcm/unregister"             // Eliminación de token FCM
     );
 
     @Override
@@ -100,10 +85,13 @@ public class JWTAuthenticationFilter implements Filter {
             String token = extractTokenFromRequest(httpRequest);
 
             if (token == null || token.isEmpty()) {
-                LOGGER.warning("Token no proporcionado en header Authorization ni cookie para: " + requestURI);
+                LOGGER.warning("[JWTFilter] Token NO proporcionado en header Authorization ni cookie para: " + requestURI);
                 sendUnauthorizedResponse(httpResponse, "Token no proporcionado");
                 return;
             }
+
+            // LOG del JWT recibido
+            LOGGER.info("[JWTFilter] JWT recibido para " + requestURI + ", token=" + token.substring(0, Math.min(20, token.length())) + "...");
 
             // Validar token JWT (firma y expiración)
             Claims claims = jwtTokenProvider.validateAccessToken(token);
@@ -188,55 +176,6 @@ public class JWTAuthenticationFilter implements Filter {
                 return true;
             }
         }
-
-        // Verificar rutas con parámetros dinámicos
-        // Permitir GET /api/usuarios/{cedula} y DELETE /api/usuarios/{cedula}/clinica/{rut}
-        if (requestURI.matches(".*/api/usuarios/[^/]+$") ||
-            requestURI.matches(".*/api/usuarios/[^/]+/clinica/[^/]+$")) {
-            return true;
-        }
-
-        // Permitir /api/usuarios/verificar/{cedula}
-        if (requestURI.matches(".*/api/usuarios/verificar/[^/]+$")) {
-            return true;
-        }
-
-        // Permitir GET /api/usuarios (con query parameters ?tenantId=... y ?search=...)
-        // Usado por clínicas periféricas para listar/buscar usuarios
-        if (requestURI.matches(".*/api/usuarios$")) {
-            return true;
-        }
-
-        // Permitir GET /api/historia-clinica/{cedula}/documentos (consumido por mobile)
-        if (requestURI.matches(".*/api/historia-clinica/[^/]+/documentos$")) {
-            return true;
-        }
-
-        // Permitir GET /api/historia-clinica/by-cedula/{cedula} (usuario salud obtiene su historia ID)
-        if (requestURI.matches(".*/api/historia-clinica/by-cedula/[^/]+$")) {
-            return true;
-        }
-
-        // Permitir GET /api/politicas-acceso/historia/{historiaId} (usuario salud obtiene sus permisos)
-        if (requestURI.matches(".*/api/politicas-acceso/historia/[^/]+$")) {
-            return true;
-        }
-
-        // Permitir PUT /api/politicas-acceso/{id}/extender (usuario salud extiende permiso)
-        if (requestURI.matches(".*/api/politicas-acceso/[^/]+/extender$")) {
-            return true;
-        }
-
-        // Permitir PUT /api/politicas-acceso/{id}/modificar-tipo (usuario salud modifica tipo de permiso)
-        if (requestURI.matches(".*/api/politicas-acceso/[^/]+/modificar-tipo$")) {
-            return true;
-        }
-
-        // Permitir PUT /api/politicas-acceso/{id}/revocar (usuario salud revoca permiso)
-        if (requestURI.matches(".*/api/politicas-acceso/[^/]+/revocar$")) {
-            return true;
-        }
-
         return false;
     }
 

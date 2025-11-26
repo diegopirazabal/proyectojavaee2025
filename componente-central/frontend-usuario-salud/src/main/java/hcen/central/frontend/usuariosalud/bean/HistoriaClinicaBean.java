@@ -14,6 +14,9 @@ import jakarta.ws.rs.core.GenericType;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -80,9 +83,18 @@ public class HistoriaClinicaBean implements Serializable {
         LOGGER.info("Consultando historia clínica en: " + endpoint);
 
         try (Client client = createBackendClient()) {
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .get();
+            // Obtener JWT de la cookie para autenticación
+            String jwtToken = getJwtTokenFromCookie();
+            
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            
+            // Agregar header Authorization si hay JWT
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            
+            Response response = requestBuilder.get();
 
             LOGGER.info("Respuesta del backend: HTTP " + response.getStatus());
 
@@ -251,5 +263,30 @@ public class HistoriaClinicaBean implements Serializable {
 
     public boolean isHasDocumentos() {
         return documentos != null && !documentos.isEmpty();
+    }
+
+    /**
+     * Obtiene el JWT token de la cookie HttpOnly
+     * @return JWT token o null si no está presente
+     */
+    private String getJwtTokenFromCookie() {
+        try {
+            FacesContext context = FacesContext.getCurrentInstance();
+            if (context == null) {
+                return null;
+            }
+            
+            HttpServletRequest request = (HttpServletRequest) context.getExternalContext().getRequest();
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("jwt_token".equals(cookie.getName())) {
+                        return cookie.getValue();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error obteniendo JWT de cookie", e);
+        }
+        return null;
     }
 }

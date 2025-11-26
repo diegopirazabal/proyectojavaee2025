@@ -7,6 +7,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.example.hcenmobile.BuildConfig;
+
 import net.openid.appauth.AuthorizationException;
 import net.openid.appauth.AuthorizationRequest;
 import net.openid.appauth.AuthorizationService;
@@ -21,7 +23,9 @@ public class OidcAuthService {
     private static final String TAG = "OidcAuthService";
     
     // Backend HCEN que maneja el flujo OIDC
-    private static final String BACKEND_URL = "https://hcen-uy.web.elasticloud.uy/api";
+    // En debug: http://10.0.2.2:8080/hcen-central/api
+    // En release: https://hcen-uy.web.elasticloud.uy/api
+    private static final String BACKEND_URL = BuildConfig.BASE_URL;
     
     // URL del backend para iniciar login OIDC
     private static final String AUTH_ENDPOINT = BACKEND_URL + "/auth/login";

@@ -18,6 +18,8 @@ import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.GenericType;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -91,9 +93,13 @@ public class PermisosAccesoBean implements Serializable {
         String endpoint = backendUrl + "/api/historia-clinica/by-cedula/" + cedula;
 
         try (Client client = createBackendClient()) {
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .get();
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.get();
 
             int status = response.getStatus();
             if (status == 200) {
@@ -140,9 +146,13 @@ public class PermisosAccesoBean implements Serializable {
         String endpoint = backendUrl + "/api/politicas-acceso/historia/" + historiaId;
 
         try (Client client = createBackendClient()) {
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .get();
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.get();
 
             int status = response.getStatus();
             if (status == 200) {
@@ -185,9 +195,13 @@ public class PermisosAccesoBean implements Serializable {
         String endpoint = backendUrl + "/api/historia-clinica/" + cedula + "/documentos";
 
         try (Client client = createBackendClient()) {
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .get();
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.get();
 
             if (response.getStatus() == 200) {
                 ApiResponse<List<HistoriaClinicaDocumentoDTO>> apiResponse =
@@ -268,9 +282,13 @@ public class PermisosAccesoBean implements Serializable {
                     .add("nuevaFechaExpiracion", fechaStr)
                     .build();
 
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .put(Entity.json(requestBody.toString()));
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.put(Entity.json(requestBody.toString()));
 
             int status = response.getStatus();
             if (status == 200) {
@@ -342,9 +360,13 @@ public class PermisosAccesoBean implements Serializable {
                 builder.add("especialidad", nuevaEspecialidad);
             }
 
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .put(Entity.json(builder.build().toString()));
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.put(Entity.json(builder.build().toString()));
 
             int status = response.getStatus();
             if (status == 200) {
@@ -392,9 +414,13 @@ public class PermisosAccesoBean implements Serializable {
                 builder.add("motivo", motivoRevocacion);
             }
 
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .put(Entity.json(builder.build().toString()));
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.put(Entity.json(builder.build().toString()));
 
             int status = response.getStatus();
             if (status == 200) {
@@ -416,6 +442,26 @@ public class PermisosAccesoBean implements Serializable {
     private void addMessage(FacesMessage.Severity severity, String summary, String detail) {
         FacesContext.getCurrentInstance().addMessage(null,
                 new FacesMessage(severity, summary, detail));
+    }
+
+    /**
+     * Obtiene el JWT token de la cookie
+     */
+    private String getJwtTokenFromCookie() {
+        try {
+            FacesContext context = FacesContext.getCurrentInstance();
+            HttpServletRequest request = (HttpServletRequest) context.getExternalContext().getRequest();
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("jwt_token".equals(cookie.getName())) {
+                        return cookie.getValue();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al obtener JWT de cookie", e);
+        }
+        return null;
     }
 
     private String obtenerBackendUrl() {

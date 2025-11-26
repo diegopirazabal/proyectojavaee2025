@@ -265,10 +265,10 @@ public class PoliticaAccesoDTO implements Serializable {
                 if (raw.length() <= 10) {
                     value = value * 1000;
                 }
-                LocalDateTime dateTime = LocalDateTime.ofInstant(
+                LocalDateTime epochDateTime = LocalDateTime.ofInstant(
                         java.time.Instant.ofEpochMilli(value),
                         java.time.ZoneId.systemDefault());
-                return OUTPUT.format(dateTime.toLocalDate());
+                return OUTPUT.format(epochDateTime.toLocalDate());
             } catch (Exception ignored) {
             }
         }
