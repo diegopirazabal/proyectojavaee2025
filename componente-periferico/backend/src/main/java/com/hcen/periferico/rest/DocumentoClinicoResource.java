@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -225,22 +226,57 @@ public class DocumentoClinicoResource {
     }
 
     /**
-     * Lista todos los documentos con paginación
-     * GET /api/documentos?tenantId=xxx&page=0&size=10
+     * Lista todos los documentos con paginación o por IDs específicos (batch)
+     * GET /api/documentos?tenantId=xxx&page=0&size=10 (paginación)
+     * GET /api/documentos?tenantId=xxx&ids=id1,id2,id3 (batch por IDs con filtro de tenant)
+     * GET /api/documentos?ids=id1,id2,id3 (batch cross-tenant - sin filtro de tenant)
      */
     @GET
     public Response getDocumentosPaginados(
             @QueryParam("tenantId") String tenantIdStr,
+            @QueryParam("ids") String idsStr,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") Integer size) {
         try {
+            // Si se proporciona 'ids', retornar documentos por IDs (batch)
+            if (idsStr != null && !idsStr.trim().isEmpty()) {
+                try {
+                    String[] idArray = idsStr.split(",");
+                    List<UUID> documentoIds = new ArrayList<>();
+                    for (String idStr : idArray) {
+                        documentoIds.add(UUID.fromString(idStr.trim()));
+                    }
+
+                    List<documento_clinico_dto> documentos;
+
+                    // Si se proporciona tenantId, filtrar por tenant (compatibilidad hacia atrás)
+                    // Si NO se proporciona tenantId, buscar en todos los tenants (cross-tenant para central)
+                    if (tenantIdStr != null && !tenantIdStr.trim().isEmpty()) {
+                        UUID tenantId = UUID.fromString(tenantIdStr);
+                        documentos = documentoService.getDocumentosPorIds(documentoIds, tenantId);
+                    } else {
+                        // Cross-tenant: buscar documentos en cualquier tenant
+                        documentos = documentoService.getDocumentosPorIds(documentoIds);
+                    }
+
+                    return Response.ok(documentos).build();
+                } catch (IllegalArgumentException e) {
+                    return Response.status(Response.Status.BAD_REQUEST)
+                            .entity(new ErrorResponse("IDs inválidos: " + e.getMessage()))
+                            .build();
+                }
+            }
+
+            // Para paginación, tenantId es requerido
             if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
                 return Response.status(Response.Status.BAD_REQUEST)
-                        .entity(new ErrorResponse("El parámetro tenantId es requerido"))
+                        .entity(new ErrorResponse("El parámetro tenantId es requerido para paginación"))
                         .build();
             }
 
             UUID tenantId = UUID.fromString(tenantIdStr);
+
+            // Usar paginación normal
             int pageSize = size != null && size > 0 ? Math.min(size, 200) : 10;
 
             List<documento_clinico_dto> documentos = documentoService.getDocumentosPaginados(tenantId, page, pageSize);
@@ -379,50 +415,63 @@ public class DocumentoClinicoResource {
     }
 
     /**
-     * Valida si un profesional tiene permiso para acceder a un documento
+     * Valida si un profesional tiene permiso para acceder a uno o múltiples documentos
      * Llama al componente central para verificar las políticas de acceso
      */
     @POST
-    @Path("/{id}/validar-acceso")
+    @Path("/validar-acceso")
     public Response validarAccesoDocumento(
-            @PathParam("id") String documentoIdStr,
             @QueryParam("tenantId") String tenantIdStr,
             ValidarAccesoRequest request) {
         try {
-            if (documentoIdStr == null || documentoIdStr.isBlank()) {
-                return Response.status(Response.Status.BAD_REQUEST)
-                        .entity(new ErrorResponse("El ID del documento es requerido"))
-                        .build();
-            }
             if (tenantIdStr == null || tenantIdStr.isBlank()) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity(new ErrorResponse("El tenantId es requerido"))
                         .build();
             }
-            if (request == null || request.getCiProfesional() == null) {
+            if (request == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("Los datos de la solicitud son requeridos"))
+                        .build();
+            }
+            if (request.getDocumentoIds() == null || request.getDocumentoIds().isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(new ErrorResponse("La lista de IDs de documentos es requerida"))
+                        .build();
+            }
+            if (request.getCiProfesional() == null) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity(new ErrorResponse("El CI del profesional es requerido"))
                         .build();
             }
 
-            UUID documentoId = UUID.fromString(documentoIdStr);
             UUID tenantId = UUID.fromString(tenantIdStr);
 
-            boolean tienePermiso = documentoService.validarAccesoDocumento(
-                    documentoId,
+            // Convertir strings a UUIDs
+            List<UUID> documentoIds = request.getDocumentoIds().stream()
+                    .map(UUID::fromString)
+                    .collect(java.util.stream.Collectors.toList());
+
+            // Validar acceso batch
+            Map<UUID, Boolean> permisos = documentoService.validarAccesoDocumentos(
+                    documentoIds,
                     request.getCiProfesional(),
                     tenantId,
                     request.getEspecialidad()
             );
 
-            return Response.ok(new ValidarAccesoResponse(tienePermiso)).build();
+            // Convertir UUIDs a Strings para response
+            Map<String, Boolean> permisosStr = new java.util.HashMap<>();
+            permisos.forEach((uuid, hasPermission) -> permisosStr.put(uuid.toString(), hasPermission));
+
+            return Response.ok(new ValidarAccesoResponse(permisosStr)).build();
 
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(new ErrorResponse("Parámetros inválidos: " + e.getMessage()))
                     .build();
         } catch (Exception e) {
-            System.err.println("Error al validar acceso a documento: " + e.getMessage());
+            System.err.println("Error al validar acceso a documentos: " + e.getMessage());
             e.printStackTrace();
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(new ErrorResponse("Error al validar acceso: " + e.getMessage()))
@@ -602,9 +651,12 @@ public class DocumentoClinicoResource {
 
     // Request para validar acceso
     public static class ValidarAccesoRequest {
+        private List<String> documentoIds;
         private Integer ciProfesional;
         private String especialidad;
 
+        public List<String> getDocumentoIds() { return documentoIds; }
+        public void setDocumentoIds(List<String> documentoIds) { this.documentoIds = documentoIds; }
         public Integer getCiProfesional() { return ciProfesional; }
         public void setCiProfesional(Integer ciProfesional) { this.ciProfesional = ciProfesional; }
         public String getEspecialidad() { return especialidad; }
@@ -613,15 +665,15 @@ public class DocumentoClinicoResource {
 
     // Response de validar acceso
     public static class ValidarAccesoResponse {
-        private boolean tienePermiso;
+        private Map<String, Boolean> permisos;
 
         public ValidarAccesoResponse() {}
-        public ValidarAccesoResponse(boolean tienePermiso) {
-            this.tienePermiso = tienePermiso;
+        public ValidarAccesoResponse(Map<String, Boolean> permisos) {
+            this.permisos = permisos;
         }
 
-        public boolean isTienePermiso() { return tienePermiso; }
-        public void setTienePermiso(boolean tienePermiso) { this.tienePermiso = tienePermiso; }
+        public Map<String, Boolean> getPermisos() { return permisos; }
+        public void setPermisos(Map<String, Boolean> permisos) { this.permisos = permisos; }
     }
 
     // Request para solicitar acceso

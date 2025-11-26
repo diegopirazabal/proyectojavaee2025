@@ -9,7 +9,9 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -76,6 +78,53 @@ public class PoliticaAccesoDAO {
         query.setParameter("ahora", LocalDateTime.now());
 
         return query.getSingleResult() > 0;
+    }
+
+    /**
+     * Valida si un profesional tiene permiso para acceder a múltiples documentos (batch)
+     *
+     * @param documentoIds Lista de UUIDs de documentos
+     * @param ciProfesional CI del profesional
+     * @param tenantId UUID de la clínica
+     * @param especialidad Especialidad del profesional
+     * @return Map con documentoId como key y boolean (tiene permiso) como value
+     */
+    public Map<UUID, Boolean> tienePermisoAccesoBatch(List<UUID> documentoIds, Integer ciProfesional,
+                                                       UUID tenantId, String especialidad) {
+        if (documentoIds == null || documentoIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        // Query para obtener los documentos que SÍ tienen permiso
+        TypedQuery<UUID> query = em.createQuery(
+            "SELECT DISTINCT p.documentoId FROM politica_acceso p " +
+            "WHERE p.documentoId IN :documentoIds " +
+            "  AND p.tenantId = :tenantId " +
+            "  AND p.estado = :estado " +
+            "  AND p.fechaExpiracion > :ahora " +
+            "  AND (" +
+            "    (p.tipoPermiso = 'PROFESIONAL_ESPECIFICO' AND p.ciProfesional = :ciProfesional) " +
+            "    OR (p.tipoPermiso = 'POR_ESPECIALIDAD' AND p.especialidad = :especialidad) " +
+            "    OR (p.tipoPermiso = 'POR_CLINICA')" +
+            "  )",
+            UUID.class
+        );
+        query.setParameter("documentoIds", documentoIds);
+        query.setParameter("tenantId", tenantId);
+        query.setParameter("ciProfesional", ciProfesional);
+        query.setParameter("especialidad", especialidad);
+        query.setParameter("estado", EstadoPermiso.ACTIVO);
+        query.setParameter("ahora", LocalDateTime.now());
+
+        List<UUID> documentosConPermiso = query.getResultList();
+
+        // Construir mapa con todos los documentos solicitados
+        Map<UUID, Boolean> resultado = new HashMap<>();
+        for (UUID docId : documentoIds) {
+            resultado.put(docId, documentosConPermiso.contains(docId));
+        }
+
+        return resultado;
     }
 
     /**

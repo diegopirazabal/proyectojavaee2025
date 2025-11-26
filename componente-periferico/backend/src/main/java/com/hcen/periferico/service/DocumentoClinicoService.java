@@ -24,9 +24,7 @@ import java.util.logging.Logger;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -238,6 +236,31 @@ public class DocumentoClinicoService {
     }
 
     /**
+     * Obtiene múltiples documentos por sus IDs (batch)
+     * Útil para evitar N+1 queries cuando el backend central necesita varios documentos
+     */
+    public List<documento_clinico_dto> getDocumentosPorIds(List<UUID> documentoIds, UUID tenantId) {
+        if (documentoIds == null || documentoIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<documento_clinico> documentos = documentoDAO.findByIdsAndTenantId(documentoIds, tenantId);
+        return convertirListaADTOConCache(documentos);
+    }
+
+    /**
+     * Obtiene múltiples documentos por sus IDs SIN filtrar por tenant (batch cross-tenant)
+     * Usado por el componente central para recuperar documentos de un paciente
+     * distribuidos en múltiples clínicas/tenants
+     */
+    public List<documento_clinico_dto> getDocumentosPorIds(List<UUID> documentoIds) {
+        if (documentoIds == null || documentoIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<documento_clinico> documentos = documentoDAO.findByIds(documentoIds);
+        return convertirListaADTOConCache(documentos);
+    }
+
+    /**
      * Cuenta documentos de una clínica
      */
     public long countDocumentos(UUID tenantId) {
@@ -316,6 +339,119 @@ public class DocumentoClinicoService {
         dto.setCodigoGradoCerteza(documento.getCodigoGradoCerteza());
         documentoDAO.getNombreGradoCerteza(documento.getCodigoGradoCerteza())
                 .ifPresent(dto::setNombreGradoCerteza);
+
+        // Instrucciones de seguimiento
+        dto.setFechaProximaConsulta(documento.getFechaProximaConsulta());
+        dto.setDescripcionProximaConsulta(documento.getDescripcionProximaConsulta());
+        dto.setReferenciaAlta(documento.getReferenciaAlta());
+
+        return dto;
+    }
+
+    /**
+     * Convierte una lista de documentos a DTOs con caché (optimizado para batch)
+     * Evita N+1 queries haciendo consultas batch para clínicas y codigueras
+     */
+    private List<documento_clinico_dto> convertirListaADTOConCache(List<documento_clinico> documentos) {
+        if (documentos == null || documentos.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 1. Extraer todos los tenantIds únicos
+        Set<UUID> tenantIds = documentos.stream()
+            .map(documento_clinico::getTenantId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+
+        // 2. Extraer todos los códigos de codigueras únicos (solo los que se usan en estos documentos)
+        Set<String> codigosMotivo = documentos.stream()
+            .map(documento_clinico::getCodigoMotivoConsulta)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+
+        Set<String> codigosEstado = documentos.stream()
+            .map(documento_clinico::getCodigoEstadoProblema)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+
+        Set<String> codigosGrado = documentos.stream()
+            .map(documento_clinico::getCodigoGradoCerteza)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+
+        // 3. Hacer UNA consulta batch por cada tipo (solo trae los nombres necesarios)
+        // UNA sola consulta SQL con IN clause para clínicas
+        Map<UUID, String> clinicasCache = clinicaDAO.getNombresClinicasBatch(tenantIds);
+
+        // UNA sola consulta SQL con IN clause para cada tipo de codiguera
+        Map<String, String> motivosCache = documentoDAO.getNombresMotivosConsultaBatch(codigosMotivo);
+        Map<String, String> estadosCache = documentoDAO.getNombresEstadosProblemaBatch(codigosEstado);
+        Map<String, String> gradosCache = documentoDAO.getNombresGradosCertezaBatch(codigosGrado);
+
+        LOGGER.info(String.format("Batch conversion: %d docs, %d clinics, %d motivos, %d estados, %d grados",
+            documentos.size(), clinicasCache.size(), motivosCache.size(), estadosCache.size(), gradosCache.size()));
+
+        // 4. Convertir cada documento usando los cachés
+        return documentos.stream()
+            .map(doc -> convertirADTOConCache(doc, clinicasCache, motivosCache, estadosCache, gradosCache))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Convierte un documento a DTO usando cachés de clínicas y codigueras
+     */
+    private documento_clinico_dto convertirADTOConCache(documento_clinico documento,
+                                                        Map<UUID, String> clinicasCache,
+                                                        Map<String, String> motivosCache,
+                                                        Map<String, String> estadosCache,
+                                                        Map<String, String> gradosCache) {
+        documento_clinico_dto dto = new documento_clinico_dto();
+
+        // IDs y fechas
+        dto.setId(documento.getId().toString());
+        dto.setTenantId(documento.getTenantId() != null ? documento.getTenantId().toString() : null);
+        dto.setFecCreacion(documento.getFecCreacion());
+
+        // Relaciones
+        dto.setUsuarioSaludCedula(documento.getUsuarioSaludCedula());
+        dto.setProfesionalCi(documento.getProfesionalFirmante().getCi());
+
+        // Información del paciente
+        if (documento.getPaciente() != null) {
+            dto.setNombreCompletoPaciente(documento.getPaciente().getNombreCompleto());
+        }
+
+        // Información del profesional
+        profesional_salud profesional = documento.getProfesionalFirmante();
+        dto.setNombreCompletoProfesional(profesional.getNombre() + " " + profesional.getApellidos());
+        dto.setEspecialidadProfesional(profesional.getEspecialidad() != null ? profesional.getEspecialidad().getNombre() : null);
+
+        // Información de la clínica usando caché (NO hace consulta a BD)
+        if (documento.getTenantId() != null) {
+            dto.setNombreClinica(clinicasCache.get(documento.getTenantId()));
+        }
+
+        // Motivo de consulta usando caché (NO hace consulta a BD)
+        dto.setCodigoMotivoConsulta(documento.getCodigoMotivoConsulta());
+        if (documento.getCodigoMotivoConsulta() != null) {
+            dto.setNombreMotivoConsulta(motivosCache.get(documento.getCodigoMotivoConsulta()));
+        }
+
+        // Diagnóstico
+        dto.setDescripcionDiagnostico(documento.getDescripcionDiagnostico());
+        dto.setFechaInicioDiagnostico(documento.getFechaInicioDiagnostico());
+
+        // Estado de problema usando caché (NO hace consulta a BD)
+        dto.setCodigoEstadoProblema(documento.getCodigoEstadoProblema());
+        if (documento.getCodigoEstadoProblema() != null) {
+            dto.setNombreEstadoProblema(estadosCache.get(documento.getCodigoEstadoProblema()));
+        }
+
+        // Grado de certeza usando caché (NO hace consulta a BD)
+        dto.setCodigoGradoCerteza(documento.getCodigoGradoCerteza());
+        if (documento.getCodigoGradoCerteza() != null) {
+            dto.setNombreGradoCerteza(gradosCache.get(documento.getCodigoGradoCerteza()));
+        }
 
         // Instrucciones de seguimiento
         dto.setFechaProximaConsulta(documento.getFechaProximaConsulta());
@@ -520,6 +656,93 @@ public class DocumentoClinicoService {
     }
 
     /**
+     * Valida si un profesional tiene permiso para acceder a múltiples documentos (batch)
+     * Optimización para evitar N+1 HTTP calls
+     *
+     * @param documentoIds Lista de UUIDs de documentos
+     * @param ciProfesional CI del profesional
+     * @param tenantId UUID de la clínica
+     * @param especialidad Especialidad del profesional (opcional)
+     * @return Map con documentoId como key y boolean (tiene permiso) como value
+     */
+    public Map<UUID, Boolean> validarAccesoDocumentos(List<UUID> documentoIds, Integer ciProfesional,
+                                                        UUID tenantId, String especialidad) {
+        Map<UUID, Boolean> resultado = new HashMap<>();
+
+        if (documentoIds == null || documentoIds.isEmpty()) {
+            return resultado;
+        }
+
+        if (ciProfesional == null || tenantId == null) {
+            LOGGER.warning("Parámetros inválidos para validar acceso batch");
+            // Denegar todos por seguridad
+            documentoIds.forEach(id -> resultado.put(id, false));
+            return resultado;
+        }
+
+        try {
+            // 1. Buscar el profesional UNA sola vez
+            Optional<profesional_salud> profesionalOpt = profesionalDAO.findByCiAndTenantId(ciProfesional, tenantId);
+            if (profesionalOpt.isEmpty()) {
+                LOGGER.warning(String.format("Profesional no encontrado: CI=%d, tenant=%s", ciProfesional, tenantId));
+                // Denegar todos
+                documentoIds.forEach(id -> resultado.put(id, false));
+                return resultado;
+            }
+
+            profesional_salud profesional = profesionalOpt.get();
+
+            // 2. Obtener especialidad si no se proporcionó
+            String especialidadNombre = especialidad;
+            if (especialidadNombre == null || especialidadNombre.isBlank()) {
+                if (profesional.getEspecialidad() != null) {
+                    especialidadNombre = profesional.getEspecialidad().getNombre();
+                }
+            }
+
+            // 3. Consultar documentos localmente BATCH
+            List<documento_clinico> documentosLocal = documentoDAO.findByIdsAndTenantId(documentoIds, tenantId);
+
+            // 4. Separar documentos creados por el profesional (auto-granted) de los demás
+            Set<UUID> documentosCreados = new HashSet<>();
+            List<UUID> documentosAValidarConCentral = new ArrayList<>();
+
+            for (UUID docId : documentoIds) {
+                boolean esCreador = documentosLocal.stream()
+                    .filter(doc -> doc.getId().equals(docId))
+                    .anyMatch(doc -> doc.getProfesionalId() != null &&
+                                     doc.getProfesionalId().equals(profesional.getId()));
+
+                if (esCreador) {
+                    documentosCreados.add(docId);
+                    resultado.put(docId, true); // Creador siempre tiene acceso
+                } else {
+                    documentosAValidarConCentral.add(docId);
+                }
+            }
+
+            LOGGER.info(String.format("Validación batch: %d documentos creados por CI=%d, %d requieren validación central",
+                documentosCreados.size(), ciProfesional, documentosAValidarConCentral.size()));
+
+            // 5. Validar con central solo los que no son creados por este profesional (BATCH)
+            if (!documentosAValidarConCentral.isEmpty()) {
+                Map<UUID, Boolean> permisosCentral = centralAPIClient.validarAccesoDocumentos(
+                    documentosAValidarConCentral, ciProfesional, tenantId, especialidadNombre);
+
+                resultado.putAll(permisosCentral);
+            }
+
+            return resultado;
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al validar acceso batch a documentos", e);
+            // En caso de error, denegar todos por seguridad
+            documentoIds.forEach(id -> resultado.put(id, false));
+            return resultado;
+        }
+    }
+
+    /**
      * Solicita acceso a un documento clínico enviando notificación al paciente
      * Solo permite una solicitud por minuto por profesional-documento
      *
@@ -573,12 +796,14 @@ public class DocumentoClinicoService {
 
         // Buscar la especialidad del profesional en la base de datos
         String especialidadNombre = null;
+        UUID especialidadId = null;
         Optional<profesional_salud> profesionalOpt = profesionalDAO.findByCiAndTenantId(ciProfesional, tenantId);
 
         if (profesionalOpt.isPresent()) {
             profesional_salud profesional = profesionalOpt.get();
             if (profesional.getEspecialidad() != null) {
                 especialidadNombre = profesional.getEspecialidad().getNombre();
+                especialidadId = profesional.getEspecialidad().getId();
             }
         }
 
@@ -589,6 +814,7 @@ public class DocumentoClinicoService {
             ciProfesional,
             nombreProfesional,
             especialidadNombre,
+            especialidadId,
             tenantId,
             nombreClinica,
             fechaDocumento,

@@ -10,10 +10,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * REST Resource para gestión de políticas de acceso a documentos clínicos
@@ -84,8 +84,8 @@ public class PoliticaAccesoResource {
     }
 
     /**
-     * Valida si un profesional tiene permiso para acceder a un documento
-     * Llamado desde el componente periférico antes de mostrar un documento
+     * Valida si un profesional tiene permiso para acceder a uno o múltiples documentos
+     * Llamado desde el componente periférico antes de mostrar documentos
      */
     @POST
     @Path("/validar")
@@ -97,9 +97,9 @@ public class PoliticaAccesoResource {
                     .build();
             }
 
-            if (request.getDocumentoId() == null || request.getDocumentoId().isBlank()) {
+            if (request.getDocumentoIds() == null || request.getDocumentoIds().isEmpty()) {
                 return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(ApiResponse.error("documentoId es requerido"))
+                    .entity(ApiResponse.error("documentoIds es requerido y no puede estar vacío"))
                     .build();
             }
             if (request.getCiProfesional() == null) {
@@ -113,17 +113,25 @@ public class PoliticaAccesoResource {
                     .build();
             }
 
-            UUID documentoId = UUID.fromString(request.getDocumentoId());
+            // Convertir strings a UUIDs
+            List<UUID> documentoIds = request.getDocumentoIds().stream()
+                .map(UUID::fromString)
+                .collect(Collectors.toList());
             UUID tenantId = UUID.fromString(request.getTenantId());
 
-            boolean tienePermiso = politicaService.validarAcceso(
-                documentoId,
+            // Validar acceso batch
+            Map<UUID, Boolean> permisos = politicaService.validarAccesoBatch(
+                documentoIds,
                 request.getCiProfesional(),
                 tenantId,
                 request.getEspecialidad()
             );
 
-            ValidarAccesoResponse response = new ValidarAccesoResponse(tienePermiso);
+            // Convertir UUIDs a Strings para response
+            Map<String, Boolean> permisosStr = new HashMap<>();
+            permisos.forEach((uuid, hasPermission) -> permisosStr.put(uuid.toString(), hasPermission));
+
+            ValidarAccesoResponse response = new ValidarAccesoResponse(permisosStr);
             return Response.ok(ApiResponse.success(response)).build();
 
         } catch (IllegalArgumentException e) {
@@ -452,18 +460,18 @@ public class PoliticaAccesoResource {
     }
 
     public static class ValidarAccesoRequest {
-        private String documentoId;
+        private List<String> documentoIds;
         private Integer ciProfesional;
         private String tenantId;
         private String especialidad;
 
         // Getters y Setters
-        public String getDocumentoId() {
-            return documentoId;
+        public List<String> getDocumentoIds() {
+            return documentoIds;
         }
 
-        public void setDocumentoId(String documentoId) {
-            this.documentoId = documentoId;
+        public void setDocumentoIds(List<String> documentoIds) {
+            this.documentoIds = documentoIds;
         }
 
         public Integer getCiProfesional() {
@@ -492,21 +500,21 @@ public class PoliticaAccesoResource {
     }
 
     public static class ValidarAccesoResponse {
-        private boolean tienePermiso;
+        private Map<String, Boolean> permisos;
 
         public ValidarAccesoResponse() {
         }
 
-        public ValidarAccesoResponse(boolean tienePermiso) {
-            this.tienePermiso = tienePermiso;
+        public ValidarAccesoResponse(Map<String, Boolean> permisos) {
+            this.permisos = permisos;
         }
 
-        public boolean isTienePermiso() {
-            return tienePermiso;
+        public Map<String, Boolean> getPermisos() {
+            return permisos;
         }
 
-        public void setTienePermiso(boolean tienePermiso) {
-            this.tienePermiso = tienePermiso;
+        public void setPermisos(Map<String, Boolean> permisos) {
+            this.permisos = permisos;
         }
     }
 
