@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 import javax.net.ssl.SSLContext;
 
+//Deploy
 @ApplicationScoped
 public class APIService implements Serializable {
 
