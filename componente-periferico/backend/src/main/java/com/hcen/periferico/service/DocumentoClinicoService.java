@@ -209,9 +209,7 @@ public class DocumentoClinicoService {
      */
     public List<documento_clinico_dto> getDocumentosPorPaciente(String cedula, UUID tenantId) {
         List<documento_clinico> documentos = documentoDAO.findByPacienteAllTenants(cedula);
-        return documentos.stream()
-                .map(this::convertirADTO)
-                .collect(Collectors.toList());
+        return convertirListaADTOConCache(documentos);
     }
 
     /**
@@ -219,9 +217,7 @@ public class DocumentoClinicoService {
      */
     public List<documento_clinico_dto> getDocumentosPorProfesional(Integer profesionalCi, UUID tenantId) {
         List<documento_clinico> documentos = documentoDAO.findByProfesional(profesionalCi, tenantId);
-        return documentos.stream()
-                .map(this::convertirADTO)
-                .collect(Collectors.toList());
+        return convertirListaADTOConCache(documentos);
     }
 
     /**
@@ -230,9 +226,7 @@ public class DocumentoClinicoService {
     public List<documento_clinico_dto> getDocumentosPaginados(UUID tenantId, int page, Integer size) {
         int resolvedSize = normalizePageSize(size);
         List<documento_clinico> documentos = documentoDAO.findAllByTenantIdPaginated(tenantId, page, resolvedSize);
-        return documentos.stream()
-                .map(this::convertirADTO)
-                .collect(Collectors.toList());
+        return convertirListaADTOConCache(documentos);
     }
 
     /**
