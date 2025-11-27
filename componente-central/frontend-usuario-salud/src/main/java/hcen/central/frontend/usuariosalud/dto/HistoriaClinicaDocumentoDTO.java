@@ -1,7 +1,9 @@
 package hcen.central.frontend.usuariosalud.dto;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
@@ -168,7 +170,13 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
      * Formatea la fecha del documento en formato legible.
      */
     public String getFechaFormateada() {
-        return formatDate(fechaDocumento);
+        String formatted = formatDate(fechaDocumento);
+        if (formatted != null && !formatted.isBlank()) {
+            return formatted;
+        }
+        // Fallback al momento de registro en caso de que el periférico no envíe fechaDocumento
+        formatted = formatDate(fechaRegistro);
+        return formatted != null ? formatted : "";
     }
 
     public String getFechaRegistroFormateada() {
@@ -207,13 +215,26 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
 
     private String formatDate(String raw) {
         if (raw == null || raw.isBlank()) {
-            return "";
+            return null;
         }
         try {
-            LocalDateTime dateTime = LocalDateTime.parse(raw);
+            OffsetDateTime offsetDateTime = OffsetDateTime.parse(raw.trim());
+            return offsetDateTime.toLocalDateTime().format(FORMATTER);
+        } catch (DateTimeParseException e) {
+            // Ignorado: probamos otros formatos abajo
+        }
+        try {
+            LocalDateTime dateTime = LocalDateTime.parse(raw.trim());
             return dateTime.format(FORMATTER);
         } catch (DateTimeParseException e) {
-            return raw;
+            // Ignorado: probamos formato de fecha sin hora
         }
+        try {
+            LocalDate localDate = LocalDate.parse(raw.trim());
+            return localDate.atStartOfDay().format(FORMATTER);
+        } catch (DateTimeParseException e) {
+            // Último recurso: devolver el raw para no mostrar vacío en la UI
+        }
+        return raw;
     }
 }
