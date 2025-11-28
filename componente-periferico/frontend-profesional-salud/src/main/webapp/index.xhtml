@@ -7,27 +7,31 @@
 <h:head>
     <title>Portal Profesional de Salud - HCEN</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <h:outputStylesheet library="css" name="app.css"/>
+    <style>
+        :root {
+            --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
+            --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
+        }
+    </style>
 </h:head>
 
 <h:body>
-    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-        <div style="background: white; padding: 3rem; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); max-width: 400px; width: 100%;">
+    <div class="login-page">
+        <div class="login-card">
             <h:form>
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <h1 style="color: #333; margin: 0;">Portal Profesional</h1>
-                    <p style="color: #666; margin-top: 0.5rem;">Historia Clínica Electrónica Nacional</p>
+                <div class="login-header">
+                    <h1>Portal Profesional</h1>
+                    <p>Historia Clínica Electrónica Nacional</p>
                 </div>
 
                 <p:messages id="messages" showDetail="false" closable="true"/>
 
-                <div style="margin-bottom: 2rem;">
-                    <p style="color: #666; text-align: center;">
-                        Bienvenido al sistema de Historia Clínica Electrónica.
-                        Seleccione la clínica e ingrese sus credenciales para continuar.
-                    </p>
-                </div>
+                <p class="login-note">
+                    Seleccione la clínica e ingrese sus credenciales para continuar.
+                </p>
 
-                <p:panelGrid columns="1" style="margin-bottom: 1.5rem;" styleClass="p-fluid">
+                <p:panelGrid columns="1" styleClass="p-fluid" style="margin-bottom: 1.5rem;">
                     <p:selectOneMenu id="clinica"
                                      value="#{sessionBean.selectedTenantId}"
                                      required="true"
@@ -53,19 +57,15 @@
                                 requiredMessage="La contraseña es requerida"/>
                 </p:panelGrid>
 
-                <div style="text-align: center;">
-                    <p:commandButton value="Iniciar sesión"
-                                     action="#{sessionBean.navigateToDocumentos}"
-                                     icon="pi pi-file-edit"
-                                     styleClass="p-button-lg p-button-success"
-                                     style="width: 100%;"
-                                     ajax="false"/>
-                </div>
+                <p:commandButton value="Iniciar sesión"
+                                 action="#{sessionBean.navigateToDocumentos}"
+                                 icon="pi pi-file-edit"
+                                 styleClass="p-button-lg btn-primario"
+                                 style="width: 100%;"
+                                 ajax="false"/>
 
-                <div style="text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
-                    <small style="color: #999;">
-                        Sistema de Salud - Versión 1.0
-                    </small>
+                <div class="login-footer">
+                    Sistema de Salud - Versión 1.0
                 </div>
             </h:form>
         </div>

@@ -1,6 +1,7 @@
 package hcen.central.frontend.usuariosalud.bean;
 
 import hcen.central.frontend.usuariosalud.dto.ApiResponse;
+import hcen.central.frontend.usuariosalud.dto.HistoriaClinicaDocumentoDTO;
 import hcen.central.frontend.usuariosalud.dto.HistoriaClinicaIdResponse;
 import hcen.central.frontend.usuariosalud.dto.PoliticaAccesoDTO;
 import jakarta.annotation.PostConstruct;
@@ -17,6 +18,8 @@ import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.GenericType;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -27,7 +30,9 @@ import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,6 +68,7 @@ public class PermisosAccesoBean implements Serializable {
 
     // Datos para revocar
     private String motivoRevocacion;
+    private final Map<String, HistoriaClinicaDocumentoDTO> documentosPorId = new HashMap<>();
 
     @PostConstruct
     public void init() {
@@ -87,9 +93,13 @@ public class PermisosAccesoBean implements Serializable {
         String endpoint = backendUrl + "/api/historia-clinica/by-cedula/" + cedula;
 
         try (Client client = createBackendClient()) {
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .get();
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.get();
 
             int status = response.getStatus();
             if (status == 200) {
@@ -136,9 +146,13 @@ public class PermisosAccesoBean implements Serializable {
         String endpoint = backendUrl + "/api/politicas-acceso/historia/" + historiaId;
 
         try (Client client = createBackendClient()) {
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .get();
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.get();
 
             int status = response.getStatus();
             if (status == 200) {
@@ -148,6 +162,8 @@ public class PermisosAccesoBean implements Serializable {
                 if (apiResponse.isSuccess() && apiResponse.getData() != null) {
                     permisos = apiResponse.getData();
                     LOGGER.info("Permisos cargados: " + permisos.size());
+                    cargarDocumentosHistoria();
+                    enriquecerPermisosConDocumentos();
 
                     if (permisos.isEmpty()) {
                         addMessage(FacesMessage.SEVERITY_INFO, "Sin permisos",
@@ -165,6 +181,60 @@ public class PermisosAccesoBean implements Serializable {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error", "No se pudieron cargar los permisos");
         } finally {
             loading = false;
+        }
+    }
+
+    private void cargarDocumentosHistoria() {
+        documentosPorId.clear();
+        String cedula = loginBean.getCedulaUsuarioActual();
+        if (cedula == null || cedula.isBlank()) {
+            return;
+        }
+
+        String backendUrl = obtenerBackendUrl();
+        String endpoint = backendUrl + "/api/historia-clinica/" + cedula + "/documentos";
+
+        try (Client client = createBackendClient()) {
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.get();
+
+            if (response.getStatus() == 200) {
+                ApiResponse<List<HistoriaClinicaDocumentoDTO>> apiResponse =
+                        response.readEntity(new GenericType<ApiResponse<List<HistoriaClinicaDocumentoDTO>>>() {});
+                if (apiResponse.isSuccess() && apiResponse.getData() != null) {
+                    for (HistoriaClinicaDocumentoDTO doc : apiResponse.getData()) {
+                        if (doc.getDocumentoId() != null) {
+                            documentosPorId.put(doc.getDocumentoId(), doc);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "No se pudieron cargar los documentos de historia clínica", e);
+        }
+    }
+
+    private void enriquecerPermisosConDocumentos() {
+        if (permisos == null || permisos.isEmpty()) {
+            return;
+        }
+        for (PoliticaAccesoDTO permiso : permisos) {
+            if (permiso.getDocumentoId() == null) {
+                continue;
+            }
+            HistoriaClinicaDocumentoDTO doc = documentosPorId.get(permiso.getDocumentoId());
+            if (doc == null) {
+                continue;
+            }
+            permiso.setMotivoDocumento(doc.getMotivoDisplay());
+            permiso.setNombreClinica(doc.getClinicaDisplay());
+            permiso.setFechaDocumento(doc.getFechaFormateada());
+            permiso.setFechaRegistroDocumento(doc.getFechaRegistroFormateada());
         }
     }
 
@@ -212,9 +282,13 @@ public class PermisosAccesoBean implements Serializable {
                     .add("nuevaFechaExpiracion", fechaStr)
                     .build();
 
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .put(Entity.json(requestBody.toString()));
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.put(Entity.json(requestBody.toString()));
 
             int status = response.getStatus();
             if (status == 200) {
@@ -286,9 +360,13 @@ public class PermisosAccesoBean implements Serializable {
                 builder.add("especialidad", nuevaEspecialidad);
             }
 
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .put(Entity.json(builder.build().toString()));
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.put(Entity.json(builder.build().toString()));
 
             int status = response.getStatus();
             if (status == 200) {
@@ -336,9 +414,13 @@ public class PermisosAccesoBean implements Serializable {
                 builder.add("motivo", motivoRevocacion);
             }
 
-            Response response = client.target(endpoint)
-                    .request(MediaType.APPLICATION_JSON)
-                    .put(Entity.json(builder.build().toString()));
+            var requestBuilder = client.target(endpoint)
+                    .request(MediaType.APPLICATION_JSON);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + jwtToken);
+            }
+            Response response = requestBuilder.put(Entity.json(builder.build().toString()));
 
             int status = response.getStatus();
             if (status == 200) {
@@ -360,6 +442,26 @@ public class PermisosAccesoBean implements Serializable {
     private void addMessage(FacesMessage.Severity severity, String summary, String detail) {
         FacesContext.getCurrentInstance().addMessage(null,
                 new FacesMessage(severity, summary, detail));
+    }
+
+    /**
+     * Obtiene el JWT token de la cookie
+     */
+    private String getJwtTokenFromCookie() {
+        try {
+            FacesContext context = FacesContext.getCurrentInstance();
+            HttpServletRequest request = (HttpServletRequest) context.getExternalContext().getRequest();
+            if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("jwt_token".equals(cookie.getName())) {
+                        return cookie.getValue();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al obtener JWT de cookie", e);
+        }
+        return null;
     }
 
     private String obtenerBackendUrl() {

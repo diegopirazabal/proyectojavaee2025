@@ -3,6 +3,7 @@ package com.example.hcenmobile.data.remote;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.example.hcenmobile.util.Constants;
 
@@ -76,16 +77,21 @@ public class RetrofitClient {
         return retrofit.create(ApiService.class);
     }
 
+    private static final String TAG = "RetrofitClient";
+
     private Response applyAuthHeader(Interceptor.Chain chain) throws IOException {
         Request original = chain.request();
         SharedPreferences prefs = appContext.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE);
         String jwt = prefs.getString(Constants.PREF_JWT_TOKEN, null);
 
         if (!TextUtils.isEmpty(jwt)) {
+            Log.i(TAG, "[Mobile] Enviando JWT en Authorization Header, token=" + jwt.substring(0, Math.min(20, jwt.length())) + "...");
             Request authorized = original.newBuilder()
                     .addHeader("Authorization", "Bearer " + jwt)
                     .build();
             return chain.proceed(authorized);
+        } else {
+            Log.w(TAG, "[Mobile] NO hay JWT disponible para enviar en la petición a: " + original.url());
         }
 
         return chain.proceed(original);

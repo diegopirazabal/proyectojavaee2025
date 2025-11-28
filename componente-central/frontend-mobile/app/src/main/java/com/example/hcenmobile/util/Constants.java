@@ -1,13 +1,16 @@
 package com.example.hcenmobile.util;
 
+import com.example.hcenmobile.BuildConfig;
+
 /**
  * Constantes globales de la aplicación HCEN Mobile
  */
 public class Constants {
 
     // API Configuration
-    // Backend central en producción
-    public static final String BASE_URL = "https://hcen-uy.web.elasticloud.uy/api";
+    // URL del backend se obtiene desde BuildConfig (debug -> localhost, release -> producción)
+    // En debug usa 10.0.2.2 que es el alias de localhost del host desde el emulador Android
+    public static final String BASE_URL = BuildConfig.BASE_URL;
     public static final int CONNECT_TIMEOUT = 30; // seconds
     public static final int READ_TIMEOUT = 30; // seconds
     public static final int WRITE_TIMEOUT = 30; // seconds

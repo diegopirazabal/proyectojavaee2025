@@ -1,7 +1,9 @@
 package hcen.central.frontend.usuariosalud.dto;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
@@ -165,18 +167,20 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
     }
 
     /**
-     * Formatea la fecha del documento en formato legible: "dd/MM/yyyy HH:mm"
+     * Formatea la fecha del documento en formato legible.
      */
     public String getFechaFormateada() {
-        if (fechaDocumento == null || fechaDocumento.isBlank()) {
-            return "";
+        String formatted = formatDate(fechaDocumento);
+        if (formatted != null && !formatted.isBlank()) {
+            return formatted;
         }
-        try {
-            LocalDateTime dateTime = LocalDateTime.parse(fechaDocumento);
-            return dateTime.format(FORMATTER);
-        } catch (DateTimeParseException e) {
-            return fechaDocumento;
-        }
+        // Fallback al momento de registro en caso de que el periférico no envíe fechaDocumento
+        formatted = formatDate(fechaRegistro);
+        return formatted != null ? formatted : "";
+    }
+
+    public String getFechaRegistroFormateada() {
+        return formatDate(fechaRegistro);
     }
 
     /**
@@ -207,5 +211,30 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
             return nombreClinica;
         }
         return "Clínica no especificada";
+    }
+
+    private String formatDate(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            OffsetDateTime offsetDateTime = OffsetDateTime.parse(raw.trim());
+            return offsetDateTime.toLocalDateTime().format(FORMATTER);
+        } catch (DateTimeParseException e) {
+            // Ignorado: probamos otros formatos abajo
+        }
+        try {
+            LocalDateTime dateTime = LocalDateTime.parse(raw.trim());
+            return dateTime.format(FORMATTER);
+        } catch (DateTimeParseException e) {
+            // Ignorado: probamos formato de fecha sin hora
+        }
+        try {
+            LocalDate localDate = LocalDate.parse(raw.trim());
+            return localDate.atStartOfDay().format(FORMATTER);
+        } catch (DateTimeParseException e) {
+            // Último recurso: devolver el raw para no mostrar vacío en la UI
+        }
+        return raw;
     }
 }

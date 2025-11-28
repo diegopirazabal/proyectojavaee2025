@@ -21,12 +21,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            // URL del backend para desarrollo local
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/hcen-central/api\"")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // URL del backend para producción
+            buildConfigField("String", "BASE_URL", "\"https://hcen-uy.web.elasticloud.uy/api\"")
         }
     }
     compileOptions {
@@ -35,6 +41,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 

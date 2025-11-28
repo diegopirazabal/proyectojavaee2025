@@ -24,28 +24,43 @@
         <header class="dashboard-header full-bleed">
             <div class="header-content">
                 <div class="logo-section">
-                    <h1>HCEN</h1>
-                    <span>Reportes y Estadísticas</span>
+                    <h:link outcome="dashboard?faces-redirect=true" styleClass="logo-link">
+                        <h1>HCEN</h1>
+                        <span>Portal Administrativo</span>
+                    </h:link>
                 </div>
 
                 <div class="nav-actions">
-                    <h:form id="reportsNavbarForm" styleClass="nav-actions-form">
+                    <h:form id="navbarActionsForm" styleClass="nav-actions-form">
                         <p:commandButton value="Volver al Dashboard"
                                          styleClass="nav-action-button"
                                          icon="pi pi-home"
                                          action="dashboard?faces-redirect=true"
+                                         ajax="false"
                                          process="@this"/>
-                        <p:commandButton value="Gestionar Usuarios"
+                        <p:commandButton value="Enviar Notificación de Prueba"
                                          styleClass="nav-action-button"
-                                         icon="pi pi-users"
-                                         action="usuarios?faces-redirect=true"
+                                         icon="pi pi-bell"
+                                         action="#{notification_bean.sendTestNotification}"
+                                         update=":reportsForm:messages"
+                                         process="@this"/>
+                        <p:commandButton type="button"
+                                         value="Crear Clínica"
+                                         styleClass="nav-action-button"
+                                         icon="pi pi-building"
+                                         onclick="PF('altaClinicaDialog').show()"/>
+                        <p:commandButton value="Ver Reportes"
+                                         styleClass="nav-action-button"
+                                         icon="pi pi-chart-bar"
+                                         action="reportes?faces-redirect=true"
+                                         ajax="false"
                                          process="@this"/>
                     </h:form>
                 </div>
 
                 <div class="user-section">
                     <p:outputPanel rendered="#{login_bean.loggedIn}">
-                        <span class="welcome-text">#{login_bean.loggedAdmin.fullName}</span>
+                        <span class="welcome-text">Bienvenido, #{login_bean.loggedAdmin.fullName}</span>
                         <h:form style="display: inline;">
                             <p:commandButton value="Cerrar Sesión"
                                              action="#{login_bean.logout}"
@@ -144,6 +159,58 @@
 
             </div>
         </main>
+
+        <!-- Dialogo Alta Clínica -->
+        <p:dialog id="altaClinicaDialog"
+                  widgetVar="altaClinicaDialog"
+                  header="Crear Clínica"
+                  modal="true"
+                  closable="true"
+                  resizable="false"
+                  styleClass="modern-dialog">
+            <h:form id="altaClinicaForm" styleClass="modern-dialog-form">
+                <div class="modern-form-grid">
+                    <div class="modern-form-field">
+                        <h:outputLabel for="nombreClinica" value="Nombre" styleClass="modern-label"/>
+                        <p:inputText id="nombreClinica"
+                                     value="#{dashboard_bean.nuevaClinica.nombre}"
+                                     required="true"
+                                     requiredMessage="El nombre es obligatorio."
+                                     styleClass="modern-input"/>
+                    </div>
+
+                    <div class="modern-form-field">
+                        <h:outputLabel for="emailClinica" value="Email" styleClass="modern-label"/>
+                        <p:inputText id="emailClinica"
+                                     value="#{dashboard_bean.nuevaClinica.email}"
+                                     styleClass="modern-input"/>
+                    </div>
+
+                    <div class="modern-form-field">
+                        <h:outputLabel for="direccionClinica" value="Dirección" styleClass="modern-label"/>
+                        <p:inputTextarea id="direccionClinica"
+                                         value="#{dashboard_bean.nuevaClinica.direccion}"
+                                         autoResize="true"
+                                         rows="2"
+                                         styleClass="modern-input"/>
+                    </div>
+                </div>
+                <div class="modern-dialog-footer">
+                    <p:commandButton value="Crear Clínica"
+                                     icon="pi pi-check"
+                                     styleClass="primary-cta"
+                                     action="#{dashboard_bean.crearClinica}"
+                                     update=":reportsForm:messages altaClinicaDialog"
+                                     process="@form"
+                                     oncomplete="if (!args.validationFailed &amp;&amp; args.clinicaCreada) { PF('altaClinicaDialog').hide(); }"/>
+                    <p:commandButton type="button"
+                                     value="Cancelar"
+                                     icon="pi pi-times"
+                                     styleClass="ghost-button"
+                                     onclick="PF('altaClinicaDialog').hide()"/>
+                </div>
+            </h:form>
+        </p:dialog>
 
         <footer class="dashboard-footer">
             <p>© 2025 HCEN - Historia Clínica Electrónica Nacional - Universidad de la República</p>

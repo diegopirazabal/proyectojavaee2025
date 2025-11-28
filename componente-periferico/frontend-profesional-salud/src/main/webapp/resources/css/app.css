@@ -1,0 +1,203 @@
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f5f5;
+    color: #333;
+}
+
+.app-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.app-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--primary-color);
+    border-bottom: 3px solid var(--secondary-color);
+    padding: 0.75rem 1.25rem;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    gap: 1rem;
+}
+
+.nav-group,
+.user-box {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.user-name {
+    color: #fff;
+    font-weight: 600;
+}
+
+.btn-primario {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #ffffff !important;
+}
+
+.btn-secundario {
+    background: var(--secondary-color) !important;
+    border-color: var(--secondary-color) !important;
+    color: #ffffff !important;
+}
+
+.btn-light {
+    background: #ffffff !important;
+    color: var(--primary-color) !important;
+    border: 1px solid #e0e0e0 !important;
+}
+
+.panel-secundario .p-panel-header {
+    background-color: var(--secondary-color) !important;
+    color: #ffffff !important;
+}
+
+.app-header {
+    text-align: center;
+    margin: 2rem 0 1rem;
+}
+
+.app-header h1 {
+    margin: 0;
+    color: #222;
+}
+
+.app-header p {
+    margin: 0.35rem 0 0;
+    color: #666;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.info-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+    text-align: center;
+}
+
+.info-card i {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 0.75rem;
+}
+
+.info-card h3 {
+    margin: 0.25rem 0;
+    color: #222;
+}
+
+.info-card p {
+    margin: 0;
+    color: #666;
+}
+
+.content-panel {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+}
+
+.panel-spaced {
+    margin-top: 1.5rem;
+}
+
+.acciones {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.paciente-info {
+    margin: 1rem 0;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.detalle-grid {
+    width: 100%;
+}
+
+.detalle-grid td {
+    padding: 0.35rem 0.75rem;
+    vertical-align: top;
+}
+
+.detalle-grid td:first-child {
+    font-weight: bold;
+    width: 30%;
+    color: #495057;
+}
+
+.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #f0f2f5;
+    padding: 1.5rem;
+}
+
+.login-card {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.login-header h1 {
+    margin: 0;
+    color: #222;
+}
+
+.login-header p {
+    margin: 0.35rem 0 0;
+    color: #555;
+}
+
+.login-note {
+    text-align: center;
+    color: #666;
+    margin: 1rem 0 1.5rem;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 1.25rem;
+    color: #888;
+    font-size: 0.9rem;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+}

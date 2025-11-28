@@ -8,68 +8,12 @@
 <h:head>
     <title>Dashboard — Portal Profesional</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-
-    <!-- Estilos Look & Feel por clínica -->
+    <h:outputStylesheet library="css" name="app.css"/>
     <style>
         :root {
             --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
             --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
         }
-
-        /* Menú superior */
-        .app-menubar {
-            background-color: var(--primary-color) !important;
-            border: none !important;
-        }
-
-        .app-menubar .p-menuitem-link,
-        .app-menubar .p-menuitem-text,
-        .app-menubar .pi {
-            color: #ffffff !important;
-        }
-
-        /* Panel headers */
-        .panel-secundario .p-panel-header {
-            background-color: var(--secondary-color) !important;
-            color: #ffffff !important;
-        }
-
-        /* Botones principales */
-        .btn-primario {
-            background: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
-            color: #ffffff !important;
-        }
-
-        /* Botones secundarios */
-        .btn-secundario {
-            background: var(--secondary-color) !important;
-            border-color: var(--secondary-color) !important;
-            color: #ffffff !important;
-        }
-
-        /* Iconos Atajos */
-        .app-icon-primary {
-            font-size: 3rem;
-            color: var(--primary-color);
-        }
-
-        /* Layout */
-        .container {
-            max-width: 960px;
-            margin: 2rem auto;
-            text-align: center;
-        }
-
-        .grid-cards {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            flex-wrap: wrap;
-            margin-top: 2rem;
-        }
-
     </style>
 </h:head>
 
@@ -77,21 +21,12 @@
 
     <!-- MENÚ SUPERIOR -->
     <h:form id="menuForm">
-        <div style="
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        background-color: var(--primary-color);
-        padding: 0.7rem 1.2rem;
-        border-bottom: 3px solid var(--secondary-color);
-    ">
-
-            <!-- BOTONES DE NAVEGACIÓN -->
-            <div style="display:flex; gap:0.5rem;">
+        <div class="app-topbar">
+            <div class="nav-group">
                 <p:commandButton value="Dashboard"
                                  icon="pi pi-home"
                                  action="/pages/dashboard.xhtml?faces-redirect=true"
-                                 styleClass="btn-secundario" />
+                                 styleClass="btn-light" />
 
                 <p:commandButton value="Historia Clínica"
                                  icon="pi pi-book"
@@ -104,44 +39,45 @@
                                  styleClass="btn-secundario" />
             </div>
 
-            <!-- USUARIO + CERRAR SESIÓN -->
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-            <span style="color:white; font-weight:500;">
-                #{sessionBean.nombreProfesional}
-            </span>
+            <div class="user-box">
+                <span class="user-name">
+                    #{sessionBean.nombreProfesional}
+                </span>
 
                 <p:commandButton value="Cerrar Sesión"
                                  icon="pi pi-sign-out"
                                  action="#{sessionBean.logout}"
                                  styleClass="btn-secundario"/>
             </div>
-
         </div>
     </h:form>
 
-    <!-- CONTENIDO -->
-    <div class="container">
+    <div class="app-shell">
 
-        <h2>Bienvenido al Portal Profesional</h2>
-        <p>Seleccione una acción</p>
+        <div class="app-header">
+            <h1>Bienvenido al Portal Profesional</h1>
+            <p>Seleccione una acción</p>
+        </div>
 
-        <div class="grid-cards">
+        <div class="card-grid">
 
-            <p:panel header="Historia Clínica" styleClass="panel-secundario" style="width:250px;">
+            <div class="info-card panel-secundario">
                 <i class="pi pi-book app-icon-primary"></i>
+                <h3>Historia Clínica</h3>
                 <p>Ver historia clínica de pacientes</p>
                 <p:button value="Ingresar" icon="pi pi-arrow-right"
                           outcome="/pages/historia/buscar.xhtml"
                           styleClass="btn-primario"/>
-            </p:panel>
+            </div>
 
-            <p:panel header="Documentos Clínicos" styleClass="panel-secundario" style="width:250px;">
+            <div class="info-card panel-secundario">
                 <i class="pi pi-file app-icon-primary"></i>
+                <h3>Documentos Clínicos</h3>
                 <p>Consultar o registrar documentos</p>
                 <p:button value="Ingresar" icon="pi pi-arrow-right"
                           outcome="/pages/documentos.xhtml"
                           styleClass="btn-primario"/>
-            </p:panel>
+            </div>
 
         </div>
 

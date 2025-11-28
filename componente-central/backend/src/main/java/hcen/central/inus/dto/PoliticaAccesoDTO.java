@@ -4,6 +4,7 @@ import hcen.central.inus.entity.politica_acceso;
 import hcen.central.inus.enums.EstadoPermiso;
 import hcen.central.inus.enums.TipoPermiso;
 
+import jakarta.json.bind.annotation.JsonbDateFormat;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -22,10 +23,14 @@ public class PoliticaAccesoDTO implements Serializable {
     private Integer ciProfesional;
     private UUID tenantId;
     private String especialidad;
+    @JsonbDateFormat("yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime fechaOtorgamiento;
+
+    @JsonbDateFormat("yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime fechaExpiracion;
     private EstadoPermiso estado;
     private String motivoRevocacion;
+    @JsonbDateFormat("yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime fechaRevocacion;
 
     // Constructores

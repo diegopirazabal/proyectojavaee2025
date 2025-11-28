@@ -59,7 +59,9 @@ public class api_service {
 
     private static final String CENTRAL_ENV_VAR = "HCEN_API_BASE_URL";
     private static final String CENTRAL_SYS_PROP = "hcen.apiBaseUrl";
-    private static final String DEFAULT_BACKEND_URL = "http://localhost:8080/api";
+    // URLs por defecto para desarrollo y producción
+    private static final String DEFAULT_BACKEND_URL_DEV = "http://localhost:8080/hcen-central/api";
+    private static final String DEFAULT_BACKEND_URL_PROD = "https://hcen-uy.web.elasticloud.uy/api";
 
     private static final String PERIPHERAL_ENV_VAR = "HCEN_PERIPHERAL_API_BASE_URL";
     private static final String PERIPHERAL_SYS_PROP = "hcen.peripheralApiBaseUrl";
@@ -67,12 +69,16 @@ public class api_service {
 
     private static final Logger LOGGER = Logger.getLogger(api_service.class.getName());
 
-    private final String backendUrl = resolveBackendUrl();
+    // URL resuelta dinámicamente en cada petición para soportar cambio de contexto
     private final String peripheralUrl = resolvePeripheralUrl();
+
+    private String getBackendUrl() {
+        return resolveBackendUrl();
+    }
 
     public admin_hcen_dto authenticate(String username, String password) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPost request = new HttpPost(backendUrl + "/auth/login");
+            HttpPost request = new HttpPost(getBackendUrl() + "/auth/login");
 
             JsonObject loginData = Json.createObjectBuilder()
                     .add("username", username)
@@ -95,7 +101,7 @@ public class api_service {
 
     public boolean triggerBroadcastNotification() {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPost request = new HttpPost(backendUrl + "/notifications/broadcast-test");
+            HttpPost request = new HttpPost(getBackendUrl() + "/notifications/broadcast-test");
             request.setEntity(new StringEntity("{}", ContentType.APPLICATION_JSON));
             attachAuthorizationHeader(request);
 
@@ -110,7 +116,7 @@ public class api_service {
 
     public List<usuario_salud_dto> obtenerUsuariosSalud() {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpGet request = new HttpGet(backendUrl + "/usuarios-salud");
+            HttpGet request = new HttpGet(getBackendUrl() + "/usuarios-salud");
             attachAuthorizationHeader(request);
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -130,7 +136,7 @@ public class api_service {
                                                             String nombre,
                                                             String apellido) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            StringBuilder urlBuilder = new StringBuilder(backendUrl).append("/usuarios-sistema");
+            StringBuilder urlBuilder = new StringBuilder(getBackendUrl()).append("/usuarios-sistema");
             List<String> params = new ArrayList<>();
             if (tipoDoc != null && !tipoDoc.isBlank()) {
                 params.add("tipoDoc=" + encode(tipoDoc));
@@ -176,7 +182,7 @@ public class api_service {
 
     public boolean enviarNotificacionUsuario(String cedula, String mensaje) {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPost request = new HttpPost(backendUrl + "/notifications/usuarios/" + cedula);
+            HttpPost request = new HttpPost(getBackendUrl() + "/notifications/usuarios/" + cedula);
             attachAuthorizationHeader(request);
 
             JsonObject payload = Json.createObjectBuilder()
@@ -198,7 +204,7 @@ public class api_service {
             return false;
         }
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPut request = new HttpPut(backendUrl + "/usuarios-salud/" + usuario.getNumeroDocumento());
+            HttpPut request = new HttpPut(getBackendUrl() + "/usuarios-salud/" + usuario.getNumeroDocumento());
             attachAuthorizationHeader(request);
 
             var builder = Json.createObjectBuilder()
@@ -430,7 +436,7 @@ public class api_service {
     }
 
     public String getOidcLoginUrl() {
-        String apiBase = backendUrl;
+        String apiBase = getBackendUrl();
         String baseUrl = apiBase.endsWith("/api") ? apiBase.substring(0, apiBase.length() - 4) : apiBase;
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
@@ -447,7 +453,7 @@ public class api_service {
 
     public boolean isBackendAvailable() {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPost request = new HttpPost(backendUrl + "/health");
+            HttpPost request = new HttpPost(getBackendUrl() + "/health");
             attachAuthorizationHeader(request);
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 return response.getCode() == 200;
@@ -468,7 +474,7 @@ public class api_service {
         }
 
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpGet request = new HttpGet(backendUrl + "/historia-clinica/by-cedula/" + cedula.trim());
+            HttpGet request = new HttpGet(getBackendUrl() + "/historia-clinica/by-cedula/" + cedula.trim());
             attachAuthorizationHeader(request);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
@@ -509,7 +515,7 @@ public class api_service {
         }
 
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpGet request = new HttpGet(backendUrl + "/politicas-acceso/historia/" + historiaId);
+            HttpGet request = new HttpGet(getBackendUrl() + "/politicas-acceso/historia/" + historiaId);
             attachAuthorizationHeader(request);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
@@ -541,7 +547,7 @@ public class api_service {
         }
 
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPut request = new HttpPut(backendUrl + "/politicas-acceso/" + permisoId + "/extender");
+            HttpPut request = new HttpPut(getBackendUrl() + "/politicas-acceso/" + permisoId + "/extender");
             attachAuthorizationHeader(request);
 
             JsonObject requestBody = Json.createObjectBuilder()
@@ -579,7 +585,7 @@ public class api_service {
         }
 
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPut request = new HttpPut(backendUrl + "/politicas-acceso/" + permisoId + "/modificar-tipo");
+            HttpPut request = new HttpPut(getBackendUrl() + "/politicas-acceso/" + permisoId + "/modificar-tipo");
             attachAuthorizationHeader(request);
 
             var builder = Json.createObjectBuilder()
@@ -619,7 +625,7 @@ public class api_service {
         }
 
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpPut request = new HttpPut(backendUrl + "/politicas-acceso/" + permisoId + "/revocar");
+            HttpPut request = new HttpPut(getBackendUrl() + "/politicas-acceso/" + permisoId + "/revocar");
             attachAuthorizationHeader(request);
 
             var builder = Json.createObjectBuilder();
@@ -1087,15 +1093,33 @@ public class api_service {
     }
 
     private String resolveBackendUrl() {
+        // 1. Primero intentar variable de entorno
         String envValue = System.getenv(CENTRAL_ENV_VAR);
         if (envValue != null && !envValue.isBlank()) {
             return sanitizeBaseUrl(envValue);
         }
+        // 2. Luego propiedad de sistema
         String sysPropValue = System.getProperty(CENTRAL_SYS_PROP);
         if (sysPropValue != null && !sysPropValue.isBlank()) {
             return sanitizeBaseUrl(sysPropValue);
         }
-        return sanitizeBaseUrl(DEFAULT_BACKEND_URL);
+        // 3. Detección automática basada en el contexto de la request
+        try {
+            FacesContext facesContext = FacesContext.getCurrentInstance();
+            if (facesContext != null) {
+                String serverName = facesContext.getExternalContext().getRequestServerName();
+                // Si el servidor es localhost o 127.0.0.1, estamos en desarrollo
+                if ("localhost".equalsIgnoreCase(serverName) || "127.0.0.1".equals(serverName)) {
+                    LOGGER.fine("Detectado entorno de desarrollo, usando URL: " + DEFAULT_BACKEND_URL_DEV);
+                    return sanitizeBaseUrl(DEFAULT_BACKEND_URL_DEV);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "No se pudo determinar el servidor actual", e);
+        }
+        // 4. Por defecto usar producción
+        LOGGER.fine("Usando URL de producción: " + DEFAULT_BACKEND_URL_PROD);
+        return sanitizeBaseUrl(DEFAULT_BACKEND_URL_PROD);
     }
 
     private String resolvePeripheralUrl() {
@@ -1125,6 +1149,9 @@ public class api_service {
         String token = resolveJwtToken();
         if (token != null && !token.isBlank()) {
             request.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+            LOGGER.info("[api_service] Enviando JWT en Authorization Header, token=" + token.substring(0, Math.min(20, token.length())) + "...");
+        } else {
+            LOGGER.warning("[api_service] NO hay JWT disponible para enviar en la petición");
         }
     }
 

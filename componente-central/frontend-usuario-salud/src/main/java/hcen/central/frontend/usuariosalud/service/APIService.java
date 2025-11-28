@@ -3,6 +3,8 @@ package hcen.central.frontend.usuariosalud.service;
 import hcen.central.frontend.usuariosalud.dto.UsuarioSaludDTO;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.faces.context.FacesContext;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -119,6 +121,28 @@ public class APIService implements Serializable {
     }
 
     /**
+     * Obtiene el JWT token de la cookie
+     */
+    private String getJwtTokenFromCookie() {
+        try {
+            FacesContext context = FacesContext.getCurrentInstance();
+            if (context != null) {
+                HttpServletRequest request = (HttpServletRequest) context.getExternalContext().getRequest();
+                if (request.getCookies() != null) {
+                    for (Cookie cookie : request.getCookies()) {
+                        if ("jwt_token".equals(cookie.getName())) {
+                            return cookie.getValue();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al obtener JWT de cookie", e);
+        }
+        return null;
+    }
+
+    /**
      * Obtiene datos de un usuario por cédula
      * GET /api/usuarios/{cedula}
      */
@@ -126,6 +150,13 @@ public class APIService implements Serializable {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpGet request = new HttpGet(getBackendUrl() + "/api/usuarios/" + cedula);
             request.setHeader("Content-Type", "application/json");
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                request.setHeader("Authorization", "Bearer " + jwtToken);
+                LOGGER.info("[APIService] Enviando JWT en Authorization Header, token=" + jwtToken.substring(0, Math.min(20, jwtToken.length())) + "...");
+            } else {
+                LOGGER.warning("[APIService] NO hay JWT disponible para enviar en la petición");
+            }
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
@@ -151,6 +182,13 @@ public class APIService implements Serializable {
                                              Boolean notificacionesHabilitadas) throws IOException {
         try (CloseableHttpClient httpClient = createHttpClient()) {
             HttpPut request = new HttpPut(getBackendUrl() + "/api/usuarios/" + cedula);
+            String jwtToken = getJwtTokenFromCookie();
+            if (jwtToken != null && !jwtToken.isBlank()) {
+                request.setHeader("Authorization", "Bearer " + jwtToken);
+                LOGGER.info("[APIService] Enviando JWT en Authorization Header para PUT, token=" + jwtToken.substring(0, Math.min(20, jwtToken.length())) + "...");
+            } else {
+                LOGGER.warning("[APIService] NO hay JWT disponible para enviar en PUT");
+            }
 
             JsonObjectBuilder builder = Json.createObjectBuilder()
                 .add("email", email != null ? email : "")

@@ -152,26 +152,26 @@
                                  styleClass="documento-card"
                                  emptyMessage="No hay permisos">
 
-                        <p:column headerText="Documento" style="width: 120px;">
-                            <h:outputText value="#{permiso.documentoIdCorto}"
-                                          title="#{permiso.documentoId}"/>
+                        <p:column headerText="Documento" style="width: 200px;">
+                            <h:outputText value="#{permiso.documentoDescripcion}"
+                                          title="#{permiso.documentoDescripcion}"/>
                         </p:column>
 
                         <p:column headerText="Tipo de Permiso">
                             <span class="tipo-badge">#{permiso.descripcionPermiso}</span>
                         </p:column>
 
-                        <p:column headerText="Clínica" style="width: 120px;">
-                            <h:outputText value="#{permiso.tenantId.substring(0, 8)}..."
-                                          title="#{permiso.tenantId}"/>
+                        <p:column headerText="Clínica" style="width: 180px;">
+                            <h:outputText value="#{empty permiso.nombreClinica ? permiso.tenantId : permiso.nombreClinica}"
+                                          title="#{empty permiso.nombreClinica ? permiso.tenantId : permiso.nombreClinica}"/>
                         </p:column>
 
                         <p:column headerText="Fecha Otorgamiento" style="width: 150px;">
-                            <h:outputText value="#{permiso.fechaOtorgamiento}"/>
+                            <h:outputText value="#{permiso.fechaOtorgamientoFormateada}"/>
                         </p:column>
 
-                        <p:column headerText="Fecha Expiración" style="width: 150px;">
-                            <h:outputText value="#{permiso.fechaExpiracion}"/>
+                        <p:column headerText="Fecha Creación" style="width: 150px;">
+                            <h:outputText value="#{permiso.fechaCreacionDocumentoFormateada}"/>
                         </p:column>
 
                         <p:column headerText="Estado" style="width: 120px;">

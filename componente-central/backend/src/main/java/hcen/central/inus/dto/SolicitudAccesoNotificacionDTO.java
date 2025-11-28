@@ -24,6 +24,7 @@ public class SolicitudAccesoNotificacionDTO implements Serializable {
     private Integer profesionalCi;
     private String profesionalNombre;
     private String especialidad;
+    private String especialidadId;  // UUID de la especialidad
 
     // Datos de la clínica
     private String tenantId;
@@ -43,6 +44,7 @@ public class SolicitudAccesoNotificacionDTO implements Serializable {
             Integer profesionalCi,
             String profesionalNombre,
             String especialidad,
+            String especialidadId,
             String tenantId,
             String nombreClinica) {
         this.cedulaPaciente = cedulaPaciente;
@@ -53,6 +55,7 @@ public class SolicitudAccesoNotificacionDTO implements Serializable {
         this.profesionalCi = profesionalCi;
         this.profesionalNombre = profesionalNombre;
         this.especialidad = especialidad;
+        this.especialidadId = especialidadId;
         this.tenantId = tenantId;
         this.nombreClinica = nombreClinica;
     }
@@ -121,6 +124,14 @@ public class SolicitudAccesoNotificacionDTO implements Serializable {
 
     public void setEspecialidad(String especialidad) {
         this.especialidad = especialidad;
+    }
+
+    public String getEspecialidadId() {
+        return especialidadId;
+    }
+
+    public void setEspecialidadId(String especialidadId) {
+        this.especialidadId = especialidadId;
     }
 
     public String getTenantId() {
