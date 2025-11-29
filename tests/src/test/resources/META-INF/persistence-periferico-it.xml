@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             version="2.2"
+             xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+                                 http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd">
+
+    <persistence-unit name="hcen-periferico-pu" transaction-type="JTA">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+        <jta-data-source>java:openejb/Resource/HcenPerifericoDSTest</jta-data-source>
+
+        <class>com.hcen.periferico.entity.clinica</class>
+        <class>com.hcen.periferico.entity.administrador_clinica</class>
+        <class>com.hcen.periferico.entity.profesional_salud</class>
+        <class>com.hcen.periferico.entity.configuracion_clinica</class>
+        <class>com.hcen.periferico.entity.documento_clinico</class>
+        <class>com.hcen.periferico.entity.UsuarioSalud</class>
+
+        <exclude-unlisted-classes>false</exclude-unlisted-classes>
+
+        <properties>
+            <property name="javax.persistence.jdbc.driver" value="org.h2.Driver"/>
+            <property name="javax.persistence.jdbc.url" value="jdbc:h2:mem:periferico;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"/>
+            <property name="javax.persistence.jdbc.user" value="sa"/>
+            <property name="javax.persistence.jdbc.password" value="sa"/>
+
+            <property name="hibernate.dialect" value="org.hibernate.dialect.H2Dialect"/>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="hibernate.id.new_generator_mappings" value="true"/>
+            <property name="javax.persistence.validation.mode" value="NONE"/>
+        </properties>
+    </persistence-unit>
+</persistence>

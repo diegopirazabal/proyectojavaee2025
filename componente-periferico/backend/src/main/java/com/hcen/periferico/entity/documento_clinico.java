@@ -15,7 +15,7 @@ import java.util.UUID;
 @Table(name = "DOCUMENTO_CLINICO", indexes = {
     @Index(name = "idx_documento_tenant", columnList = "TENANT_ID"),
     @Index(name = "idx_documento_paciente", columnList = "USUARIO_SALUD_CEDULA, TENANT_ID"),
-    @Index(name = "idx_documento_profesional", columnList = "PROFESIONAL_CI")
+    @Index(name = "idx_documento_profesional", columnList = "PROFESIONAL_ID")
 })
 public class documento_clinico {
 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tomee>
+    <Resource id="HcenPerifericoDSTest" type="javax.sql.DataSource">
+        JdbcDriver org.h2.Driver
+        JdbcUrl jdbc:h2:mem:periferico;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+        UserName sa
+        Password sa
+        JtaManaged true
+    </Resource>
+</tomee>

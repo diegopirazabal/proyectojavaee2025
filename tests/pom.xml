@@ -39,6 +39,23 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Clases del backend periférico para tests unitarios -->
+        <dependency>
+            <groupId>com.hcen.periferico</groupId>
+            <artifactId>backend-periferico</artifactId>
+            <version>${project.version}</version>
+            <classifier>classes</classifier>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Hibernate para el IT del periférico (UUID id generation) -->
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>6.4.4.Final</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- JUnit + Arquillian -->
         <dependency>
             <groupId>junit</groupId>
