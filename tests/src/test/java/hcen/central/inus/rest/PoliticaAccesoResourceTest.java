@@ -12,6 +12,7 @@ import jakarta.ws.rs.core.Response;
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
@@ -62,9 +63,11 @@ public class PoliticaAccesoResourceTest {
 
     @Test
     public void validarAccesoRetornaResultado() {
-        when(service.validarAcceso(any(), any(), any(), any())).thenReturn(true);
+        UUID documentoId = UUID.randomUUID();
+        when(service.validarAccesoBatch(anyList(), anyInt(), any(), any())).thenReturn(Map.of(documentoId, true));
+
         PoliticaAccesoResource.ValidarAccesoRequest request = new PoliticaAccesoResource.ValidarAccesoRequest();
-        request.setDocumentoId(UUID.randomUUID().toString());
+        request.setDocumentoIds(List.of(documentoId.toString()));
         request.setTenantId(UUID.randomUUID().toString());
         request.setCiProfesional(123);
 
@@ -73,7 +76,7 @@ public class PoliticaAccesoResourceTest {
         @SuppressWarnings("unchecked")
         ApiResponse<PoliticaAccesoResource.ValidarAccesoResponse> api =
             (ApiResponse<PoliticaAccesoResource.ValidarAccesoResponse>) response.getEntity();
-        assertTrue(api.getData().isTienePermiso());
+        assertEquals(Boolean.TRUE, api.getData().getPermisos().get(documentoId.toString()));
     }
 
     @Test

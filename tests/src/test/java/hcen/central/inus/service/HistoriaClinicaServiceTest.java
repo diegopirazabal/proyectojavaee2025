@@ -93,12 +93,12 @@ public class HistoriaClinicaServiceTest {
         when(historiaDAO.findDocumentosByHistoria(historia.getId())).thenReturn(List.of(documento));
 
         DocumentoClinicoDTO periferico = new DocumentoClinicoDTO();
-        periferico.setId("ABC");
+        periferico.setId(documento.getDocumentoId().toString());
         periferico.setCodigoMotivoConsulta("COD");
         periferico.setNombreCompletoProfesional("Dr. Test");
         periferico.setNombreClinica("Clinica Uno");
-        when(perifericoClient.obtenerDocumento(documento.getDocumentoId(), documento.getTenantId()))
-            .thenReturn(Optional.of(periferico));
+        when(perifericoClient.obtenerDocumentosBatch(anyList(), eq(documento.getTenantId())))
+            .thenReturn(List.of(periferico));
 
         List<HistoriaClinicaDocumentoDetalleResponse> respuesta = service.obtenerDocumentosPorCedula("55566677");
 
@@ -107,7 +107,10 @@ public class HistoriaClinicaServiceTest {
         assertEquals(historia.getId().toString(), dto.getHistoriaId());
         assertEquals("Clinica Uno", dto.getNombreClinica());
         assertEquals("Dr. Test", dto.getProfesional());
-        verify(perifericoClient).obtenerDocumento(documento.getDocumentoId(), documento.getTenantId());
+        verify(perifericoClient).obtenerDocumentosBatch(
+            argThat(ids -> ids.size() == 1 && ids.contains(documento.getDocumentoId())),
+            eq(documento.getTenantId()));
+        verify(perifericoClient, never()).obtenerDocumento(any(), any());
     }
 
     @Test(expected = IllegalArgumentException.class)

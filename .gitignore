@@ -61,3 +61,6 @@ backup_hcen_*.json
 WARP.md
 AGENTS.md
 docs/
+
+!tests/src/test/resources/sql/schema.sql
+tmp_m2/
