@@ -6,6 +6,9 @@
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
 
 <h:head>
+    <f:metadata>
+        <f:event type="preRenderView" listener="#{login_bean.checkAuthentication}"/>
+    </f:metadata>
     <title>HCEN - Reportes y Estadísticas</title>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -13,11 +16,6 @@
 </h:head>
 
 <h:body>
-    <f:view>
-        <f:metadata>
-            <f:event type="preRenderView" listener="#{login_bean.checkAuthentication}"/>
-        </f:metadata>
-    </f:view>
 
     <div class="dashboard-container">
         <!-- Header -->
@@ -124,10 +122,13 @@
                         </div>
                         <div class="card-content reports-table">
                             <p:dataTable id="clinicasEstadisticas"
-                                         value="#{reportes_bean.clinicas}"
+                                         value="#{reportes_bean.clinicasLazyModel}"
                                          var="clinica"
+                                         lazy="true"
                                          paginator="true"
-                                         rows="8"
+                                         rows="10"
+                                         paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+                                         currentPageReportTemplate="Mostrando {startRecord}-{endRecord} de {totalRecords} clínicas"
                                          responsiveLayout="scroll"
                                          emptyMessage="No hay datos disponibles para las clínicas registradas.">
                                 <p:column headerText="Clínica" sortBy="#{clinica.nombre}">

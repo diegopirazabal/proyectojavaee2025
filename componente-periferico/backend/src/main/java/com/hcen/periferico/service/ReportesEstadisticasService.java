@@ -122,6 +122,114 @@ public class ReportesEstadisticasService {
         return estadisticas;
     }
 
+    /**
+     * Genera estadísticas con paginación de clínicas (lazy loading).
+     * Los totales se calculan siempre para todas las clínicas, solo se paginan las clínicas.
+     *
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @return Estadísticas con totales globales y clínicas de la página solicitada
+     */
+    public Estadisticas generarEstadisticasPaginadas(int page, int size) {
+        Estadisticas estadisticas = new Estadisticas();
+        estadisticas.setGeneratedAt(Instant.now().toString());
+
+        try {
+            // 1. Contar total de clínicas (para rowCount del lazy model)
+            long totalClinicas = clinicaDAO.countAll();
+            estadisticas.setTotalClinicas((int) totalClinicas);
+
+            if (totalClinicas == 0) {
+                estadisticas.setTotals(new Totales());
+                estadisticas.setClinicas(Collections.emptyList());
+                return estadisticas;
+            }
+
+            // 2. Calcular TOTALES GLOBALES (todas las clínicas, no solo de la página)
+            Totales totales = calcularTotalesGlobales();
+            estadisticas.setTotals(totales);
+
+            // 3. Obtener clínicas de la página actual con PAGINACIÓN
+            List<clinica> clinicas = clinicaDAO.findAllPaginated(page, size);
+
+            if (clinicas.isEmpty()) {
+                estadisticas.setClinicas(Collections.emptyList());
+                return estadisticas;
+            }
+
+            // 4. Extraer tenant IDs de la página actual
+            List<UUID> tenantIds = clinicas.stream()
+                .map(clinica::getTenantId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+            // 5. Obtener estadísticas SOLO de las clínicas de la página actual
+            Map<UUID, Long> pacientesPorTenant = usuarioSaludDAO.countByTenantIdBatch(tenantIds);
+            Map<UUID, Long> documentosPorTenant = documentoClinicoDAO.countByTenantIdBatch(tenantIds);
+            Map<UUID, Long> profesionalesPorTenant = profesionalSaludDAO.countByTenantIdBatch(tenantIds);
+            Map<UUID, Long> accesosPorTenant = solicitudAccesoDocumentoDAO.countByTenantIdAndEstadoBatch(
+                tenantIds,
+                solicitud_acceso_documento.EstadoSolicitud.APROBADA
+            );
+
+            // 6. Construir lista de clínicas de la página
+            List<ClinicaEstadistica> clinicaEstadisticas = new ArrayList<>();
+            for (clinica registro : clinicas) {
+                UUID tenantId = registro.getTenantId();
+                if (tenantId == null) {
+                    continue;
+                }
+
+                ClinicaEstadistica detalle = new ClinicaEstadistica();
+                detalle.setTenantId(tenantId.toString());
+                detalle.setNombre(registro.getNombre());
+                detalle.setEmail(registro.getEmail());
+                detalle.setPacientes(pacientesPorTenant.getOrDefault(tenantId, 0L));
+                detalle.setDocumentos(documentosPorTenant.getOrDefault(tenantId, 0L));
+                detalle.setProfesionales(profesionalesPorTenant.getOrDefault(tenantId, 0L));
+                detalle.setAccesosDocumentos(accesosPorTenant.getOrDefault(tenantId, 0L));
+
+                clinicaEstadisticas.add(detalle);
+            }
+
+            estadisticas.setClinicas(clinicaEstadisticas);
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al generar estadísticas paginadas", e);
+        }
+
+        return estadisticas;
+    }
+
+    /**
+     * Calcula los totales globales (todas las clínicas, sin paginación)
+     * Usado por generarEstadisticasPaginadas() para mantener totales consistentes
+     *
+     * @return Totales con counts globales de pacientes, documentos, profesionales y accesos
+     */
+    private Totales calcularTotalesGlobales() {
+        Totales totales = new Totales();
+
+        try {
+            // Contar totales globales usando métodos que ya existen en los DAOs
+            long totalPacientes = usuarioSaludDAO.countActivos();
+            long totalDocumentos = documentoClinicoDAO.countAll();
+            long totalProfesionales = profesionalSaludDAO.countAll();
+            long totalAccesos = solicitudAccesoDocumentoDAO.countByEstado(
+                solicitud_acceso_documento.EstadoSolicitud.APROBADA
+            );
+
+            totales.incrementarPacientes(totalPacientes);
+            totales.incrementarDocumentos(totalDocumentos);
+            totales.incrementarProfesionales(totalProfesionales);
+            totales.incrementarAccesos(totalAccesos);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al calcular totales globales", e);
+        }
+
+        return totales;
+    }
+
     // ===== DTOs para serialización =====
 
     public static class Estadisticas {
