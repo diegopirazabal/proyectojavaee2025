@@ -101,4 +101,36 @@ public class ClinicaDAO {
         }
         return resultado;
     }
+
+    /**
+     * Cuenta el total de clínicas registradas
+     * Usado para paginación lazy (rowCount)
+     *
+     * @return Cantidad total de clínicas
+     */
+    public long countAll() {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(c) FROM clinica c",
+            Long.class
+        );
+        return query.getSingleResult();
+    }
+
+    /**
+     * Obtiene clínicas con paginación
+     * Usado para lazy loading de tabla de reportes
+     *
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @return Lista de clínicas de la página solicitada, ordenadas por nombre
+     */
+    public List<clinica> findAllPaginated(int page, int size) {
+        TypedQuery<clinica> query = em.createQuery(
+            "SELECT c FROM clinica c ORDER BY c.nombre",
+            clinica.class
+        );
+        query.setFirstResult(page * size);
+        query.setMaxResults(size);
+        return query.getResultList();
+    }
 }

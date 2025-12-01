@@ -15,8 +15,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.primefaces.model.FilterMeta;
+import org.primefaces.model.LazyDataModel;
+import org.primefaces.model.SortMeta;
 
 @Named
 @ViewScoped
@@ -31,31 +35,94 @@ public class reportes_bean implements Serializable {
     private api_service apiService;
 
     private reportes_estadisticas_dto estadisticas;
-    private List<reportes_estadisticas_dto.ClinicaEstadistica> clinicas = new ArrayList<>();
+    private LazyDataModel<reportes_estadisticas_dto.ClinicaEstadistica> clinicasLazyModel;
 
     @PostConstruct
     public void init() {
-        cargarEstadisticas(false);
+        cargarTotales(false);
+        inicializarLazyModel();
     }
 
     public void refrescarDatos() {
-        cargarEstadisticas(true);
+        cargarTotales(true);
+        // El lazy model se recargará automáticamente en el próximo load()
     }
 
-    private void cargarEstadisticas(boolean mostrarMensaje) {
+    /**
+     * Carga solo los totales globales (sin clínicas).
+     * Los totales son constantes y se calculan una sola vez.
+     */
+    private void cargarTotales(boolean mostrarMensaje) {
         try {
-            estadisticas = apiService.obtenerReportesEstadisticas();
-            clinicas = estadisticas != null && estadisticas.getClinicas() != null
-                ? estadisticas.getClinicas()
-                : Collections.emptyList();
+            // Llamar al endpoint paginado con page=0 y size=0 para obtener solo totales
+            estadisticas = apiService.obtenerReportesEstadisticasPaginadas(0, 1);
             if (mostrarMensaje) {
                 addInfoMessage("Estadísticas actualizadas", "La información fue sincronizada correctamente.");
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error al cargar estadísticas", e);
-            clinicas = Collections.emptyList();
+            LOGGER.log(Level.SEVERE, "Error al cargar totales", e);
             addErrorMessage("No se pudo cargar el reporte", "Detalle: " + e.getMessage());
         }
+    }
+
+    /**
+     * Inicializa el LazyDataModel para paginación del lado del servidor.
+     * El método load() se invoca automáticamente por PrimeFaces en cada cambio de página.
+     */
+    private void inicializarLazyModel() {
+        clinicasLazyModel = new LazyDataModel<reportes_estadisticas_dto.ClinicaEstadistica>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public int count(Map<String, FilterMeta> filterBy) {
+                // Retornar el total de clínicas desde las estadísticas
+                return estadisticas != null ? estadisticas.getTotalClinicas() : 0;
+            }
+
+            @Override
+            public List<reportes_estadisticas_dto.ClinicaEstadistica> load(
+                    int first,
+                    int pageSize,
+                    Map<String, SortMeta> sortBy,
+                    Map<String, FilterMeta> filterBy) {
+                try {
+                    // Calcular número de página (0-indexed)
+                    int page = first / pageSize;
+
+                    LOGGER.log(Level.INFO, "Lazy loading clínicas: page={0}, size={1}, first={2}",
+                        new Object[]{page, pageSize, first});
+
+                    // Llamar al endpoint paginado
+                    reportes_estadisticas_dto resultado = apiService.obtenerReportesEstadisticasPaginadas(page, pageSize);
+
+                    if (resultado != null) {
+                        // Actualizar totales globales (por si cambiaron)
+                        if (resultado.getTotals() != null) {
+                            if (estadisticas == null) {
+                                estadisticas = new reportes_estadisticas_dto();
+                            }
+                            estadisticas.setTotals(resultado.getTotals());
+                            estadisticas.setTotalClinicas(resultado.getTotalClinicas());
+                            estadisticas.setGeneratedAt(resultado.getGeneratedAt());
+                        }
+
+                        // Actualizar rowCount del lazy model
+                        this.setRowCount(resultado.getTotalClinicas());
+
+                        // Retornar clínicas de esta página
+                        return resultado.getClinicas() != null
+                            ? resultado.getClinicas()
+                            : Collections.emptyList();
+                    }
+
+                    return Collections.emptyList();
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error en lazy loading de clínicas", e);
+                    addErrorMessage("Error al cargar datos", "No se pudieron cargar las clínicas de esta página.");
+                    return Collections.emptyList();
+                }
+            }
+        };
     }
 
     public reportes_estadisticas_dto.Totales getTotales() {
@@ -64,8 +131,8 @@ public class reportes_bean implements Serializable {
             : new reportes_estadisticas_dto.Totales();
     }
 
-    public List<reportes_estadisticas_dto.ClinicaEstadistica> getClinicas() {
-        return clinicas;
+    public LazyDataModel<reportes_estadisticas_dto.ClinicaEstadistica> getClinicasLazyModel() {
+        return clinicasLazyModel;
     }
 
     public String getGeneratedAtFormatted() {

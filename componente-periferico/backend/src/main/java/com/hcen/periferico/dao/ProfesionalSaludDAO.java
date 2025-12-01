@@ -6,9 +6,8 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Stateless
 public class ProfesionalSaludDAO {
@@ -217,5 +216,49 @@ public class ProfesionalSaludDAO {
         query.setParameter("tenantId", tenantId);
         List<profesional_salud> result = query.setMaxResults(1).getResultList();
         return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+    }
+
+    /**
+     * Cuenta profesionales activos agrupados por tenant_id (consulta agregada)
+     * Optimizado para evitar N+1 queries en reportes
+     *
+     * @param tenantIds Colección de tenant IDs a consultar
+     * @return Map con tenantId -> cantidad de profesionales activos
+     */
+    public Map<UUID, Long> countByTenantIdBatch(Collection<UUID> tenantIds) {
+        Map<UUID, Long> resultado = new HashMap<>();
+        if (tenantIds == null || tenantIds.isEmpty()) {
+            return resultado;
+        }
+
+        try {
+            List<UUID> ids = tenantIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+            if (ids.isEmpty()) {
+                return resultado;
+            }
+
+            TypedQuery<Object[]> query = em.createQuery(
+                "SELECT p.tenantId, COUNT(p) FROM profesional_salud p " +
+                "WHERE p.tenantId IN :tenantIds AND p.active = true " +
+                "GROUP BY p.tenantId",
+                Object[].class
+            );
+            query.setParameter("tenantIds", ids);
+            List<Object[]> results = query.getResultList();
+
+            for (Object[] row : results) {
+                UUID tenantId = (UUID) row[0];
+                Long count = (Long) row[1];
+                resultado.put(tenantId, count);
+            }
+        } catch (Exception e) {
+            // Log error
+            e.printStackTrace();
+        }
+        return resultado;
     }
 }

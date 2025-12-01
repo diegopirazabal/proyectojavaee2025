@@ -18,6 +18,12 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -25,6 +31,7 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Stateless
@@ -317,6 +324,9 @@ public class notification_resource {
 
             LOGGER.info("Solicitud aprobada - Permiso creado con ID: " + permisoCreado.getId());
 
+            // ⭐ NUEVO: Notificar al periférico que la solicitud fue aprobada
+            notificarPeriferico(notif, request.getTenantId(), true);
+
             return Response.ok(Json.createObjectBuilder()
                 .add("status", "OK")
                 .add("message", "Solicitud aprobada exitosamente")
@@ -391,6 +401,13 @@ public class notification_resource {
 
             LOGGER.info("Solicitud rechazada - Notificación ID: " + request.getNotificacionId());
 
+            // ⭐ NUEVO: Notificar al periférico que la solicitud fue rechazada
+            // Extraer tenantId del JSON datosAdicionales
+            SolicitudAccesoNotificacionDTO datos = gson.fromJson(notif.getDatosAdicionales(), SolicitudAccesoNotificacionDTO.class);
+            if (datos != null && datos.getTenantId() != null) {
+                notificarPeriferico(notif, datos.getTenantId(), false);
+            }
+
             return Response.ok(Json.createObjectBuilder()
                 .add("status", "OK")
                 .add("message", "Solicitud rechazada exitosamente")
@@ -413,6 +430,96 @@ public class notification_resource {
         } catch (DateTimeParseException ex) {
             return LocalDateTime.parse(fechaExpiracion);
         }
+    }
+
+    /**
+     * Notifica al componente periférico cuando una solicitud de acceso fue aprobada/rechazada.
+     * Envía un HTTP PUT al endpoint del periférico para actualizar el estado en la BD local.
+     *
+     * Este método es "best effort" - si falla, se registra warning pero no se propaga el error.
+     * La aprobación/rechazo en central siempre tiene éxito, el callback es secundario.
+     *
+     * @param notificacion La notificación con datosAdicionales que contiene el solicitudId
+     * @param tenantId UUID de la clínica
+     * @param aprobada true si fue aprobada, false si fue rechazada
+     */
+    private void notificarPeriferico(notificacion notificacion, String tenantId, boolean aprobada) {
+        try {
+            // 1. Extraer solicitudId del JSON datosAdicionales
+            String datosJson = notificacion.getDatosAdicionales();
+            if (datosJson == null || datosJson.isBlank()) {
+                LOGGER.warning("No se puede notificar al periférico: datosAdicionales es null o vacío");
+                return;
+            }
+
+            SolicitudAccesoNotificacionDTO datos = gson.fromJson(datosJson, SolicitudAccesoNotificacionDTO.class);
+            if (datos == null || datos.getSolicitudId() == null || datos.getSolicitudId().isBlank()) {
+                LOGGER.warning("No se puede notificar al periférico: solicitudId no encontrado en datosAdicionales");
+                return;
+            }
+
+            String solicitudId = datos.getSolicitudId();
+
+            // 2. Construir URL del endpoint del periférico
+            String baseUrl = getPerifericoBaseUrl();
+            String endpoint = aprobada ? "aprobar" : "rechazar";
+            String url = baseUrl + "/api/solicitudes-acceso/" + solicitudId + "/" + endpoint;
+
+            // 3. Construir el request body JSON
+            String jsonBody = Json.createObjectBuilder()
+                .add("tenantId", tenantId)
+                .build()
+                .toString();
+
+            LOGGER.info(String.format("Notificando al periférico: solicitudId=%s, estado=%s, url=%s",
+                    solicitudId, aprobada ? "APROBADA" : "RECHAZADA", url));
+
+            // 4. Enviar HTTP PUT request
+            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+                HttpPut putRequest = new HttpPut(url);
+                putRequest.setHeader("Content-Type", "application/json");
+                putRequest.setHeader("Accept", "application/json");
+                putRequest.setEntity(new StringEntity(jsonBody, ContentType.APPLICATION_JSON));
+
+                try (CloseableHttpResponse response = httpClient.execute(putRequest)) {
+                    int statusCode = response.getCode();  // HttpClient 5 API: getCode() en lugar de getStatusLine().getStatusCode()
+
+                    if (statusCode >= 200 && statusCode < 300) {
+                        LOGGER.info(String.format("Periférico notificado exitosamente: solicitudId=%s, status=%d",
+                                solicitudId, statusCode));
+                    } else {
+                        LOGGER.warning(String.format("Error al notificar periférico: solicitudId=%s, status=%d",
+                                solicitudId, statusCode));
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            // NO propagar excepción - el callback es "best effort"
+            // La aprobación/rechazo en central ya fue exitosa, este error no debe afectar la respuesta
+            LOGGER.log(Level.WARNING, "Error al notificar al periférico (ignorando): " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Obtiene la URL base del componente periférico desde configuración.
+     * Lee la variable de entorno o system property "periferico.base.url".
+     * Default: http://localhost:8081/hcen-periferico (para desarrollo)
+     *
+     * @return URL base del periférico (sin trailing slash)
+     */
+    private String getPerifericoBaseUrl() {
+        String url = System.getenv(PERIPHERAL_ENV_VAR);
+        if (url == null || url.isBlank()) {
+            url = System.getProperty(PERIPHERAL_SYS_PROP);
+        }
+        if (url == null || url.isBlank()) {
+            url = DEFAULT_PERIPHERAL_URL;
+        }
+        if (url.endsWith("/")) {
+            url = url.substring(0, url.length() - 1);
+        }
+        return url;
     }
 
     // ============ CLASES DE REQUEST ============

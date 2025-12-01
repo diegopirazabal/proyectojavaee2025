@@ -8,10 +8,16 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * DAO para gestionar usuarios de salud en el componente periférico.
@@ -202,5 +208,51 @@ public class UsuarioSaludDAO {
         );
         query.setParameter("cedula", cedula);
         return query.getResultList();
+    }
+
+    /**
+     * Cuenta usuarios activos agrupados por tenant_id (consulta agregada)
+     * Optimizado para evitar N+1 queries en reportes
+     *
+     * @param tenantIds Colección de tenant IDs a consultar
+     * @return Map con tenantId -> cantidad de usuarios activos
+     */
+    public Map<UUID, Long> countByTenantIdBatch(Collection<UUID> tenantIds) {
+        Map<UUID, Long> resultado = new HashMap<>();
+        if (tenantIds == null || tenantIds.isEmpty()) {
+            return resultado;
+        }
+
+        try {
+            // Filtrar nulls y crear lista única
+            List<UUID> ids = tenantIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+            if (ids.isEmpty()) {
+                return resultado;
+            }
+
+            // UNA sola query con GROUP BY
+            TypedQuery<Object[]> query = em.createQuery(
+                "SELECT u.tenantId, COUNT(u) FROM UsuarioSalud u " +
+                "WHERE u.tenantId IN :tenantIds AND u.active = true " +
+                "GROUP BY u.tenantId",
+                Object[].class
+            );
+            query.setParameter("tenantIds", ids);
+            List<Object[]> results = query.getResultList();
+
+            // Convertir a Map
+            for (Object[] row : results) {
+                UUID tenantId = (UUID) row[0];
+                Long count = (Long) row[1];
+                resultado.put(tenantId, count);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al contar usuarios por tenant en batch", e);
+        }
+        return resultado;
     }
 }

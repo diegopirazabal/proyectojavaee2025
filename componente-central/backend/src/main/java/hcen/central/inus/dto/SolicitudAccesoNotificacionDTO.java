@@ -11,6 +11,9 @@ public class SolicitudAccesoNotificacionDTO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    // ID de la solicitud en el periférico (para callback posterior)
+    private String solicitudId;
+
     // Datos del paciente
     private String cedulaPaciente;
 
@@ -36,6 +39,7 @@ public class SolicitudAccesoNotificacionDTO implements Serializable {
     }
 
     public SolicitudAccesoNotificacionDTO(
+            String solicitudId,
             String cedulaPaciente,
             String documentoId,
             String fechaDocumento,
@@ -47,6 +51,7 @@ public class SolicitudAccesoNotificacionDTO implements Serializable {
             String especialidadId,
             String tenantId,
             String nombreClinica) {
+        this.solicitudId = solicitudId;
         this.cedulaPaciente = cedulaPaciente;
         this.documentoId = documentoId;
         this.fechaDocumento = fechaDocumento;
@@ -61,6 +66,14 @@ public class SolicitudAccesoNotificacionDTO implements Serializable {
     }
 
     // Getters y Setters
+
+    public String getSolicitudId() {
+        return solicitudId;
+    }
+
+    public void setSolicitudId(String solicitudId) {
+        this.solicitudId = solicitudId;
+    }
 
     public String getCedulaPaciente() {
         return cedulaPaciente;
@@ -153,7 +166,8 @@ public class SolicitudAccesoNotificacionDTO implements Serializable {
     @Override
     public String toString() {
         return "SolicitudAccesoNotificacionDTO{" +
-                "cedulaPaciente='" + cedulaPaciente + '\'' +
+                "solicitudId='" + solicitudId + '\'' +
+                ", cedulaPaciente='" + cedulaPaciente + '\'' +
                 ", documentoId='" + documentoId + '\'' +
                 ", profesionalNombre='" + profesionalNombre + '\'' +
                 ", nombreClinica='" + nombreClinica + '\'' +
