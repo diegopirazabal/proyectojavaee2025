@@ -13,8 +13,11 @@ import jakarta.ejb.Stateless;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -116,15 +119,39 @@ public class HistoriaClinicaService {
         if (documentos == null || documentos.isEmpty()) {
             return Collections.emptyList();
         }
+
+        // Agrupar documentos por tenantId para batch fetching
+        Map<UUID, List<historia_clinica_documento>> documentosPorTenant = documentos.stream()
+            .collect(Collectors.groupingBy(historia_clinica_documento::getTenantId));
+
+        // Batch fetch: hacer una llamada HTTP por tenant
+        Map<UUID, DocumentoClinicoDTO> documentosDetalleMap = new HashMap<>();
+        for (Map.Entry<UUID, List<historia_clinica_documento>> entry : documentosPorTenant.entrySet()) {
+            UUID tenantId = entry.getKey();
+            List<UUID> documentoIds = entry.getValue().stream()
+                .map(historia_clinica_documento::getDocumentoId)
+                .collect(Collectors.toList());
+
+            // Una sola llamada HTTP por tenant (en lugar de N llamadas)
+            List<DocumentoClinicoDTO> batch = perifericoDocumentosClient.obtenerDocumentosBatch(documentoIds, tenantId);
+            for (DocumentoClinicoDTO dto : batch) {
+                if (dto.getId() != null) {
+                    documentosDetalleMap.put(UUID.fromString(dto.getId()), dto);
+                }
+            }
+        }
+
+        // Mapear con lookup en memoria (sin HTTP calls)
         return documentos.stream()
-            .map(doc -> construirDetalle(historia, doc, cedula))
+            .map(doc -> construirDetalle(historia, doc, cedula, documentosDetalleMap))
             .collect(Collectors.toList());
     }
 
     private HistoriaClinicaDocumentoDetalleResponse construirDetalle(
             historia_clinica historia,
             historia_clinica_documento doc,
-            String cedula) {
+            String cedula,
+            Map<UUID, DocumentoClinicoDTO> documentosDetalleMap) {
 
         HistoriaClinicaDocumentoDetalleResponse dto = new HistoriaClinicaDocumentoDetalleResponse();
         dto.setHistoriaId(historia.getId() != null ? historia.getId().toString() : null);
@@ -133,8 +160,11 @@ public class HistoriaClinicaService {
         dto.setUsuarioCedula(cedula);
         dto.setFechaRegistro(doc.getFecRegistro() != null ? doc.getFecRegistro().format(ISO) : null);
 
-        perifericoDocumentosClient.obtenerDocumento(doc.getDocumentoId(), doc.getTenantId())
-            .ifPresent(periferico -> aplicarDetalleDesdePeriferico(dto, periferico));
+        // Lookup en memoria (sin HTTP call)
+        DocumentoClinicoDTO periferico = documentosDetalleMap.get(doc.getDocumentoId());
+        if (periferico != null) {
+            aplicarDetalleDesdePeriferico(dto, periferico);
+        }
 
         return dto;
     }
@@ -171,9 +201,7 @@ public class HistoriaClinicaService {
         dto.setFechaDocumento(fechaDocumento);
 
         // Clínica
-        String nombreClinica = periferico.getNombreClinica();
-        dto.setNombreClinica(nombreClinica);
-        LOGGER.info("Mapeando nombreClinica: '" + nombreClinica + "' para documento: " + dto.getDocumentoId());
+        dto.setNombreClinica(periferico.getNombreClinica());
 
         // Diagnóstico
         dto.setDescripcionDiagnostico(periferico.getDescripcionDiagnostico());

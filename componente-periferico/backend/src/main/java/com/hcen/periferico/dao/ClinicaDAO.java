@@ -58,4 +58,47 @@ public class ClinicaDAO {
     public void deleteByTenantId(UUID tenantId) {
         findByTenantId(tenantId).ifPresent(this::delete);
     }
+
+    /**
+     * Obtiene nombres de múltiples clínicas en una sola query (batch)
+     * Optimizado para evitar N consultas individuales
+     *
+     * @param tenantIds Colección de tenant IDs
+     * @return Map con tenantId -> nombreClinica (solo incluye los que existen en BD)
+     */
+    public java.util.Map<UUID, String> getNombresClinicasBatch(java.util.Collection<UUID> tenantIds) {
+        java.util.Map<UUID, String> resultado = new java.util.HashMap<>();
+        if (tenantIds == null || tenantIds.isEmpty()) {
+            return resultado;
+        }
+
+        try {
+            // Filtrar nulls y crear lista de IDs únicos
+            java.util.List<UUID> ids = tenantIds.stream()
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+
+            if (ids.isEmpty()) {
+                return resultado;
+            }
+
+            // UNA sola consulta con IN clause
+            TypedQuery<clinica> query = em.createQuery(
+                "SELECT c FROM clinica c WHERE c.tenantId IN :ids",
+                clinica.class
+            );
+            query.setParameter("ids", ids);
+            List<clinica> clinicas = query.getResultList();
+
+            // Mapear tenantId -> nombre
+            for (clinica c : clinicas) {
+                resultado.put(c.getTenantId(), c.getNombre());
+            }
+        } catch (Exception e) {
+            // Log error si es necesario
+            e.printStackTrace();
+        }
+        return resultado;
+    }
 }
