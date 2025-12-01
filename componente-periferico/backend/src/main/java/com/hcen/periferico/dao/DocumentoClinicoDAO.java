@@ -7,6 +7,7 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * DAO para gestión de documentos clínicos.
@@ -500,5 +501,49 @@ public class DocumentoClinicoDAO {
         } catch (NumberFormatException ex) {
             return null;
         }
+    }
+
+    /**
+     * Cuenta documentos clínicos agrupados por tenant_id (consulta agregada)
+     * Optimizado para evitar N+1 queries en reportes
+     *
+     * @param tenantIds Colección de tenant IDs a consultar
+     * @return Map con tenantId -> cantidad de documentos
+     */
+    public Map<UUID, Long> countByTenantIdBatch(Collection<UUID> tenantIds) {
+        Map<UUID, Long> resultado = new HashMap<>();
+        if (tenantIds == null || tenantIds.isEmpty()) {
+            return resultado;
+        }
+
+        try {
+            List<UUID> ids = tenantIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+            if (ids.isEmpty()) {
+                return resultado;
+            }
+
+            TypedQuery<Object[]> query = em.createQuery(
+                "SELECT d.tenantId, COUNT(d) FROM documento_clinico d " +
+                "WHERE d.tenantId IN :tenantIds " +
+                "GROUP BY d.tenantId",
+                Object[].class
+            );
+            query.setParameter("tenantIds", ids);
+            List<Object[]> results = query.getResultList();
+
+            for (Object[] row : results) {
+                UUID tenantId = (UUID) row[0];
+                Long count = (Long) row[1];
+                resultado.put(tenantId, count);
+            }
+        } catch (Exception e) {
+            // Log error
+            e.printStackTrace();
+        }
+        return resultado;
     }
 }
