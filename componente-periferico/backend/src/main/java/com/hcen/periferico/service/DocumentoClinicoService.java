@@ -801,8 +801,16 @@ public class DocumentoClinicoService {
             }
         }
 
-        // Enviar notificación al paciente vía componente central
+        // PRIMERO: Registrar solicitud en base de datos local para capturar su ID
+        // Esto genera el UUID que necesitamos enviar al componente central
+        com.hcen.periferico.entity.solicitud_acceso_documento solicitud =
+            solicitudAccesoDAO.registrarSolicitud(documentoId, ciProfesional, tenantId, cedulaPaciente);
+
+        UUID solicitudId = solicitud.getId(); // Capturar el UUID generado
+
+        // SEGUNDO: Enviar notificación al paciente vía componente central incluyendo el solicitudId
         boolean notificacionEnviada = centralAPIClient.solicitarAccesoDocumento(
+            solicitudId,
             cedulaPaciente,
             documentoId,
             ciProfesional,
@@ -818,17 +826,14 @@ public class DocumentoClinicoService {
 
         if (!notificacionEnviada) {
             LOGGER.warning(String.format(
-                "No se pudo enviar la notificación de solicitud de acceso (documento=%s, profesional=%d, paciente=%s)",
-                documentoId, ciProfesional, cedulaPaciente));
+                "No se pudo enviar la notificación de solicitud de acceso (documento=%s, profesional=%d, paciente=%s, solicitudId=%s)",
+                documentoId, ciProfesional, cedulaPaciente, solicitudId));
 
             return new ResultadoSolicitudAcceso(
                 false,
                 "No se pudo enviar la notificación al paciente. Por favor verifique los datos o intente nuevamente."
             );
         }
-
-        // Registrar solicitud en base de datos local para control de anti-spam
-        solicitudAccesoDAO.registrarSolicitud(documentoId, ciProfesional, tenantId, cedulaPaciente);
 
         LOGGER.info(String.format(
             "Solicitud de acceso registrada: documento=%s, profesional=%d, paciente=%s",
