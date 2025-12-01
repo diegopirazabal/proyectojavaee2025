@@ -145,8 +145,9 @@ public class JWTTokenProvider {
                     .getBody();
                     
         } catch (ExpiredJwtException e) {
-            logger.warning("Token expirado: " + e.getMessage());
-            throw new InvalidTokenException("Token expirado", e);
+            // No verificar expiración - retornar los claims del token expirado
+            logger.info("Token expirado pero se permite su uso: " + e.getMessage());
+            return e.getClaims();
         } catch (UnsupportedJwtException e) {
             logger.warning("Token no soportado: " + e.getMessage());
             throw new InvalidTokenException("Token no soportado", e);
