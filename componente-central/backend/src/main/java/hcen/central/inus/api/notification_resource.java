@@ -509,25 +509,16 @@ public class notification_resource {
      * @return URL base del periférico (sin trailing slash)
      */
     private String getPerifericoBaseUrl() {
-        // Intentar leer desde system property primero
-        String url = System.getProperty("periferico.base.url");
-
-        // Si no está definida, intentar desde variable de entorno
+        String url = System.getenv(PERIPHERAL_ENV_VAR);
         if (url == null || url.isBlank()) {
-            url = System.getenv("PERIFERICO_BASE_URL");
+            url = System.getProperty(PERIPHERAL_SYS_PROP);
         }
-
-        // Si tampoco está, usar default de desarrollo
         if (url == null || url.isBlank()) {
-            url = "http://localhost:8081/hcen-periferico";
-            LOGGER.info("Usando URL por defecto del periférico: " + url);
+            url = DEFAULT_PERIPHERAL_URL;
         }
-
-        // Remover trailing slash si existe
         if (url.endsWith("/")) {
             url = url.substring(0, url.length() - 1);
         }
-
         return url;
     }
 
