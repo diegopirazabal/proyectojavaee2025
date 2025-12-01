@@ -358,6 +358,35 @@ public class api_service {
         }
     }
 
+    /**
+     * Obtiene estadísticas de reportes con paginación de clínicas (lazy loading)
+     *
+     * @param page Número de página (0-indexed)
+     * @param pageSize Cantidad de clínicas por página
+     * @return DTO con totales globales y clínicas de la página solicitada
+     */
+    public reportes_estadisticas_dto obtenerReportesEstadisticasPaginadas(int page, int pageSize) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            String url = peripheralUrl + "/reportes/estadisticas/paginado"
+                + "?page=" + page
+                + "&size=" + pageSize;
+
+            HttpGet request = new HttpGet(url);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = readEntityContent(response);
+                    return parseReportesEstadisticas(responseBody);
+                }
+                throw new IOException("Código inesperado al obtener estadísticas paginadas: "
+                    + response.getCode());
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener estadísticas paginadas", e);
+            throw new RuntimeException("No se pudo obtener estadísticas paginadas", e);
+        }
+    }
+
     public String crearPrestador(prestador_form form) {
         if (form == null) {
             return "Formulario de prestador inválido.";
