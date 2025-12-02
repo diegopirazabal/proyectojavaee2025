@@ -75,7 +75,7 @@
 
                     <p:column headerText="Fecha">
                         <h:outputText value="#{item.fechaInicioDiagnostico}">
-                            <f:convertDateTime pattern="yyyy-MM-dd"/>
+                            <f:convertDateTime type="localDate" pattern="dd/MM/yyyy"/>
                         </h:outputText>
                     </p:column>
 
