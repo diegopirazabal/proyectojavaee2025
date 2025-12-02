@@ -113,7 +113,9 @@
                     </p:column>
 
                     <p:column headerText="Fecha">
-                        #{doc.fechaInicioDiagnostico}
+                        <h:outputText value="#{doc.fechaInicioDiagnostico}">
+                            <f:convertDateTime type="localDate" pattern="dd/MM/yyyy"/>
+                        </h:outputText>
                     </p:column>
 
                     <p:column headerText="Acciones" style="width: 150px;">
