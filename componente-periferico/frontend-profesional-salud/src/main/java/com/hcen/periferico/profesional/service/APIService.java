@@ -8,8 +8,11 @@ import com.hcen.periferico.profesional.dto.usuario_salud_dto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
 import org.apache.hc.client5.http.classic.methods.*;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
@@ -27,6 +30,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.io.StringReader;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -481,6 +490,7 @@ public class APIService implements Serializable {
 
             dto.setId(json.getString("id", null));
             dto.setTenantId(json.getString("tenantId", null));
+            dto.setFecCreacion(parseLocalDateTimeField(json, "fecCreacion"));
             dto.setUsuarioSaludCedula(json.getString("usuarioSaludCedula", null));
             dto.setProfesionalCi(json.getInt("profesionalCi", 0));
             dto.setNombreCompletoPaciente(json.getString("nombreCompletoPaciente", null));
@@ -490,20 +500,14 @@ public class APIService implements Serializable {
             dto.setNombreMotivoConsulta(json.getString("nombreMotivoConsulta", null));
             dto.setDescripcionDiagnostico(json.getString("descripcionDiagnostico", null));
 
-            String fechaInicio = json.getString("fechaInicioDiagnostico", null);
-            if (fechaInicio != null) {
-                dto.setFechaInicioDiagnostico(java.time.LocalDate.parse(fechaInicio));
-            }
+            dto.setFechaInicioDiagnostico(parseLocalDateField(json, "fechaInicioDiagnostico"));
 
             dto.setCodigoEstadoProblema(json.getString("codigoEstadoProblema", null));
             dto.setNombreEstadoProblema(json.getString("nombreEstadoProblema", null));
             dto.setCodigoGradoCerteza(json.getString("codigoGradoCerteza", null));
             dto.setNombreGradoCerteza(json.getString("nombreGradoCerteza", null));
 
-            String fechaProxima = json.getString("fechaProximaConsulta", null);
-            if (fechaProxima != null) {
-                dto.setFechaProximaConsulta(java.time.LocalDate.parse(fechaProxima));
-            }
+            dto.setFechaProximaConsulta(parseLocalDateField(json, "fechaProximaConsulta"));
 
             dto.setDescripcionProximaConsulta(json.getString("descripcionProximaConsulta", null));
             dto.setReferenciaAlta(json.getString("referenciaAlta", null));
@@ -526,6 +530,137 @@ public class APIService implements Serializable {
             e.printStackTrace();
         }
         return map;
+    }
+
+    private LocalDate parseLocalDateField(JsonObject json, String fieldName) {
+        if (json == null || fieldName == null || !json.containsKey(fieldName) || json.isNull(fieldName)) {
+            return null;
+        }
+
+        JsonValue value = json.get(fieldName);
+        try {
+            switch (value.getValueType()) {
+                case STRING:
+                    return parseLocalDateString(((JsonString) value).getString());
+                case ARRAY:
+                    JsonArray array = json.getJsonArray(fieldName);
+                    if (array.size() >= 3) {
+                        return LocalDate.of(array.getInt(0), array.getInt(1), array.getInt(2));
+                    }
+                    break;
+                case NUMBER:
+                    JsonNumber number = json.getJsonNumber(fieldName);
+                    long numericValue = number.longValue();
+                    if (numericValue > 10_000_000L) { // Epoch millis
+                        return Instant.ofEpochMilli(numericValue).atZone(ZoneOffset.UTC).toLocalDate();
+                    }
+                    return LocalDate.ofEpochDay(numericValue);
+                default:
+                    break;
+            }
+        } catch (Exception e) {
+            System.err.println("No se pudo parsear fecha '" + fieldName + "': " + e.getMessage());
+        }
+        return null;
+    }
+
+    private LocalDate parseLocalDateString(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+
+        List<DateTimeFormatter> formatters = List.of(
+            DateTimeFormatter.ISO_LOCAL_DATE,
+            DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+            DateTimeFormatter.ISO_OFFSET_DATE_TIME,
+            DateTimeFormatter.ISO_ZONED_DATE_TIME
+        );
+
+        for (DateTimeFormatter formatter : formatters) {
+            try {
+                return LocalDate.parse(raw, formatter);
+            } catch (DateTimeParseException ignored) {
+                // Intentar con el siguiente formato
+            }
+        }
+
+        int tIndex = raw.indexOf('T');
+        if (tIndex > 0) {
+            try {
+                return LocalDate.parse(raw.substring(0, tIndex));
+            } catch (DateTimeParseException ignored) {
+                // Intentar siguientes heurísticas
+            }
+        }
+
+        System.err.println("Formato de fecha no soportado: " + raw);
+        return null;
+    }
+
+    private LocalDateTime parseLocalDateTimeField(JsonObject json, String fieldName) {
+        if (json == null || fieldName == null || !json.containsKey(fieldName) || json.isNull(fieldName)) {
+            return null;
+        }
+
+        JsonValue value = json.get(fieldName);
+        try {
+            switch (value.getValueType()) {
+                case STRING:
+                    return parseLocalDateTimeString(((JsonString) value).getString());
+                case ARRAY:
+                    JsonArray array = json.getJsonArray(fieldName);
+                    if (array.size() >= 5) {
+                        return LocalDateTime.of(array.getInt(0), array.getInt(1), array.getInt(2), array.getInt(3), array.getInt(4));
+                    }
+                    if (array.size() >= 3) {
+                        return LocalDateTime.of(array.getInt(0), array.getInt(1), array.getInt(2), 0, 0);
+                    }
+                    break;
+                case NUMBER:
+                    return LocalDateTime.ofInstant(Instant.ofEpochMilli(json.getJsonNumber(fieldName).longValue()), ZoneOffset.UTC);
+                default:
+                    break;
+            }
+        } catch (Exception e) {
+            System.err.println("No se pudo parsear fecha/hora '" + fieldName + "': " + e.getMessage());
+        }
+        return null;
+    }
+
+    private LocalDateTime parseLocalDateTimeString(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+
+        List<DateTimeFormatter> formatters = List.of(
+            DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+            DateTimeFormatter.ISO_OFFSET_DATE_TIME,
+            DateTimeFormatter.ISO_ZONED_DATE_TIME,
+            DateTimeFormatter.ISO_DATE_TIME
+        );
+
+        for (DateTimeFormatter formatter : formatters) {
+            try {
+                return LocalDateTime.parse(raw, formatter);
+            } catch (DateTimeParseException ignored) {
+                // Intentar siguiente formato
+            }
+        }
+
+        try {
+            return LocalDateTime.ofInstant(Instant.parse(raw), ZoneOffset.UTC);
+        } catch (Exception ignored) {
+            // Ignorado
+        }
+
+        try {
+            return LocalDate.parse(raw, DateTimeFormatter.ISO_LOCAL_DATE).atStartOfDay();
+        } catch (DateTimeParseException ignored) {
+            // Sin parseo posible
+        }
+
+        System.err.println("Formato de fecha/hora no soportado: " + raw);
+        return null;
     }
 
     // ========== MÉTODOS PARA VALIDACIÓN DE PERMISOS DE ACCESO ==========
