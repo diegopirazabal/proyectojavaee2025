@@ -161,6 +161,12 @@ public class UsuarioSaludDashboardBean implements Serializable {
                     ciudadano.setSexo(datosDnic.getSexo());
                     ciudadano.setCodigoNacionalidad(datosDnic.getCodigoNacionalidad());
                     ciudadano.setNombreEnCedula(datosDnic.getNombreEnCedula());
+                    if ((ciudadano.getFechaNacimiento() == null || ciudadano.getFechaNacimiento().isBlank())
+                            && datosDnic.getFechaNacimiento() != null
+                            && !datosDnic.getFechaNacimiento().isBlank()) {
+                        ciudadano.setFechaNacimiento(datosDnic.getFechaNacimiento());
+                        updateWarningFromBirthDate(datosDnic.getFechaNacimiento());
+                    }
                     LOGGER.info("Datos demográficos complementados desde DNIC");
                 } catch (DocumentoNoEncontradoException e) {
                     LOGGER.warning("No se encontraron datos en DNIC para complementar: " + e.getMessage());

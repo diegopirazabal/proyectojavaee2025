@@ -6,7 +6,11 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Locale;
+import jakarta.json.bind.annotation.JsonbProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * DTO para documentos de historia clínica consumidos desde el backend central.
@@ -16,12 +20,31 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
 
     private static final long serialVersionUID = 1L;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.getDefault());
+    private static final DateTimeFormatter DATE_ONLY_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.getDefault());
+    private static final DateTimeFormatter FLEXIBLE_DATE_TIME = new DateTimeFormatterBuilder()
+        .append(DateTimeFormatter.ISO_LOCAL_DATE)
+        .appendLiteral('T')
+        .appendValue(ChronoField.HOUR_OF_DAY, 2)
+        .appendLiteral(':')
+        .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
+        .optionalStart()
+        .appendLiteral(':')
+        .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
+        .optionalEnd()
+        .optionalStart()
+        .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
+        .optionalEnd()
+        .toFormatter();
 
     private String historiaId;
     private String documentoId;
     private String tenantId;
     private String usuarioCedula;
+    @JsonbProperty("fechaRegistro")
+    @JsonProperty("fechaRegistro")
     private String fechaRegistro;   // ISO-8601
+    @JsonbProperty("fechaDocumento")
+    @JsonProperty("fechaDocumento")
     private String fechaDocumento;  // ISO-8601
     private String motivoConsulta;
     private String profesional;
@@ -29,11 +52,15 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
 
     // Diagnóstico
     private String descripcionDiagnostico;
+    @JsonbProperty("fechaInicioDiagnostico")
+    @JsonProperty("fechaInicioDiagnostico")
     private String fechaInicioDiagnostico;  // ISO-8601 o LocalDate
     private String nombreEstadoProblema;
     private String nombreGradoCerteza;
 
     // Instrucciones de seguimiento
+    @JsonbProperty("fechaProximaConsulta")
+    @JsonProperty("fechaProximaConsulta")
     private String fechaProximaConsulta;  // ISO-8601 o LocalDate
     private String descripcionProximaConsulta;
     private String referenciaAlta;
@@ -166,6 +193,43 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
         this.referenciaAlta = referenciaAlta;
     }
 
+    public String getFechaInicioDiagnosticoFormateada() {
+        String formatted = formatDateOnly(fechaInicioDiagnostico);
+        if (formatted == null || formatted.isBlank()) {
+            // Fallback: usar fechaDocumento si viene sin fecha de inicio separada
+            formatted = formatDateOnly(fechaDocumento);
+        }
+        if (formatted == null || formatted.isBlank()) {
+            // Último recurso: la fecha de registro
+            formatted = formatDateOnly(fechaRegistro);
+        }
+        return formatted;
+    }
+
+    public String getFechaProximaConsultaFormateada() {
+        String formatted = formatDateOnly(fechaProximaConsulta);
+        if (formatted == null || formatted.isBlank()) {
+            formatted = formatDateOnly(fechaDocumento);
+        }
+        if (formatted == null || formatted.isBlank()) {
+            formatted = formatDateOnly(fechaRegistro);
+        }
+        return formatted;
+    }
+
+    public String getFechaInicioDiagnosticoDisplay() {
+        String value = getFechaInicioDiagnosticoFormateada();
+        if (value == null || value.isBlank()) {
+            value = getFechaFormateada();
+        }
+        return (value == null || value.isBlank()) ? "No especificado" : value;
+    }
+
+    public String getFechaProximaConsultaDisplay() {
+        String value = getFechaProximaConsultaFormateada();
+        return (value == null || value.isBlank()) ? "No especificado" : value;
+    }
+
     /**
      * Formatea la fecha del documento en formato legible.
      */
@@ -236,5 +300,44 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
             // Último recurso: devolver el raw para no mostrar vacío en la UI
         }
         return raw;
+    }
+
+    private String formatDateOnly(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        LocalDate parsed = tryParseLocalDate(raw.trim());
+        if (parsed != null) {
+            return parsed.format(DATE_ONLY_FORMATTER);
+        }
+        // Último recurso: devolver el raw para no mostrar vacío en la UI
+        return raw;
+    }
+
+    private LocalDate tryParseLocalDate(String raw) {
+        String value = raw.trim();
+        try {
+            OffsetDateTime offsetDateTime = OffsetDateTime.parse(value);
+            return offsetDateTime.toLocalDate();
+        } catch (DateTimeParseException e) {
+            // Ignorado, probamos otros formatos
+        }
+        try {
+            LocalDateTime dateTime = LocalDateTime.parse(value);
+            return dateTime.toLocalDate();
+        } catch (DateTimeParseException e) {
+            // Ignorado
+        }
+        try {
+            LocalDateTime flexible = LocalDateTime.parse(value, FLEXIBLE_DATE_TIME);
+            return flexible.toLocalDate();
+        } catch (DateTimeParseException e) {
+            // Ignorado
+        }
+        try {
+            return LocalDate.parse(value);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 }

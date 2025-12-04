@@ -7,6 +7,7 @@ import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonValue;
+import jakarta.json.JsonString;
 
 import java.io.StringReader;
 import java.net.URI;
@@ -167,8 +168,8 @@ public class PerifericoDocumentosClient {
             // Campos básicos
             dto.setId(root.getString("id", null));
             dto.setTenantId(root.getString("tenantId", null));
-            dto.setFecCreacion(root.getString("fecCreacion", null));
-            dto.setFechaInicioDiagnostico(root.getString("fechaInicioDiagnostico", null));
+            dto.setFecCreacion(getStringSafe(root, "fecCreacion"));
+            dto.setFechaInicioDiagnostico(getStringSafe(root, "fechaInicioDiagnostico"));
 
             // Motivo de consulta
             dto.setCodigoMotivoConsulta(root.getString("codigoMotivoConsulta", null));
@@ -194,7 +195,7 @@ public class PerifericoDocumentosClient {
             dto.setNombreGradoCerteza(root.getString("nombreGradoCerteza", null));
 
             // Instrucciones de seguimiento
-            dto.setFechaProximaConsulta(root.getString("fechaProximaConsulta", null));
+            dto.setFechaProximaConsulta(getStringSafe(root, "fechaProximaConsulta"));
             dto.setDescripcionProximaConsulta(root.getString("descripcionProximaConsulta", null));
             dto.setReferenciaAlta(root.getString("referenciaAlta", null));
 
@@ -213,8 +214,8 @@ public class PerifericoDocumentosClient {
             // Campos básicos
             dto.setId(root.getString("id", null));
             dto.setTenantId(root.getString("tenantId", null));
-            dto.setFecCreacion(root.getString("fecCreacion", null));
-            dto.setFechaInicioDiagnostico(root.getString("fechaInicioDiagnostico", null));
+            dto.setFecCreacion(getStringSafe(root, "fecCreacion"));
+            dto.setFechaInicioDiagnostico(getStringSafe(root, "fechaInicioDiagnostico"));
 
             // Motivo de consulta
             dto.setCodigoMotivoConsulta(root.getString("codigoMotivoConsulta", null));
@@ -242,7 +243,7 @@ public class PerifericoDocumentosClient {
             dto.setNombreGradoCerteza(root.getString("nombreGradoCerteza", null));
 
             // Instrucciones de seguimiento
-            dto.setFechaProximaConsulta(root.getString("fechaProximaConsulta", null));
+            dto.setFechaProximaConsulta(getStringSafe(root, "fechaProximaConsulta"));
             dto.setDescripcionProximaConsulta(root.getString("descripcionProximaConsulta", null));
             dto.setReferenciaAlta(root.getString("referenciaAlta", null));
 
@@ -265,5 +266,41 @@ public class PerifericoDocumentosClient {
             url = url.substring(0, url.length() - 1);
         }
         return url;
+    }
+
+    /**
+     * Extrae un string del JsonObject tolerando diferentes tipos de fecha (string u objeto con year/month/day)
+     */
+    private String getStringSafe(JsonObject root, String key) {
+        if (root == null || key == null || !root.containsKey(key)) {
+            return null;
+        }
+        try {
+            JsonValue value = root.get(key);
+            if (value == null || value.getValueType() == JsonValue.ValueType.NULL) {
+                return null;
+            }
+            if (value.getValueType() == JsonValue.ValueType.STRING) {
+                return ((JsonString) value).getString();
+            }
+            if (value.getValueType() == JsonValue.ValueType.OBJECT) {
+                JsonObject obj = value.asJsonObject();
+                if (obj.containsKey("year") && obj.containsKey("month") && obj.containsKey("day")) {
+                    try {
+                        int year = obj.getInt("year");
+                        int month = obj.getInt("month");
+                        int day = obj.getInt("day");
+                        return java.time.LocalDate.of(year, month, day).toString();
+                    } catch (Exception ignored) {
+                        // Si falla, devolvemos el JSON como string
+                    }
+                }
+                return obj.toString();
+            }
+            return value.toString();
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "No se pudo extraer campo " + key + " como String", e);
+            return null;
+        }
     }
 }
