@@ -9,9 +9,8 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * DAO para gestión de solicitudes de acceso a documentos clínicos.
@@ -213,5 +212,53 @@ public class SolicitudAccesoDocumentoDAO {
         );
         query.setParameter("estado", estado);
         return query.getSingleResult();
+    }
+
+    /**
+     * Cuenta solicitudes de acceso agrupadas por tenant_id y filtradas por estado
+     * Optimizado para evitar N+1 queries en reportes
+     *
+     * @param tenantIds Colección de tenant IDs a consultar
+     * @param estado Estado de las solicitudes (ej: APROBADA)
+     * @return Map con tenantId -> cantidad de solicitudes en ese estado
+     */
+    public Map<UUID, Long> countByTenantIdAndEstadoBatch(
+            Collection<UUID> tenantIds,
+            EstadoSolicitud estado) {
+        Map<UUID, Long> resultado = new HashMap<>();
+        if (tenantIds == null || tenantIds.isEmpty()) {
+            return resultado;
+        }
+
+        try {
+            List<UUID> ids = tenantIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+            if (ids.isEmpty()) {
+                return resultado;
+            }
+
+            TypedQuery<Object[]> query = em.createQuery(
+                "SELECT s.tenantId, COUNT(s) FROM solicitud_acceso_documento s " +
+                "WHERE s.tenantId IN :tenantIds AND s.estado = :estado " +
+                "GROUP BY s.tenantId",
+                Object[].class
+            );
+            query.setParameter("tenantIds", ids);
+            query.setParameter("estado", estado);
+            List<Object[]> results = query.getResultList();
+
+            for (Object[] row : results) {
+                UUID tenantId = (UUID) row[0];
+                Long count = (Long) row[1];
+                resultado.put(tenantId, count);
+            }
+        } catch (Exception e) {
+            // Log error
+            e.printStackTrace();
+        }
+        return resultado;
     }
 }

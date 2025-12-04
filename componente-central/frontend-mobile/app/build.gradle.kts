@@ -20,6 +20,15 @@ android {
         manifestPlaceholders["appAuthRedirectScheme"] = "hcenmobile"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("release-key.jks")
+            storePassword = "android"
+            keyAlias = "release-key"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         debug {
             // URL del backend para desarrollo local
@@ -33,6 +42,7 @@ android {
             )
             // URL del backend para producción
             buildConfigField("String", "BASE_URL", "\"https://hcen-uy.web.elasticloud.uy/api\"")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

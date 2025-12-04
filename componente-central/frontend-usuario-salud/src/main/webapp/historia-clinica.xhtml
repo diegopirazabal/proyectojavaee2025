@@ -183,8 +183,7 @@
                             <h:outputText value="No especificado" style="color: #999;" rendered="#{empty historiaClinicaBean.documentoSeleccionado.descripcionDiagnostico}"/>
 
                             <h:outputLabel value="Fecha de inicio:" style="font-weight: 600;"/>
-                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.fechaInicioDiagnostico}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.fechaInicioDiagnostico}"/>
-                            <h:outputText value="No especificado" style="color: #999;" rendered="#{empty historiaClinicaBean.documentoSeleccionado.fechaInicioDiagnostico}"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.fechaInicioDiagnosticoDisplay}"/>
 
                             <h:outputLabel value="Estado del problema:" style="font-weight: 600;"/>
                             <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.nombreEstadoProblema}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.nombreEstadoProblema}"/>
@@ -199,8 +198,7 @@
                         <h3 style="color: #2196F3; margin-bottom: 1rem;">Instrucciones de Seguimiento</h3>
                         <h:panelGrid columns="2" styleClass="ui-noborder" style="width: 100%; margin-bottom: 1.5rem;">
                             <h:outputLabel value="Fecha próxima consulta:" style="font-weight: 600;"/>
-                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.fechaProximaConsulta}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.fechaProximaConsulta}"/>
-                            <h:outputText value="No especificado" style="color: #999;" rendered="#{empty historiaClinicaBean.documentoSeleccionado.fechaProximaConsulta}"/>
+                            <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.fechaProximaConsultaDisplay}"/>
 
                             <h:outputLabel value="Próxima consulta:" style="font-weight: 600;"/>
                             <h:outputText value="#{historiaClinicaBean.documentoSeleccionado.descripcionProximaConsulta}" rendered="#{not empty historiaClinicaBean.documentoSeleccionado.descripcionProximaConsulta}"/>

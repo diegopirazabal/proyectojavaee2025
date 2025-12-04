@@ -589,6 +589,7 @@ public class CentralAPIClient {
      * Envía una notificación al paciente solicitando acceso a un documento
      * Llama al endpoint POST /api/notifications/solicitudes-acceso del componente central
      *
+     * @param solicitudId UUID de la solicitud creada en el periférico (para callback posterior)
      * @param cedulaPaciente Cédula del paciente dueño del documento
      * @param documentoId UUID del documento
      * @param ciProfesional CI del profesional solicitante
@@ -604,6 +605,7 @@ public class CentralAPIClient {
      */
     @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
     public boolean solicitarAccesoDocumento(
+            UUID solicitudId,
             String cedulaPaciente,
             UUID documentoId,
             Integer ciProfesional,
@@ -620,6 +622,7 @@ public class CentralAPIClient {
 
             // Construir el JSON del request
             var jsonBuilder = Json.createObjectBuilder()
+                .add("solicitudId", solicitudId.toString())
                 .add("cedulaPaciente", cedulaPaciente)
                 .add("documentoId", documentoId.toString())
                 .add("profesionalCi", ciProfesional)

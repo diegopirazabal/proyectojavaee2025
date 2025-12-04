@@ -42,7 +42,7 @@ public class dashboard_bean implements Serializable {
     public void init() {
         mostrarAdvertenciaMenorEdad();
         cargarUsuariosSalud();
-        cargarPrestadores();
+        // cargarPrestadores();
         cargarClinicas();
     }
 

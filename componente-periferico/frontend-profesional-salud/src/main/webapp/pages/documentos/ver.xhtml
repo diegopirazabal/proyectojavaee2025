@@ -73,8 +73,10 @@
                     <h:outputText value="Motivo de consulta"/>
                     <h:outputText value="#{documentoClinicoBean.selectedDocumento.nombreMotivoConsulta}"/>
 
-                    <h:outputText value="Fecha del diagn��stico"/>
-                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.fechaInicioDiagnostico}"/>
+                    <h:outputText value="Fecha del diagnóstico"/>
+                    <h:outputText value="#{documentoClinicoBean.selectedDocumento.fechaInicioDiagnostico}">
+                        <f:convertDateTime type="localDate" pattern="dd/MM/yyyy"/>
+                    </h:outputText>
                 </h:panelGrid>
             </p:panel>
 
@@ -95,7 +97,7 @@
                 <h:panelGrid columns="2" styleClass="detalle-grid">
                     <h:outputText value="Próxima consulta"/>
                     <h:outputText value="#{documentoClinicoBean.selectedDocumento.fechaProximaConsulta}">
-                        <f:convertDateTime pattern="yyyy-MM-dd"/>
+                        <f:convertDateTime type="localDate" pattern="dd/MM/yyyy"/>
                     </h:outputText>
 
                     <h:outputText value="Indicaciones"/>

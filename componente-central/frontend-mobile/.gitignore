@@ -24,3 +24,6 @@ serviceAccountKey.json
 # API keys and secrets
 *.keystore
 *.jks
+
+# Allow dev/test keystore (NOT for production!)
+!app/release-key.jks
