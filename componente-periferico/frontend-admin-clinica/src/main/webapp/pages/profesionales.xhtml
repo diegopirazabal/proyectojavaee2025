@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='UTF-8' ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
@@ -5,8 +6,16 @@
       xmlns:f="jakarta.faces.core">
 
 <h:head>
+    <meta charset="UTF-8"/>
     <title>Gestión de Profesionales - Portal Admin Clínica</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <h:outputStylesheet library="css" name="admin-theme.css"/>
+    <style>
+        :root {
+            --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#007bff' : lookAndFeelBean.colorPrimario};
+            --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
+        }
+    </style>
 </h:head>
 
 <f:metadata>
@@ -22,16 +31,16 @@
             <p:menuitem value="Configuración" icon="pi pi-cog" outcome="/pages/configuracion.xhtml"/>
 
             <f:facet name="options">
-                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem;"/>
+                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem; color: white; font-weight: bold;"/>
                 <p:commandButton value="Cerrar Sesión"
                                 icon="pi pi-sign-out"
                                 action="#{sessionBean.logout}"
-                                styleClass="p-button-danger"/>
+                                styleClass="btn-secundario"/>
             </f:facet>
         </p:menubar>
     </h:form>
 
-    <div style="padding: 2rem;">
+    <div class="page-container">
         <h:form id="profesionalesForm">
             <p:messages id="messages" showDetail="false" closable="true" globalOnly="true"/>
 
@@ -41,7 +50,7 @@
                         <p:commandButton value="Nuevo Profesional"
                                         icon="pi pi-plus"
                                         onclick="PF('dlgNuevoProfesional').show();"
-                                        styleClass="p-button-success"
+                                        styleClass="btn-primario"
                                         update=":profesionalesForm:newProfesionalPanel"
                                         action="#{profesionalBean.prepareNew}"/>
                     </p:toolbarGroup>
@@ -125,22 +134,26 @@
                      modal="true"
                      width="500"
                      dynamic="true">
+                <p:messages id="newMessages" showDetail="false" closable="true"/>
                 <h:panelGrid id="newProfesionalPanel" columns="2" styleClass="p-fluid">
                     <p:outputLabel for="newCi" value="Cédula"/>
                     <p:inputNumber id="newCi"
                                   value="#{profesionalBean.newProfesional.ci}"
                                   decimalPlaces="0"
-                                  required="true"/>
+                                  required="true"
+                                  requiredMessage="Cédula no puede estar vacía"/>
 
                     <p:outputLabel for="newNombre" value="Nombre"/>
                     <p:inputText id="newNombre"
                                 value="#{profesionalBean.newProfesional.nombre}"
-                                required="true"/>
+                                required="true"
+                                requiredMessage="Nombre no puede estar vacío"/>
 
                     <p:outputLabel for="newApellidos" value="Apellidos"/>
                     <p:inputText id="newApellidos"
                                 value="#{profesionalBean.newProfesional.apellidos}"
-                                required="true"/>
+                                required="true"
+                                requiredMessage="Apellidos no puede estar vacío"/>
 
                     <p:outputLabel for="newEspecialidad" value="Especialidad"/>
                     <p:selectOneMenu id="newEspecialidad"
@@ -156,12 +169,14 @@
                     <p:inputText id="newEmail"
                                 value="#{profesionalBean.newProfesional.email}"
                                 type="email"
-                                required="true"/>
+                                required="true"
+                                requiredMessage="Email no puede estar vacío"/>
 
                     <p:outputLabel for="newPassword" value="Contraseña"/>
                     <p:password id="newPassword"
                                 value="#{profesionalBean.newProfesional.password}"
-                                required="true"/>
+                                required="true"
+                                requiredMessage="Contraseña no puede estar vacía"/>
                 </h:panelGrid>
 
                 <f:facet name="footer">
@@ -169,8 +184,8 @@
                                     icon="pi pi-check"
                                     action="#{profesionalBean.saveProfesional}"
                                     process="@this,newProfesionalPanel"
-                                    update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages,:profesionalesForm:newProfesionalPanel"
-                                    oncomplete="if (args &amp;&amp; !args.validationFailed) PF('dlgNuevoProfesional').hide();"/>
+                                    update=":profesionalesForm:profesionalesTable,:profesionalesForm:messages,newMessages"
+                                    oncomplete="if (args &amp;&amp; !args.validationFailed &amp;&amp; args.saveSuccess) PF('dlgNuevoProfesional').hide();"/>
                     <p:commandButton value="Cancelar"
                                     icon="pi pi-times"
                                     onclick="PF('dlgNuevoProfesional').hide();"
@@ -196,12 +211,14 @@
                     <p:outputLabel for="editNombre" value="Nombre"/>
                     <p:inputText id="editNombre"
                                 value="#{profesionalBean.selectedProfesional.nombre}"
-                                required="true"/>
+                                required="true"
+                                requiredMessage="Nombre no puede estar vacío"/>
 
                     <p:outputLabel for="editApellidos" value="Apellidos"/>
                     <p:inputText id="editApellidos"
                                 value="#{profesionalBean.selectedProfesional.apellidos}"
-                                required="true"/>
+                                required="true"
+                                requiredMessage="Apellidos no puede estar vacío"/>
 
                     <p:outputLabel for="editEspecialidad" value="Especialidad"/>
                     <p:selectOneMenu id="editEspecialidad"
@@ -217,7 +234,8 @@
                     <p:inputText id="editEmail"
                                 value="#{profesionalBean.selectedProfesional.email}"
                                 type="email"
-                                required="true"/>
+                                required="true"
+                                requiredMessage="Email no puede estar vacío"/>
 
                     <p:outputLabel for="editPassword" value="Nueva Contraseña"/>
                     <h:panelGroup>

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
@@ -8,11 +8,23 @@
     <meta charset="UTF-8"/>
     <title>Login - Portal Admin Clínica</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <h:outputStylesheet library="css" name="admin-theme.css"/>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+        }
+    </style>
 </h:head>
 
 <h:body>
-    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f5f5f5;">
-        <p:panel header="Portal Admin Clínica - HCEN" style="width: 400px;">
+    <div class="login-page">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Portal Admin Clínica</h1>
+                <p>Historia Clínica Electrónica Nacional</p>
+            </div>
+
             <h:form id="loginForm">
                 <p:messages id="messages" showDetail="false" closable="true"/>
 
@@ -57,12 +69,10 @@
                 </div>
             </h:form>
 
-            <f:facet name="footer">
-                <div style="text-align: center; font-size: 0.9em; color: #666;">
-                    Sistema de Gestión de Clínicas - HCEN
-                </div>
-            </f:facet>
-        </p:panel>
+            <div class="login-footer">
+                Sistema de Gestión de Clínicas - HCEN
+            </div>
+        </div>
     </div>
 </h:body>
 </html>

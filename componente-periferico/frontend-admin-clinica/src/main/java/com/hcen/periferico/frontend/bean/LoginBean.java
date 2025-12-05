@@ -2,6 +2,7 @@ package com.hcen.periferico.frontend.bean;
 
 import com.hcen.periferico.frontend.dto.administrador_clinica_dto;
 import com.hcen.periferico.frontend.dto.clinica_dto;
+import com.hcen.periferico.frontend.dto.configuracion_clinica_dto;
 import com.hcen.periferico.frontend.service.APIService;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.RequestScoped;
@@ -78,6 +79,16 @@ public class LoginBean implements Serializable {
             if (admin != null) {
                 // Login exitoso
                 sessionBean.login(admin);
+
+                // Cargar configuración de look & feel de la clínica
+                try {
+                    configuracion_clinica_dto config = apiService.getConfiguracion(selectedTenantId.trim());
+                    sessionBean.setConfiguracion(config);
+                } catch (Exception e) {
+                    // No bloquear login si falla configuración - usará defaults
+                    e.printStackTrace();
+                }
+
                 addMessage(FacesMessage.SEVERITY_INFO, "Bienvenido " + admin.getNombreCompleto());
                 return "/pages/dashboard.xhtml?faces-redirect=true";
             } else {

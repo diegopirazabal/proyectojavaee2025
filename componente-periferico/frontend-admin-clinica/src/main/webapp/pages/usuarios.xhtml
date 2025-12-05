@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='UTF-8' ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
@@ -5,8 +6,16 @@
       xmlns:f="jakarta.faces.core">
 
 <h:head>
+    <meta charset="UTF-8"/>
     <title>Gestión de Usuarios - Portal Admin Clínica</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <h:outputStylesheet library="css" name="admin-theme.css"/>
+    <style>
+        :root {
+            --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#007bff' : lookAndFeelBean.colorPrimario};
+            --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
+        }
+    </style>
 </h:head>
 
 <f:metadata>
@@ -22,16 +31,16 @@
             <p:menuitem value="Configuración" icon="pi pi-cog" outcome="/pages/configuracion.xhtml"/>
 
             <f:facet name="options">
-                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem;"/>
+                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem; color: white; font-weight: bold;"/>
                 <p:commandButton value="Cerrar Sesión"
                                 icon="pi pi-sign-out"
                                 action="#{sessionBean.logout}"
-                                styleClass="p-button-danger"/>
+                                styleClass="btn-secundario"/>
             </f:facet>
         </p:menubar>
     </h:form>
 
-    <div style="padding: 2rem;">
+    <div class="page-container">
         <h:form id="usuariosForm">
             <p:messages id="messages" showDetail="false" closable="true"/>
 
@@ -41,7 +50,7 @@
                         <p:commandButton value="Nuevo Usuario"
                                         icon="pi pi-plus"
                                         onclick="PF('dlgNuevoUsuario').show();"
-                                        styleClass="p-button-success"
+                                        styleClass="btn-primario"
                                         update=":usuariosForm:newUsuarioPanel"
                                         action="#{usuarioBean.prepareNew}"/>
                     </p:toolbarGroup>
@@ -169,17 +178,16 @@
                     </p:inputText>
 
                     <p:outputLabel for="newFechaNac" value="Fecha de Nacimiento*"/>
-                    <p:datePicker id="newFechaNac"
-                                 value="#{usuarioBean.newUsuario.fechaNacimiento}"
-                                 pattern="dd/MM/yyyy"
-                                 showIcon="true"
-                                 yearNavigator="true"
-                                 monthNavigator="true"
-                                 yearRange="c-120:c"
-                                 required="true"
-                                 requiredMessage="La fecha de nacimiento es requerida"
-                                 maxdate="#{java.time.LocalDate.now()}">
-                    </p:datePicker>
+                    <p:calendar id="newFechaNac"
+                                value="#{usuarioBean.newUsuario.fechaNacimiento}"
+                                pattern="dd/MM/yyyy"
+                                showIcon="true"
+                                navigator="true"
+                                yearRange="c-120:c+0"
+                                required="true"
+                                requiredMessage="La fecha de nacimiento es requerida"
+                                maxdate="#{java.time.LocalDate.now()}"/>
+
                 </h:panelGrid>
 
                 <p style="margin-top: 1rem; color: #666; font-size: 0.9em;">

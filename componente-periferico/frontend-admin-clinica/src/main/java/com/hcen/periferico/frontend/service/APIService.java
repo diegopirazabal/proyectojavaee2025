@@ -10,6 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 import org.apache.hc.client5.http.classic.methods.*;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -251,6 +252,51 @@ public class APIService implements Serializable {
                 .add("email", email != null ? email : "")
                 .add("password", password != null ? password : "")
                 .build();
+
+            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
+            request.setEntity(entity);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                String responseBody = new String(response.getEntity().getContent().readAllBytes());
+
+                if (response.getCode() == 200) {
+                    return parseProfesionalFromJson(responseBody);
+                } else if (response.getCode() == 400) {
+                    // Error de validación - parsear mensaje de error
+                    String errorMessage = parseErrorMessage(responseBody);
+                    throw new IllegalArgumentException(errorMessage);
+                } else {
+                    // Otro error
+                    String errorMessage = parseErrorMessage(responseBody);
+                    throw new RuntimeException("Error del servidor: " + errorMessage);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error de comunicación con el servidor");
+        }
+    }
+
+    public profesional_salud_dto updateProfesional(Integer ci, String nombre, String apellidos,
+                                                    String especialidadId, String email, String password, String tenantId) {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            HttpPut request = new HttpPut(BACKEND_URL() + "/profesionales/" + ci + "?tenantId=" + tenantId);
+
+            JsonObjectBuilder dataBuilder = Json.createObjectBuilder()
+                .add("ci", ci)
+                .add("nombre", nombre)
+                .add("apellidos", apellidos)
+                .add("especialidadId", especialidadId != null ? especialidadId : "")
+                .add("email", email != null ? email : "");
+
+            // Solo agregar password si no es null ni vacío
+            if (password != null && !password.trim().isEmpty()) {
+                dataBuilder.add("password", password);
+            } else {
+                dataBuilder.add("password", "");
+            }
+
+            JsonObject data = dataBuilder.build();
 
             StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
             request.setEntity(entity);

@@ -14,6 +14,10 @@
             --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#0d6efd' : lookAndFeelBean.colorPrimario};
             --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
         }
+
+        .app-shell {
+            max-width: 1400px !important;
+        }
     </style>
 </h:head>
 
@@ -61,11 +65,11 @@
 
         <!-- SELECCIÓN DE PACIENTE -->
         <h:form id="pacienteForm">
-            <p:panel header="Seleccionar Paciente" styleClass="panel-secundario">
+            <p:panel header="Búsqueda de paciente" styleClass="panel-secundario">
 
-                <p:messages id="messages" showDetail="true"/>
+                <p:messages id="messages" showDetail="false"/>
 
-                <p:outputLabel value="Cédula del Paciente:" for="cedulaInput"/>
+                <p:outputLabel value="Documento del paciente:" for="cedulaInput"/>
                 <p:inputText id="cedulaInput"
                              value="#{documentoClinicoBean.cedulaPacienteSeleccionado}"
                              placeholder="Ingrese la cédula del paciente"
@@ -76,39 +80,29 @@
                     <p:commandButton value="Cargar Historia Clínica"
                                      icon="pi pi-search"
                                      action="#{documentoClinicoBean.cargarDocumentosPorPaciente}"
-                                     update=":documentosForm:documentosTable :pacienteForm:messages :pacienteForm:infoPaciente"
+                                     update=":documentosForm:documentosTable :pacienteForm:messages"
                                      process="@form"
                                      styleClass="btn-primario"/>
                 </div>
 
             </p:panel>
-
-            <!-- Info del paciente -->
-            <h:panelGroup id="infoPaciente" layout="block" rendered="#{not empty documentoClinicoBean.pacienteSeleccionado}">
-                <div class="paciente-info">
-                    <strong>Paciente seleccionado:</strong><br/>
-                    CI: #{documentoClinicoBean.pacienteSeleccionado.cedula}<br/>
-                    Nombre: #{documentoClinicoBean.pacienteSeleccionado.nombreCompleto}
-                </div>
-            </h:panelGroup>
         </h:form>
-
 
         <!-- LISTA DE DOCUMENTOS -->
         <h:form id="documentosForm">
 
             <p:panel header="Documentos del Paciente" styleClass="panel-secundario">
 
-                <p:messages id="messages" showDetail="true"/>
+                <p:messages id="messages" showDetail="false"/>
 
                 <p:dataTable id="documentosTable"
                              value="#{documentoClinicoBean.documentos}"
                              var="doc" emptyMessage="No hay documentos para mostrar"
-                             paginator="true" rows="10"
+                             paginator="true" rows="5"
                              paginatorPosition="bottom"
-                             style="margin-top:1rem;">
+                             style="margin-top:1rem; width: 100%;">
 
-                    <p:column headerText="Tipo">
+                    <p:column headerText="Motivo">
                         #{doc.nombreMotivoConsulta}
                     </p:column>
 
@@ -168,7 +162,7 @@
     <!-- Dialog: Nuevo Documento -->
     <p:dialog id="dlgNuevoDocumento"
               widgetVar="dlgNuevoDocumento"
-              header="Nueva Consulta No Urgente"
+              header="Nuevo documento clínico"
               modal="true"
               width="700"
               height="600"
