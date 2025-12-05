@@ -493,10 +493,17 @@
                     <role name="guest" send="true" consume="true" create-non-durable-queue="true" delete-non-durable-queue="true"/>
                 </security-setting>
                 <address-setting name="#" dead-letter-address="jms.queue.DLQ" expiry-address="jms.queue.ExpiryQueue" max-size-bytes="10485760" page-size-bytes="2097152" message-counter-history-day-limit="10"/>
+
+                <!-- Address settings específicos para sincronización de documentos -->
+                <address-setting name="jms.queue.DocumentosSincronizacion" dead-letter-address="jms.queue.DLQ" expiry-address="jms.queue.ExpiryQueue" max-delivery-attempts="20" redelivery-delay="300000" max-redelivery-delay="3600000" redelivery-multiplier="1.5" max-size-bytes="10485760" page-size-bytes="2097152" address-full-policy="PAGE"/>
+                <address-setting name="jms.queue.SincronizacionConfirmaciones" dead-letter-address="jms.queue.DLQ" expiry-address="jms.queue.ExpiryQueue" max-delivery-attempts="5" redelivery-delay="60000" max-size-bytes="10485760" page-size-bytes="2097152" address-full-policy="PAGE"/>
+
                 <http-connector name="http-connector" socket-binding="http" endpoint="http-acceptor"/>
                 <http-connector name="http-connector-throughput" socket-binding="http" endpoint="http-acceptor-throughput">
                     <param name="batch-delay" value="50"/>
                 </http-connector>
+                <!-- HTTP Connector al servidor central remoto para sincronización de documentos -->
+                <http-connector name="http-connector-central" socket-binding="remote-artemis-central" endpoint="http-acceptor"/>
                 <in-vm-connector name="in-vm" server-id="0">
                     <param name="buffer-pooling" value="false"/>
                 </in-vm-connector>
@@ -517,7 +524,8 @@
                 <connection-factory name="RemoteConnectionFactory" entries="java:jboss/exported/jms/RemoteConnectionFactory" connectors="http-connector"/>
                 <connection-factory name="UsuarioSaludConnectionFactory" entries="java:/jms/UsuarioSaludConnectionFactory" connectors="in-vm"/>
                 <pooled-connection-factory name="activemq-ra" entries="java:/JmsXA java:jboss/DefaultJMSConnectionFactory" connectors="in-vm" transaction="xa"/>
-                <pooled-connection-factory name="DocumentosSyncCF" entries="java:/jms/DocumentosSyncCF" connectors="in-vm" transaction="xa"/>
+                <!-- ConnectionFactory para sincronización REMOTA de documentos al servidor central -->
+                <pooled-connection-factory name="DocumentosSyncCF" entries="java:/jms/DocumentosSyncCF" connectors="http-connector-central" transaction="xa" reconnect-attempts="-1"/>
             </server>
         </subsystem>
         <subsystem xmlns="urn:wildfly:metrics:1.0" security-enabled="false" exposed-subsystems="*" prefix="${wildfly.metrics.prefix:wildfly}"/>
@@ -603,6 +611,10 @@
         <socket-binding name="txn-status-manager" port="4713"/>
         <outbound-socket-binding name="mail-smtp">
             <remote-destination host="${jboss.mail.server.host:localhost}" port="${jboss.mail.server.port:25}"/>
+        </outbound-socket-binding>
+        <!-- Socket binding al servidor central remoto para sincronización JMS de documentos -->
+        <outbound-socket-binding name="remote-artemis-central">
+            <remote-destination host="179.31.3.177" port="80"/>
         </outbound-socket-binding>
     </socket-binding-group>
 </server>
