@@ -76,7 +76,12 @@ public class ConfiguracionBean implements Serializable {
                 tema
             );
 
-            addMessage(FacesMessage.SEVERITY_INFO, "Configuración de look & feel actualizada exitosamente");
+            // Actualizar SessionBean con la nueva configuración
+            if (configuracion != null) {
+                sessionBean.setConfiguracion(configuracion);
+            }
+
+            addMessage(FacesMessage.SEVERITY_INFO, "Configuración actualizada. Recargando página para aplicar cambios...");
         } catch (Exception e) {
             addMessage(FacesMessage.SEVERITY_ERROR, "Error al guardar configuración: " + e.getMessage());
             e.printStackTrace();
@@ -116,6 +121,12 @@ public class ConfiguracionBean implements Serializable {
             }
 
             configuracion = apiService.resetConfiguracion(tenantId);
+
+            // Actualizar SessionBean con la configuración reseteada
+            if (configuracion != null) {
+                sessionBean.setConfiguracion(configuracion);
+            }
+
             loadConfiguracion(); // Recargar campos
 
             addMessage(FacesMessage.SEVERITY_INFO, "Configuración restablecida a valores por defecto");

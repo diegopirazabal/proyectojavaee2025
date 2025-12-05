@@ -1,13 +1,21 @@
+<?xml version='1.0' encoding='UTF-8' ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
       xmlns:p="http://primefaces.org/ui"
-      xmlns:f="jakarta.faces.core"
-      xmlns:ui="jakarta.faces.facelets">
+      xmlns:f="jakarta.faces.core">
 
 <h:head>
+    <meta charset="UTF-8"/>
     <title>Dashboard - Portal Admin Clínica</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <h:outputStylesheet library="css" name="admin-theme.css"/>
+    <style>
+        :root {
+            --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#007bff' : lookAndFeelBean.colorPrimario};
+            --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
+        }
+    </style>
 </h:head>
 
 <f:metadata>
@@ -15,6 +23,7 @@
 </f:metadata>
 
 <h:body>
+    <!-- Menubar -->
     <h:form>
         <p:menubar>
             <p:menuitem value="Dashboard" icon="pi pi-home" outcome="/pages/dashboard.xhtml"/>
@@ -23,58 +32,50 @@
             <p:menuitem value="Configuración" icon="pi pi-cog" outcome="/pages/configuracion.xhtml"/>
 
             <f:facet name="options">
-                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem;"/>
+                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem; color: white; font-weight: bold;"/>
                 <p:commandButton value="Cerrar Sesión"
                                 icon="pi pi-sign-out"
                                 action="#{sessionBean.logout}"
-                                styleClass="p-button-danger"/>
+                                styleClass="btn-secundario"/>
             </f:facet>
         </p:menubar>
     </h:form>
 
-    <div style="padding: 2rem;">
-        <h:form>
-            <p:panel header="Bienvenido al Portal Admin Clínica">
-                <h:panelGrid columns="2" style="margin-bottom: 1rem;">
-                    <h:outputText value="Administrador:"/>
-                    <h:outputText value="#{sessionBean.nombreAdministrador}" style="font-weight: bold;"/>
+    <!-- Page Content -->
+    <div class="page-container">
+        <div class="app-header">
+            <h1>Bienvenido al Portal Admin Clínica</h1>
+            <p>Seleccione una acción</p>
+        </div>
 
-                    <h:outputText value="Usuario:"/>
-                    <h:outputText value="#{sessionBean.username}" style="font-weight: bold;"/>
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <i class="pi pi-user"/>
+                <h3>Gestión de Usuarios</h3>
+                <p>Registrar y administrar usuarios de salud</p>
+                <p:button value="Ingresar" icon="pi pi-arrow-right"
+                         outcome="/pages/usuarios.xhtml"
+                         styleClass="btn-primario"/>
+            </div>
 
-                    <h:outputText value="Tenant ID:"/>
-                    <h:outputText value="#{sessionBean.tenantId}" style="font-weight: bold;"/>
-                </h:panelGrid>
+            <div class="dashboard-card">
+                <i class="pi pi-users"/>
+                <h3>Gestión de Profesionales</h3>
+                <p>Administrar profesionales de salud de la clínica</p>
+                <p:button value="Ingresar" icon="pi pi-arrow-right"
+                         outcome="/pages/profesionales.xhtml"
+                         styleClass="btn-primario"/>
+            </div>
 
-                <p:separator/>
-
-                <div style="margin-top: 2rem;">
-                    <h3>Accesos Rápidos</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
-                        <p:link outcome="/pages/usuarios.xhtml">
-                            <p:panel header="Gestión de Usuarios" style="text-align: center;">
-                                <i class="pi pi-user" style="font-size: 3rem; color: #6c757d;"/>
-                                <p>Registrar y administrar usuarios de salud</p>
-                            </p:panel>
-                        </p:link>
-
-                        <p:link outcome="/pages/profesionales.xhtml">
-                            <p:panel header="Gestión de Profesionales" style="text-align: center;">
-                                <i class="pi pi-users" style="font-size: 3rem; color: #007bff;"/>
-                                <p>Administrar profesionales de salud de la clínica</p>
-                            </p:panel>
-                        </p:link>
-
-                        <p:link outcome="/pages/configuracion.xhtml">
-                            <p:panel header="Configuración" style="text-align: center;">
-                                <i class="pi pi-cog" style="font-size: 3rem; color: #28a745;"/>
-                                <p>Personalizar el look &amp; feel de la clínica</p>
-                            </p:panel>
-                        </p:link>
-                    </div>
-                </div>
-            </p:panel>
-        </h:form>
+            <div class="dashboard-card">
+                <i class="pi pi-cog"/>
+                <h3>Configuración</h3>
+                <p>Personalizar el look &amp; feel de la clínica</p>
+                <p:button value="Ingresar" icon="pi pi-arrow-right"
+                         outcome="/pages/configuracion.xhtml"
+                         styleClass="btn-primario"/>
+            </div>
+        </div>
     </div>
 </h:body>
 </html>

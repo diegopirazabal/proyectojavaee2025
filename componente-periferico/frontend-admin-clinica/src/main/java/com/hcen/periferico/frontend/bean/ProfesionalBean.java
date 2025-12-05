@@ -88,7 +88,8 @@ public class ProfesionalBean implements Serializable {
         try {
             String tenantId = sessionBean.getTenantId();
             if (tenantId == null || tenantId.isEmpty()) {
-                addMessage(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                addMessageToDialog(FacesMessage.SEVERITY_ERROR, "No se pudo obtener el ID de la clínica");
+                PrimeFaces.current().ajax().addCallbackParam("saveSuccess", false);
                 return;
             }
 
@@ -105,10 +106,13 @@ public class ProfesionalBean implements Serializable {
             addMessage(FacesMessage.SEVERITY_INFO, "Profesional guardado exitosamente");
             loadProfesionales();
             newProfesional = new profesional_salud_dto(); // Reset form
+            PrimeFaces.current().ajax().addCallbackParam("saveSuccess", true);
         } catch (IllegalArgumentException e) {
-            addMessage(FacesMessage.SEVERITY_ERROR, e.getMessage());
+            addMessageToDialog(FacesMessage.SEVERITY_ERROR, e.getMessage());
+            PrimeFaces.current().ajax().addCallbackParam("saveSuccess", false);
         } catch (Exception e) {
-            addMessage(FacesMessage.SEVERITY_ERROR, "Error al guardar profesional: " + e.getMessage());
+            addMessageToDialog(FacesMessage.SEVERITY_ERROR, "Error al guardar profesional: " + e.getMessage());
+            PrimeFaces.current().ajax().addCallbackParam("saveSuccess", false);
             e.printStackTrace();
         }
     }
@@ -133,7 +137,7 @@ public class ProfesionalBean implements Serializable {
                                      ? newPasswordForEdit.trim()
                                      : null;
 
-            apiService.saveProfesional(
+            apiService.updateProfesional(
                 selectedProfesional.getCi(),
                 selectedProfesional.getNombre(),
                 selectedProfesional.getApellidos(),

@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='UTF-8' ?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="jakarta.faces.html"
@@ -5,9 +6,15 @@
       xmlns:f="jakarta.faces.core">
 
 <h:head>
+    <meta charset="UTF-8"/>
     <title>Configuración - Portal Admin Clínica</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <h:outputStylesheet library="css" name="admin-theme.css"/>
     <style>
+        :root {
+            --primary-color: #{empty lookAndFeelBean.colorPrimario ? '#007bff' : lookAndFeelBean.colorPrimario};
+            --secondary-color: #{empty lookAndFeelBean.colorSecundario ? '#6c757d' : lookAndFeelBean.colorSecundario};
+        }
         .color-preview {
             width: 50px;
             height: 30px;
@@ -32,16 +39,16 @@
             <p:menuitem value="Configuración" icon="pi pi-cog" outcome="/pages/configuracion.xhtml"/>
 
             <f:facet name="options">
-                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem;"/>
+                <p:outputLabel value="#{sessionBean.nombreAdministrador}" style="margin-right: 1rem; color: white; font-weight: bold;"/>
                 <p:commandButton value="Cerrar Sesión"
                                 icon="pi pi-sign-out"
                                 action="#{sessionBean.logout}"
-                                styleClass="p-button-danger"/>
+                                styleClass="btn-secundario"/>
             </f:facet>
         </p:menubar>
     </h:form>
 
-    <div style="padding: 2rem;">
+    <div class="page-container">
         <h:form id="configuracionForm">
             <p:messages id="messages" showDetail="false" closable="true"/>
 
@@ -93,13 +100,18 @@
                                     icon="pi pi-check"
                                     action="#{configuracionBean.guardarLookAndFeel}"
                                     update=":configuracionForm:messages,:configuracionForm"
-                                    styleClass="p-button-success"/>
+                                    styleClass="btn-primario"
+                                    oncomplete="location.reload();"/>
+                    <small style="margin-left: 1rem; color: #666;">
+                        Nota: Los cambios de color se aplicarán después de guardar y recargar la página.
+                    </small>
                     <p:commandButton value="Restablecer Valores por Defecto"
                                     icon="pi pi-refresh"
                                     action="#{configuracionBean.resetearConfiguracion}"
                                     update=":configuracionForm:messages,:configuracionForm"
-                                    styleClass="p-button-warning"
-                                    style="margin-left: 0.5rem;">
+                                    styleClass="btn-secundario"
+                                    style="margin-left: 0.5rem;"
+                                    oncomplete="location.reload();">
                         <p:confirm header="Confirmar"
                                   message="¿Está seguro de restablecer la configuración a valores por defecto?"
                                   icon="pi pi-exclamation-triangle"/>
