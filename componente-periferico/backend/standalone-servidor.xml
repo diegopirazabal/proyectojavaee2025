@@ -517,7 +517,10 @@
                 </in-vm-acceptor>
                 <jms-queue name="ExpiryQueue" entries="java:/jms/queue/ExpiryQueue"/>
                 <jms-queue name="DLQ" entries="java:/jms/queue/DLQ"/>
+                <!-- Colas para sincronización de UsuarioSalud -->
                 <jms-queue name="UsuarioSaludRegistrado" entries="java:/jms/queue/UsuarioSaludRegistrado"/>
+                <jms-queue name="UsuarioSaludConfirmaciones" entries="java:/jms/queue/UsuarioSaludConfirmaciones"/>
+                <!-- Colas para sincronización de Documentos Clínicos -->
                 <jms-queue name="DocumentosSincronizacion" entries="java:/jms/queue/DocumentosSincronizacion"/>
                 <jms-queue name="SincronizacionConfirmaciones" entries="java:/jms/queue/SincronizacionConfirmaciones"/>
                 <connection-factory name="InVmConnectionFactory" entries="java:/ConnectionFactory" connectors="in-vm"/>
