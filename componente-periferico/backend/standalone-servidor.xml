@@ -528,7 +528,7 @@
                 <connection-factory name="UsuarioSaludConnectionFactory" entries="java:/jms/UsuarioSaludConnectionFactory" connectors="in-vm"/>
                 <pooled-connection-factory name="activemq-ra" entries="java:/JmsXA java:jboss/DefaultJMSConnectionFactory" connectors="in-vm" transaction="xa"/>
                 <!-- ConnectionFactory para sincronización REMOTA de documentos al servidor central -->
-                <pooled-connection-factory name="DocumentosSyncCF" entries="java:/jms/DocumentosSyncCF" connectors="http-connector-central" transaction="xa" reconnect-attempts="-1"/>
+                <pooled-connection-factory name="DocumentosSyncCF" entries="java:/jms/DocumentosSyncCF" connectors="http-connector-central" transaction="xa" reconnect-attempts="-1" user="colaMensajeria" password="rakeem"/>
             </server>
         </subsystem>
         <subsystem xmlns="urn:wildfly:metrics:1.0" security-enabled="false" exposed-subsystems="*" prefix="${wildfly.metrics.prefix:wildfly}"/>
