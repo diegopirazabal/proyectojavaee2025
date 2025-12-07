@@ -20,17 +20,33 @@ public class authentication_service {
 
     public admin_hcen authenticate(String username, String password) {
         try {
+            LOGGER.info("[AUTH] Intentando autenticar usuario: " + username);
             Optional<admin_hcen> adminOpt = adminDAO.findByUsername(username);
 
             if (adminOpt.isPresent()) {
                 admin_hcen admin = adminOpt.get();
-                if (admin.getActive() && verifyPassword(password, admin.getPasswordHash())) {
-                    adminDAO.updateLastLogin(admin.getId());
-                    return admin;
+                LOGGER.info("[AUTH] Usuario encontrado en BD: " + admin.getUsername() + ", active=" + admin.getActive());
+
+                if (admin.getActive()) {
+                    LOGGER.info("[AUTH] Usuario activo, verificando contraseña...");
+                    boolean passwordMatch = verifyPassword(password, admin.getPasswordHash());
+                    LOGGER.info("[AUTH] Verificación de contraseña: " + (passwordMatch ? "CORRECTA" : "INCORRECTA"));
+
+                    if (passwordMatch) {
+                        adminDAO.updateLastLogin(admin.getId());
+                        LOGGER.info("[AUTH] Autenticación exitosa para: " + username);
+                        return admin;
+                    } else {
+                        LOGGER.warning("[AUTH] Contraseña incorrecta para: " + username);
+                    }
+                } else {
+                    LOGGER.warning("[AUTH] Usuario inactivo: " + username);
                 }
+            } else {
+                LOGGER.warning("[AUTH] Usuario NO encontrado en BD: " + username);
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database authentication failed.", e);
+            LOGGER.log(Level.SEVERE, "[AUTH] Error en autenticación para: " + username, e);
         }
 
         return null;

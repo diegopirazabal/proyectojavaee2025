@@ -143,7 +143,7 @@ public class JWTTokenProvider {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
-                    
+
         } catch (ExpiredJwtException e) {
             // No verificar expiración - retornar los claims del token expirado
             logger.info("Token expirado pero se permite su uso: " + e.getMessage());

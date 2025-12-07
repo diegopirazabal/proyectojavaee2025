@@ -23,9 +23,7 @@ import java.util.logging.Logger;
 public class login_bean implements Serializable {
 
     private static final Logger LOGGER = Logger.getLogger(login_bean.class.getName());
-    private static final String TEMP_ADMIN_USERNAME = "admin";
-    private static final String TEMP_ADMIN_PASSWORD = "admin";
-    
+
     private String username;
     private String password;
     private admin_hcen_dto loggedAdmin;
@@ -38,39 +36,28 @@ public class login_bean implements Serializable {
         FacesContext context = FacesContext.getCurrentInstance();
 
         try {
-            if (isTemporaryAdminCredentials()) {
-                admin_hcen_dto admin = createTemporaryAdmin();
+            // SIEMPRE autenticar contra el backend (sin bypass temporal)
+            admin_hcen_dto admin = apiService.authenticate(username, password);
+
+            if (admin != null) {
                 this.loggedAdmin = admin;
                 this.loggedIn = true;
 
                 context.addMessage(null,
                     new FacesMessage(FacesMessage.SEVERITY_INFO,
-                        "Ingreso temporal",
-                        "Login exitoso como administrador temporal"));
-
-                return "dashboard?faces-redirect=true";
-            }
-
-            admin_hcen_dto admin = apiService.authenticate(username, password);
-            
-            if (admin != null) {
-                this.loggedAdmin = admin;
-                this.loggedIn = true;
-                
-                context.addMessage(null, 
-                    new FacesMessage(FacesMessage.SEVERITY_INFO, 
                         "Bienvenido", "Login exitoso. Bienvenido " + admin.getFullName()));
-                
+
                 return "dashboard?faces-redirect=true";
             } else {
-                context.addMessage(null, 
-                    new FacesMessage(FacesMessage.SEVERITY_ERROR, 
+                context.addMessage(null,
+                    new FacesMessage(FacesMessage.SEVERITY_ERROR,
                         "Error de autenticación", "Usuario o contraseña incorrectos"));
                 return null;
             }
         } catch (Exception e) {
-            context.addMessage(null, 
-                new FacesMessage(FacesMessage.SEVERITY_ERROR, 
+            LOGGER.log(Level.SEVERE, "Error en login", e);
+            context.addMessage(null,
+                new FacesMessage(FacesMessage.SEVERITY_ERROR,
                     "Error del sistema", "Error al conectar con el servidor"));
             return null;
         }
@@ -154,25 +141,6 @@ public class login_bean implements Serializable {
 
     public String getOidcLoginUrl() {
         return apiService.getOidcLoginUrl();
-    }
-
-    private boolean isTemporaryAdminCredentials() {
-        return TEMP_ADMIN_USERNAME.equals(username) && TEMP_ADMIN_PASSWORD.equals(password);
-    }
-
-    private admin_hcen_dto createTemporaryAdmin() {
-        admin_hcen_dto admin = new admin_hcen_dto();
-        admin.setId(0L);
-        admin.setUsername(TEMP_ADMIN_USERNAME);
-        admin.setFirstName("Administrador");
-        admin.setLastName("HCEN");
-        admin.setEmail("admin@hcen.test");
-        admin.setActive(true);
-
-        LocalDateTime now = LocalDateTime.now();
-        admin.setCreatedAt(now);
-        admin.setLastLogin(now);
-        return admin;
     }
     
     /**
@@ -262,11 +230,11 @@ public class login_bean implements Serializable {
         try {
             ExternalContext external = FacesContext.getCurrentInstance().getExternalContext();
             HttpServletRequest request = (HttpServletRequest) external.getRequest();
-            
+
             if (request.getCookies() != null) {
                 for (Cookie cookie : request.getCookies()) {
-                    if ("jwt_token".equals(cookie.getName()) && 
-                        cookie.getValue() != null && 
+                    if ("jwt_token".equals(cookie.getName()) &&
+                        cookie.getValue() != null &&
                         !cookie.getValue().isBlank()) {
                         return cookie.getValue();
                     }
