@@ -27,6 +27,18 @@
         <failsafeArgLine>-Djava.security.manager=allow</failsafeArgLine>
         <antrun.plugin.version>3.1.0</antrun.plugin.version>
         <maven.dependency.plugin.version>3.6.1</maven.dependency.plugin.version>
+
+        <!-- Valores por defecto para los tests de performance (overridable via -D...) -->
+        <protocol>http</protocol>
+        <host>localhost</host>
+        <port>8080</port>
+        <path>/api/health</path>
+        <users>5</users>
+        <rampSeconds>10</rampSeconds>
+        <iterations>5</iterations>
+        <username>admin.este</username>
+        <password>Admin123</password>
+        <tenantId>550e8400-e29b-41d4-a716-446655440001</tenantId>
     </properties>
 
     <dependencies>
@@ -273,6 +285,50 @@
                                 <phase>verify</phase>
                                 <goals>
                                     <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>perf</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.lazerycode.jmeter</groupId>
+                        <artifactId>jmeter-maven-plugin</artifactId>
+                        <version>3.7.0</version>
+                        <configuration>
+                            <testFilesDirectory>${project.basedir}/performance</testFilesDirectory>
+                            <resultsFileFormat>jtl</resultsFileFormat>
+                            <testResultsTimestamp>true</testResultsTimestamp>
+                            <resultsFileNameDateFormat>yyyyMMdd-HHmmss</resultsFileNameDateFormat>
+                            <propertiesUser>
+                                <protocol>${protocol}</protocol>
+                                <host>${host}</host>
+                                <port>${port}</port>
+                                <path>${path}</path>
+                                <users>${users}</users>
+                                <rampSeconds>${rampSeconds}</rampSeconds>
+                                <iterations>${iterations}</iterations>
+                                <username>${username}</username>
+                                <password>${password}</password>
+                                <tenantId>${tenantId}</tenantId>
+                            </propertiesUser>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>configuration</id>
+                                <goals>
+                                    <goal>configure</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>jmeter-tests</id>
+                                <goals>
+                                    <goal>jmeter</goal>
                                 </goals>
                             </execution>
                         </executions>
