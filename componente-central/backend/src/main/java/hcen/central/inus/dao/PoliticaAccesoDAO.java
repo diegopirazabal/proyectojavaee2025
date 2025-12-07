@@ -249,4 +249,52 @@ public class PoliticaAccesoDAO {
             em.remove(politica);
         }
     }
+
+    /**
+     * Cuenta el total de políticas de acceso activas en todo el sistema.
+     * Usado para la estadística de "accesos aprobados" en reportes.
+     *
+     * @return Cantidad total de permisos activos
+     */
+    public long countTotalActivas() {
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(p) FROM politica_acceso p " +
+            "WHERE p.estado = :estado " +
+            "  AND p.fechaExpiracion > :ahora",
+            Long.class
+        );
+        query.setParameter("estado", EstadoPermiso.ACTIVO);
+        query.setParameter("ahora", LocalDateTime.now());
+
+        return query.getSingleResult();
+    }
+
+    /**
+     * Cuenta las políticas de acceso activas agrupadas por clínica (tenantId).
+     * Usado para estadísticas por clínica en el dashboard de reportes.
+     *
+     * @return Map con tenantId como clave y cantidad de permisos activos como valor
+     */
+    public Map<UUID, Long> countActivasPorClinica() {
+        TypedQuery<Object[]> query = em.createQuery(
+            "SELECT p.tenantId, COUNT(p) " +
+            "FROM politica_acceso p " +
+            "WHERE p.estado = :estado " +
+            "  AND p.fechaExpiracion > :ahora " +
+            "  AND p.tenantId IS NOT NULL " +
+            "GROUP BY p.tenantId",
+            Object[].class
+        );
+        query.setParameter("estado", EstadoPermiso.ACTIVO);
+        query.setParameter("ahora", LocalDateTime.now());
+
+        List<Object[]> resultados = query.getResultList();
+
+        Map<UUID, Long> countsPorClinica = new HashMap<>();
+        for (Object[] row : resultados) {
+            countsPorClinica.put((UUID) row[0], (Long) row[1]);
+        }
+
+        return countsPorClinica;
+    }
 }

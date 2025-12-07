@@ -23,7 +23,9 @@ public class JsonbConfiguration implements ContextResolver<Jsonb> {
             // Formatear fechas LocalDate como "yyyy-MM-dd" (ISO-8601)
             .withDateFormat("yyyy-MM-dd", null)
             // Usar el adaptador para LocalDate que ya creamos
-            .withAdapters(new LocalDateAdapter());
+            .withAdapters(new LocalDateAdapter())
+            // Forzar encoding UTF-8 para caracteres especiales (tildes, ñ, etc.)
+            .withEncoding("UTF-8");
 
         this.jsonb = JsonbBuilder.create(config);
     }

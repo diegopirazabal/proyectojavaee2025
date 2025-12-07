@@ -54,44 +54,57 @@
 
             <!-- Panel Look & Feel -->
             <p:panel header="Personalización de Look &amp; Feel" style="margin-bottom: 2rem;">
-                <p:panelGrid columns="2" layout="grid" styleClass="p-fluid">
-                    <p:outputLabel for="colorPrimario" value="Color Primario"/>
-                    <div>
-                        <p:inputText id="colorPrimario"
-                                    value="#{configuracionBean.colorPrimario}"
-                                    placeholder="#007bff"/>
-                        <span class="color-preview"
-                              style="background-color: #{configuracionBean.colorPrimario};"/>
-                        <small class="p-d-block">Formato hexadecimal (#RRGGBB)</small>
-                    </div>
+                <p:panelGrid columns="3"
+                             styleClass="p-fluid"
+                             columnClasses="col-4, col-4, col-4"
+                             style="width:100%;">
 
-                    <p:outputLabel for="colorSecundario" value="Color Secundario"/>
-                    <div>
-                        <p:inputText id="colorSecundario"
-                                    value="#{configuracionBean.colorSecundario}"
-                                    placeholder="#6c757d"/>
-                        <span class="color-preview"
-                              style="background-color: #{configuracionBean.colorSecundario};"/>
-                        <small class="p-d-block">Formato hexadecimal (#RRGGBB)</small>
-                    </div>
+                    <!-- Fila 1: Nombre del sistema en una fila completa -->
+                    <p:row>
+                        <p:column colspan="3">
+                            <p:outputLabel for="nombreSistema"
+                                           value="Nombre del Sistema"
+                                           style="display:block; margin-bottom:5px;" />
+                            <p:inputText id="nombreSistema"
+                                         value="#{configuracionBean.nombreSistema}"
+                                         placeholder="Clínica Médica"
+                                         style="width: 300px;" />
+                        </p:column>
+                    </p:row>
 
-                    <p:outputLabel for="nombreSistema" value="Nombre del Sistema"/>
-                    <p:inputText id="nombreSistema"
-                                value="#{configuracionBean.nombreSistema}"
-                                placeholder="Sistema de Gestión Clínica"/>
+                    <!-- Fila 2: Color Primario -->
+                    <p:column>
+                        <p:outputLabel for="colorPrimario"
+                                       value="Color Primario"
+                                       style="display:block; margin-bottom:5px;" />
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <p:colorPicker id="colorPrimario"
+                                          value="#{configuracionBean.colorPrimario}"
+                                          mode="popup">
+                                <p:ajax event="close" update="@form" />
+                            </p:colorPicker>
+                        </div>
+                        <small>Haz clic en el botón para seleccionar el color</small>
+                    </p:column>
 
-                    <p:outputLabel for="logoUrl" value="URL del Logo"/>
-                    <p:inputText id="logoUrl"
-                                value="#{configuracionBean.logoUrl}"
-                                placeholder="https://ejemplo.com/logo.png"/>
+                    <!-- Fila 2: Color Secundario -->
+                    <p:column>
+                        <p:outputLabel for="colorSecundario"
+                                       value="Color Secundario"
+                                       style="display:block; margin-bottom:5px;" />
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <p:colorPicker id="colorSecundario"
+                                          value="#{configuracionBean.colorSecundario}"
+                                          mode="popup">
+                                <p:ajax event="close" update="@form" />
+                            </p:colorPicker>
+                        </div>
+                        <small>Haz clic en el botón para seleccionar el color</small>
+                    </p:column>
 
-                    <p:outputLabel for="tema" value="Tema"/>
-                    <p:selectOneMenu id="tema" value="#{configuracionBean.tema}">
-                        <f:selectItem itemLabel="Por defecto" itemValue="default"/>
-                        <f:selectItem itemLabel="Saga" itemValue="saga"/>
-                        <f:selectItem itemLabel="Vela" itemValue="vela"/>
-                        <f:selectItem itemLabel="Arya" itemValue="arya"/>
-                    </p:selectOneMenu>
+                    <!-- Tercera columna opcional (puede quedar vacía o futura config) -->
+                    <p:column></p:column>
+
                 </p:panelGrid>
 
                 <f:facet name="footer">

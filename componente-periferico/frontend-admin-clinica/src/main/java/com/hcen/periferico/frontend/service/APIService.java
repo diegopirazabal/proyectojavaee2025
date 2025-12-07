@@ -87,12 +87,12 @@ public class APIService implements Serializable {
                 .add("tenantId", tenantId)
                 .build();
 
-            StringEntity entity = new StringEntity(loginData.toString(), ContentType.APPLICATION_JSON);
+            StringEntity entity = new StringEntity(loginData.toString(), ContentType.APPLICATION_JSON.withCharset(java.nio.charset.StandardCharsets.UTF_8));
             request.setEntity(entity);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseAdministradorFromJson(responseBody);
                 }
             }
@@ -108,7 +108,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseClinicasFromJson(responseBody);
                 }
             }
@@ -126,7 +126,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
                     return parseConfiguracionFromJson(responseBody);
                 }
             }
@@ -150,12 +150,12 @@ public class APIService implements Serializable {
                 .add("tema", tema != null ? tema : "")
                 .build();
 
-            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
+            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON.withCharset(java.nio.charset.StandardCharsets.UTF_8));
             request.setEntity(entity);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
                     return parseConfiguracionFromJson(responseBody);
                 }
             }
@@ -173,12 +173,12 @@ public class APIService implements Serializable {
                 .add("habilitado", habilitado)
                 .build();
 
-            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
+            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON.withCharset(java.nio.charset.StandardCharsets.UTF_8));
             request.setEntity(entity);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
                     return parseConfiguracionFromJson(responseBody);
                 }
             }
@@ -194,7 +194,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = new String(response.getEntity().getContent().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
                     return parseConfiguracionFromJson(responseBody);
                 }
             }
@@ -212,7 +212,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseProfesionalesFromJson(responseBody);
                 }
             }
@@ -229,7 +229,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseProfesionalesFromJson(responseBody);
                 }
             }
@@ -253,11 +253,11 @@ public class APIService implements Serializable {
                 .add("password", password != null ? password : "")
                 .build();
 
-            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
+            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON.withCharset(java.nio.charset.StandardCharsets.UTF_8));
             request.setEntity(entity);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
-                String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                String responseBody = readEntityContent(response);
 
                 if (response.getCode() == 200) {
                     return parseProfesionalFromJson(responseBody);
@@ -298,11 +298,11 @@ public class APIService implements Serializable {
 
             JsonObject data = dataBuilder.build();
 
-            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
+            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON.withCharset(java.nio.charset.StandardCharsets.UTF_8));
             request.setEntity(entity);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
-                String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                String responseBody = readEntityContent(response);
 
                 if (response.getCode() == 200) {
                     return parseProfesionalFromJson(responseBody);
@@ -344,7 +344,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseEspecialidadesFromJson(responseBody);
                 }
             }
@@ -489,7 +489,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseUsuariosFromJson(responseBody);
                 }
             }
@@ -506,7 +506,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseUsuariosFromJson(responseBody);
                 }
             }
@@ -542,11 +542,11 @@ public class APIService implements Serializable {
 
             JsonObject data = builder.build();
 
-            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON);
+            StringEntity entity = new StringEntity(data.toString(), ContentType.APPLICATION_JSON.withCharset(java.nio.charset.StandardCharsets.UTF_8));
             request.setEntity(entity);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
-                String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                String responseBody = readEntityContent(response);
 
                 if (response.getCode() == 200) {
                     return parseUsuarioFromJson(responseBody);
@@ -663,11 +663,11 @@ public class APIService implements Serializable {
                 builder.add("referenciaAlta", referenciaAlta);
             }
 
-            StringEntity entity = new StringEntity(builder.build().toString(), ContentType.APPLICATION_JSON);
+            StringEntity entity = new StringEntity(builder.build().toString(), ContentType.APPLICATION_JSON.withCharset(java.nio.charset.StandardCharsets.UTF_8));
             request.setEntity(entity);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
-                String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                String responseBody = readEntityContent(response);
                 if (response.getCode() == 201 || response.getCode() == 200) {
                     return parseDocumentoFromJson(responseBody);
                 } else {
@@ -688,7 +688,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     // La respuesta es un objeto con {data: [...], totalCount: n}
                     return parseDocumentosListFromJson(responseBody);
                 }
@@ -706,7 +706,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseDocumentoFromJson(responseBody);
                 }
             }
@@ -722,7 +722,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseMapFromJson(responseBody);
                 }
             }
@@ -738,7 +738,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseMapFromJson(responseBody);
                 }
             }
@@ -754,7 +754,7 @@ public class APIService implements Serializable {
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
-                    String responseBody = new String(response.getEntity().getContent().readAllBytes());
+                    String responseBody = readEntityContent(response);
                     return parseMapFromJson(responseBody);
                 }
             }
@@ -954,5 +954,18 @@ public class APIService implements Serializable {
         }
 
         return message;
+    }
+
+    /**
+     * Lee el contenido de la respuesta HTTP con codificación UTF-8.
+     * Esto asegura que caracteres especiales (tildes, ñ, etc.) se decodifiquen correctamente.
+     */
+    private String readEntityContent(CloseableHttpResponse response) throws IOException {
+        if (response.getEntity() == null) {
+            return "";
+        }
+        try (java.io.InputStream stream = response.getEntity().getContent()) {
+            return new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
     }
 }

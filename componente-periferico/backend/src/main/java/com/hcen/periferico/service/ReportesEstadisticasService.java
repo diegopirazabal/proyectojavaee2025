@@ -75,11 +75,9 @@ public class ReportesEstadisticasService {
             // Query 4: Contar profesionales por tenant (1 query con GROUP BY)
             Map<UUID, Long> profesionalesPorTenant = profesionalSaludDAO.countByTenantIdBatch(tenantIds);
 
-            // Query 5: Contar accesos aprobados por tenant (1 query con GROUP BY)
-            Map<UUID, Long> accesosPorTenant = solicitudAccesoDocumentoDAO.countByTenantIdAndEstadoBatch(
-                tenantIds,
-                solicitud_acceso_documento.EstadoSolicitud.APROBADA
-            );
+            // OPTIMIZACIÓN: Ya no calculamos accesos aprobados aquí.
+            // El frontend central obtiene este dato del componente central.
+            Map<UUID, Long> accesosPorTenant = Collections.emptyMap();
 
             // Iterar sobre clínicas y construir estadísticas (sin más queries a BD)
             for (clinica registro : clinicas) {
@@ -97,7 +95,7 @@ public class ReportesEstadisticasService {
                 long pacientes = pacientesPorTenant.getOrDefault(tenantId, 0L);
                 long documentos = documentosPorTenant.getOrDefault(tenantId, 0L);
                 long profesionales = profesionalesPorTenant.getOrDefault(tenantId, 0L);
-                long accesos = accesosPorTenant.getOrDefault(tenantId, 0L);
+                long accesos = 0L; // Dato se obtiene del central
 
                 detalle.setPacientes(pacientes);
                 detalle.setDocumentos(documentos);
@@ -167,10 +165,10 @@ public class ReportesEstadisticasService {
             Map<UUID, Long> pacientesPorTenant = usuarioSaludDAO.countByTenantIdBatch(tenantIds);
             Map<UUID, Long> documentosPorTenant = documentoClinicoDAO.countByTenantIdBatch(tenantIds);
             Map<UUID, Long> profesionalesPorTenant = profesionalSaludDAO.countByTenantIdBatch(tenantIds);
-            Map<UUID, Long> accesosPorTenant = solicitudAccesoDocumentoDAO.countByTenantIdAndEstadoBatch(
-                tenantIds,
-                solicitud_acceso_documento.EstadoSolicitud.APROBADA
-            );
+            // OPTIMIZACIÓN: Ya no calculamos accesos aprobados aquí.
+            // El frontend central obtiene este dato del componente central.
+            // Retornamos 0 para mantener compatibilidad de API.
+            Map<UUID, Long> accesosPorTenant = Collections.emptyMap();
 
             // 6. Construir lista de clínicas de la página
             List<ClinicaEstadistica> clinicaEstadisticas = new ArrayList<>();
@@ -187,7 +185,7 @@ public class ReportesEstadisticasService {
                 detalle.setPacientes(pacientesPorTenant.getOrDefault(tenantId, 0L));
                 detalle.setDocumentos(documentosPorTenant.getOrDefault(tenantId, 0L));
                 detalle.setProfesionales(profesionalesPorTenant.getOrDefault(tenantId, 0L));
-                detalle.setAccesosDocumentos(accesosPorTenant.getOrDefault(tenantId, 0L));
+                detalle.setAccesosDocumentos(0L); // Dato se obtiene del central
 
                 clinicaEstadisticas.add(detalle);
             }
@@ -215,9 +213,9 @@ public class ReportesEstadisticasService {
             long totalPacientes = usuarioSaludDAO.countActivos();
             long totalDocumentos = documentoClinicoDAO.countAll();
             long totalProfesionales = profesionalSaludDAO.countAll();
-            long totalAccesos = solicitudAccesoDocumentoDAO.countByEstado(
-                solicitud_acceso_documento.EstadoSolicitud.APROBADA
-            );
+            // OPTIMIZACIÓN: Ya no calculamos accesos aprobados aquí.
+            // El frontend central obtiene este dato del componente central.
+            long totalAccesos = 0L;
 
             totales.incrementarPacientes(totalPacientes);
             totales.incrementarDocumentos(totalDocumentos);

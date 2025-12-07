@@ -54,8 +54,15 @@ public class reportes_bean implements Serializable {
      */
     private void cargarTotales(boolean mostrarMensaje) {
         try {
-            // Llamar al endpoint paginado con page=0 y size=0 para obtener solo totales
+            // 1. Cargar estadísticas del periférico (pacientes, docs, profesionales, clínicas)
             estadisticas = apiService.obtenerReportesEstadisticasPaginadas(0, 1);
+
+            // 2. Sobrescribir SOLO accesosDocumentos con el dato del central
+            long accesosAprobadosCentral = apiService.obtenerAccesosAprobadosCentral();
+            if (estadisticas != null && estadisticas.getTotals() != null) {
+                estadisticas.getTotals().setAccesosDocumentos(accesosAprobadosCentral);
+            }
+
             if (mostrarMensaje) {
                 addInfoMessage("Estadísticas actualizadas", "La información fue sincronizada correctamente.");
             }
@@ -96,18 +103,31 @@ public class reportes_bean implements Serializable {
                     reportes_estadisticas_dto resultado = apiService.obtenerReportesEstadisticasPaginadas(page, pageSize);
 
                     if (resultado != null) {
-                        // Actualizar totales globales (por si cambiaron)
-                        if (resultado.getTotals() != null) {
-                            if (estadisticas == null) {
-                                estadisticas = new reportes_estadisticas_dto();
-                            }
-                            estadisticas.setTotals(resultado.getTotals());
-                            estadisticas.setTotalClinicas(resultado.getTotalClinicas());
-                            estadisticas.setGeneratedAt(resultado.getGeneratedAt());
+                        // Actualizar SOLO metadata (no sobrescribir totales para preservar dato del central)
+                        if (estadisticas == null) {
+                            estadisticas = new reportes_estadisticas_dto();
                         }
+                        estadisticas.setTotalClinicas(resultado.getTotalClinicas());
+                        estadisticas.setGeneratedAt(resultado.getGeneratedAt());
 
                         // Actualizar rowCount del lazy model
                         this.setRowCount(resultado.getTotalClinicas());
+
+                        // Sobrescribir accesos aprobados por clínica con dato del central
+                        if (resultado.getClinicas() != null && !resultado.getClinicas().isEmpty()) {
+                            Map<String, Long> accesosPorClinica = apiService.obtenerAccesosPorClinicaCentral();
+                            for (reportes_estadisticas_dto.ClinicaEstadistica clinica : resultado.getClinicas()) {
+                                Long accesos = accesosPorClinica.get(clinica.getTenantId());
+                                clinica.setAccesosDocumentos(accesos != null ? accesos : 0L);
+                            }
+                        }
+
+                        // Actualizar totales globales con dato del central (importante hacerlo al final)
+                        long accesosAprobadosCentral = apiService.obtenerAccesosAprobadosCentral();
+                        if (resultado.getTotals() != null) {
+                            estadisticas.setTotals(resultado.getTotals());
+                            estadisticas.getTotals().setAccesosDocumentos(accesosAprobadosCentral);
+                        }
 
                         // Retornar clínicas de esta página
                         return resultado.getClinicas() != null
