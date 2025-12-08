@@ -45,6 +45,7 @@ public class JWTAuthenticationFilter implements Filter {
             "/api/auth/refresh",
             "/api/auth/token",                // Autenticación de clientes (componente-periferico)
             "/api/notifications/broadcast-test",  // Envío de notificación de prueba desde AdminHCEN
+            "/api/notifications/solicitudes-acceso",  // Solicitud de acceso desde componente-periferico
             "/api/fcm/register",              // Registro de token FCM desde mobile
             "/api/fcm/unregister",            // Eliminación de token FCM
             "/api/hash/generate/admin",             // TEMPORAL: Generador de hash BCrypt (ELIMINAR EN PRODUCCIÓN)

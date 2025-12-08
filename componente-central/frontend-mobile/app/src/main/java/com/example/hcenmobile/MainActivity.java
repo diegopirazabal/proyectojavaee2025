@@ -140,8 +140,37 @@ public class MainActivity extends AppCompatActivity {
                     // Registrar token en el backend
                     registrarTokenEnBackend(token);
 
+                    // Suscribirse al topic del usuario para recibir notificaciones personalizadas
+                    suscribirseAlTopicDelUsuario();
+
                     Toast.makeText(MainActivity.this, "Notificaciones activadas",
                             Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    /**
+     * Suscribe el dispositivo al topic FCM del usuario para recibir notificaciones personalizadas
+     * Topic format: "user-<cedula>"
+     */
+    private void suscribirseAlTopicDelUsuario() {
+        SharedPreferences prefs = getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE);
+        String cedula = prefs.getString(Constants.PREF_USER_CI, null);
+
+        if (cedula == null || cedula.isEmpty()) {
+            Log.w(TAG, "No se pudo suscribir al topic: cédula no disponible en sesión");
+            return;
+        }
+
+        String topic = "user-" + cedula;
+        Log.d(TAG, "Suscribiéndose al topic: " + topic);
+
+        FirebaseMessaging.getInstance().subscribeToTopic(topic)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Log.d(TAG, "✓✓✓ Suscrito exitosamente al topic: " + topic);
+                    } else {
+                        Log.e(TAG, "❌ Error al suscribirse al topic: " + topic, task.getException());
+                    }
                 });
     }
 

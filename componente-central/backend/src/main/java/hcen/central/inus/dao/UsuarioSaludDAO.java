@@ -64,10 +64,20 @@ public class UsuarioSaludDAO {
 
     /**
      * Busca usuario por ID
+     * Nota: Usa JPQL porque UsuarioSalud tiene clave compuesta (cedula + id)
+     * y solo tenemos el id (Long) disponible desde FCMToken
      */
     public Optional<UsuarioSalud> findById(Long id) {
-        UsuarioSalud usuario = em.find(UsuarioSalud.class, id);
-        return Optional.ofNullable(usuario);
+        try {
+            TypedQuery<UsuarioSalud> query = em.createQuery(
+                "SELECT u FROM UsuarioSalud u WHERE u.id = :id",
+                UsuarioSalud.class
+            );
+            query.setParameter("id", id);
+            return Optional.of(query.getSingleResult());
+        } catch (NoResultException e) {
+            return Optional.empty();
+        }
     }
 
     /**
