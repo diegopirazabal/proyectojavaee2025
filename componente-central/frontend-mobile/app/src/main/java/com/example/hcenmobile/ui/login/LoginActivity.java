@@ -18,6 +18,7 @@ import com.example.hcenmobile.util.Constants;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 /**
  * Activity de login que solicita solo la cédula de identidad
@@ -116,6 +117,29 @@ public class LoginActivity extends AppCompatActivity {
                 .putBoolean(Constants.PREF_IS_LOGGED_IN, true)
                 .putBoolean(Constants.PREF_IS_OIDC_AUTH, false)
                 .apply();
+
+        // Suscribirse al topic FCM del usuario para recibir notificaciones personalizadas
+        suscribirseAlTopicDelUsuario(cedula);
+    }
+
+    /**
+     * Suscribe el dispositivo al topic FCM del usuario para recibir notificaciones personalizadas
+     * Topic format: "user-<cedula>"
+     */
+    private void suscribirseAlTopicDelUsuario(String cedula) {
+        String topic = "user-" + cedula;
+        Log.d(TAG, "==== SUSCRIPCIÓN AL TOPIC FCM ====");
+        Log.d(TAG, "Suscribiéndose al topic: " + topic);
+        Log.d(TAG, "==================================");
+
+        FirebaseMessaging.getInstance().subscribeToTopic(topic)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Log.d(TAG, "✓✓✓ Suscrito exitosamente al topic: " + topic + " ✓✓✓");
+                    } else {
+                        Log.e(TAG, "❌ Error al suscribirse al topic: " + topic, task.getException());
+                    }
+                });
     }
     
     /**

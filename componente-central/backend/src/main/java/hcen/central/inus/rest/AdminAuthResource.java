@@ -2,6 +2,7 @@ package hcen.central.inus.rest;
 
 import hcen.central.inus.dto.AdminLoginRequest;
 import hcen.central.inus.entity.admin_hcen;
+import hcen.central.inus.security.jwt.JWTTokenProvider;
 import hcen.central.inus.service.authentication_service;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
@@ -12,9 +13,11 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
 
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,6 +33,9 @@ public class AdminAuthResource {
 
     @EJB
     private authentication_service authenticationService;
+
+    @EJB
+    private JWTTokenProvider jwtTokenProvider;
 
     @POST
     @Path("/login")
@@ -58,6 +64,15 @@ public class AdminAuthResource {
                         .build();
             }
 
+            // Generar JWT para el administrador autenticado
+            String jwtToken = jwtTokenProvider.generateAccessToken(
+                    admin.getUsername(),  // subject
+                    admin.getEmail(),     // email
+                    List.of("ROLE_ADMIN") // roles
+            );
+
+            LOGGER.log(Level.INFO, "JWT generado para admin: {0}", admin.getUsername());
+
             JsonObjectBuilder builder = Json.createObjectBuilder()
                     .add("username", admin.getUsername())
                     .add("firstName", admin.getFirstName())
@@ -83,7 +98,18 @@ public class AdminAuthResource {
                 builder.addNull("lastLogin");
             }
 
-            return Response.ok(builder.build()).build();
+            // Crear cookie HttpOnly con el JWT (mismo patrón que OIDCAuthResource)
+            NewCookie jwtCookie = new NewCookie.Builder("jwt_token")
+                    .value(jwtToken)
+                    .httpOnly(true)
+                    .secure(false)  // true en producción con HTTPS
+                    .path("/")
+                    .maxAge(7 * 24 * 60 * 60)  // 7 días
+                    .build();
+
+            return Response.ok(builder.build())
+                    .cookie(jwtCookie)
+                    .build();
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Authentication failed due to server error.", e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)

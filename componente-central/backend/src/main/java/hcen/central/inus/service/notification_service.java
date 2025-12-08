@@ -183,15 +183,23 @@ public class notification_service {
      * @return true si la notificación fue enviada exitosamente
      */
     public boolean enviarNotificacionSolicitudAcceso(SolicitudAccesoNotificacionDTO solicitud) {
+        LOGGER.info("=== INICIANDO ENVÍO DE NOTIFICACIÓN DE SOLICITUD DE ACCESO ===");
+        LOGGER.info("Cédula paciente: " + solicitud.getCedulaPaciente());
+        LOGGER.info("Profesional: " + solicitud.getProfesionalNombre() + " (CI: " + solicitud.getProfesionalCi() + ")");
+        LOGGER.info("Clínica: " + solicitud.getNombreClinica() + " (tenantId: " + solicitud.getTenantId() + ")");
+        LOGGER.info("Documento ID: " + solicitud.getDocumentoId());
+
         try {
             // 1. Guardar la notificación en base de datos
+            LOGGER.info("PASO 1: Buscando usuario en BD por cédula: " + solicitud.getCedulaPaciente());
             Optional<UsuarioSalud> usuarioOpt = usuarioSaludDAO.findByCedula(solicitud.getCedulaPaciente());
             if (usuarioOpt.isEmpty()) {
-                LOGGER.warning("No se encontró usuario con cédula: " + solicitud.getCedulaPaciente());
+                LOGGER.warning("❌ No se encontró usuario con cédula: " + solicitud.getCedulaPaciente());
                 return false;
             }
 
             UsuarioSalud usuario = usuarioOpt.get();
+            LOGGER.info("✓ Usuario encontrado: " + usuario.getNombreCompleto() + " (ID: " + usuario.getId() + ")");
 
             // Construir mensaje de notificación
             String titulo = "Solicitud de Acceso a Documento";
@@ -204,6 +212,7 @@ public class notification_service {
             );
 
             // Crear entidad notificacion
+            LOGGER.info("PASO 2: Creando notificación en BD");
             notificacion notif = new notificacion();
             notif.setTipo("SOLICITUD_ACCESO");
             notif.setMensaje(titulo + ": " + cuerpo);
@@ -217,21 +226,32 @@ public class notification_service {
 
             // Persistir notificación
             notificacionDAO.save(notif);
-            LOGGER.info("Notificación guardada en BD para usuario: " + solicitud.getCedulaPaciente());
+            LOGGER.info("✓ Notificación guardada en BD con ID: " + notif.getId());
+
+            // Verificar permisos de notificación del usuario
+            LOGGER.info("PASO 3: Verificando permisos de notificación del usuario");
+            LOGGER.info("Usuario activo: " + usuario.getActive());
+            LOGGER.info("Notificaciones habilitadas: " + usuario.getNotificacionesHabilitadas());
 
             if (!puedeRecibirNotificaciones(usuario)) {
-                LOGGER.info(() -> "Usuario " + solicitud.getCedulaPaciente() +
+                LOGGER.warning("⚠ Usuario " + solicitud.getCedulaPaciente() +
                         " deshabilitó las notificaciones. Se registró en BD pero no se enviará push.");
                 return true;
             }
+            LOGGER.info("✓ Usuario puede recibir notificaciones");
 
             // 2. Enviar notificación push via FCM
+            LOGGER.info("PASO 4: Verificando estado de Firebase");
             if (!firebaseInitializer.isReady()) {
-                LOGGER.warning("Firebase not initialized; notification saved in DB but not sent via FCM.");
+                LOGGER.warning("⚠ Firebase not initialized; notification saved in DB but not sent via FCM.");
                 return true; // Consideramos éxito porque se guardó en BD
             }
+            LOGGER.info("✓ Firebase inicializado correctamente");
 
             String topic = "user-" + sanitizeTopicSegment(solicitud.getCedulaPaciente());
+            LOGGER.info("PASO 5: Construyendo mensaje FCM para topic: " + topic);
+            LOGGER.info("Título: " + titulo);
+            LOGGER.info("Cuerpo: " + cuerpo);
 
             Message message = Message.builder()
                 .setTopic(topic)
@@ -255,17 +275,24 @@ public class notification_service {
                 .putData("timestamp", String.valueOf(System.currentTimeMillis()))
                 .build();
 
+            LOGGER.info("PASO 6: Enviando mensaje a Firebase Cloud Messaging...");
             FirebaseMessaging messaging = firebaseInitializer.getMessaging();
             String response = messaging.send(message);
-            LOGGER.info(String.format(
-                "Notificación FCM enviada a %s. FCM response: %s",
-                solicitud.getCedulaPaciente(), response));
+            LOGGER.info("✓✓✓ Notificación FCM enviada exitosamente ✓✓✓");
+            LOGGER.info("Topic: " + topic);
+            LOGGER.info("FCM Message ID: " + response);
+            LOGGER.info("=======================================================");
             return true;
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE,
-                String.format("Error al procesar notificación de solicitud de acceso para %s",
-                    solicitud.getCedulaPaciente()), e);
+                "❌❌❌ ERROR al procesar notificación de solicitud de acceso para " +
+                solicitud.getCedulaPaciente(), e);
+            LOGGER.severe("Tipo de error: " + e.getClass().getName());
+            LOGGER.severe("Mensaje de error: " + e.getMessage());
+            if (e.getCause() != null) {
+                LOGGER.severe("Causa raíz: " + e.getCause().getMessage());
+            }
             return false;
         }
     }

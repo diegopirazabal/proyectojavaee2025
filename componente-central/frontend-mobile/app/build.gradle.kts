@@ -31,8 +31,8 @@ android {
 
     buildTypes {
         debug {
-            // URL del backend para desarrollo local
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/hcen-central/api\"")
+            // URL del backend para desarrollo local (componente central desplegado en raíz /)
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/api\"")
         }
         release {
             isMinifyEnabled = false
