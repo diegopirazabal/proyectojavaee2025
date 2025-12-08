@@ -63,7 +63,7 @@ public class api_service {
     private static final String CENTRAL_ENV_VAR = "HCEN_API_BASE_URL";
     private static final String CENTRAL_SYS_PROP = "hcen.apiBaseUrl";
     // URLs por defecto para desarrollo y producción
-    private static final String DEFAULT_BACKEND_URL_DEV = "http://localhost:8080/api";
+    private static final String DEFAULT_BACKEND_URL_DEV = "https://hcen-uy.web.elasticloud.uy/api";
     private static final String DEFAULT_BACKEND_URL_PROD = "https://hcen-uy.web.elasticloud.uy/api";
 
     private static final String PERIPHERAL_ENV_VAR = "HCEN_PERIPHERAL_API_BASE_URL";
