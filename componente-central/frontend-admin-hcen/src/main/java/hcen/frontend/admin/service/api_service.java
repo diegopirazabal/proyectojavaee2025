@@ -46,7 +46,10 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -60,14 +63,18 @@ public class api_service {
     private static final String CENTRAL_ENV_VAR = "HCEN_API_BASE_URL";
     private static final String CENTRAL_SYS_PROP = "hcen.apiBaseUrl";
     // URLs por defecto para desarrollo y producción
-    private static final String DEFAULT_BACKEND_URL_DEV = "http://localhost:8080/hcen-central/api";
+    private static final String DEFAULT_BACKEND_URL_DEV = "http://localhost:8080/api";
     private static final String DEFAULT_BACKEND_URL_PROD = "https://hcen-uy.web.elasticloud.uy/api";
 
     private static final String PERIPHERAL_ENV_VAR = "HCEN_PERIPHERAL_API_BASE_URL";
     private static final String PERIPHERAL_SYS_PROP = "hcen.peripheralApiBaseUrl";
-    private static final String DEFAULT_PERIPHERAL_URL = "https://prestador-salud.up.railway.app/multitenant-api/";
+    private static final String DEFAULT_PERIPHERAL_URL = "http://localhost:8080/multitenant-api/";
 
     private static final Logger LOGGER = Logger.getLogger(api_service.class.getName());
+
+    // CookieStore compartido para almacenar JWT entre requests HTTP
+    // IMPORTANTE: No usar 'final' porque HttpClient necesita inyectarlo al construirse
+    private final org.apache.hc.client5.http.cookie.CookieStore cookieStore = new org.apache.hc.client5.http.cookie.BasicCookieStore();
 
     // URL resuelta dinámicamente en cada petición para soportar cambio de contexto
     private final String peripheralUrl = resolvePeripheralUrl();
@@ -116,8 +123,13 @@ public class api_service {
 
     public List<usuario_salud_dto> obtenerUsuariosSalud() {
         try (CloseableHttpClient httpClient = createHttpClient()) {
-            HttpGet request = new HttpGet(getBackendUrl() + "/usuarios-salud");
+            String url = getBackendUrl() + "/usuarios-salud";
+            LOGGER.info("═══════════════════════════════════════════════════════");
+            LOGGER.info("[obtenerUsuariosSalud] URL completa: " + url);
+            HttpGet request = new HttpGet(url);
             attachAuthorizationHeader(request);
+            LOGGER.info("[obtenerUsuariosSalud] Headers del request: " + java.util.Arrays.toString(request.getHeaders()));
+            LOGGER.info("═══════════════════════════════════════════════════════");
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 if (response.getCode() == 200) {
                     String responseBody = readEntityContent(response);
@@ -384,6 +396,74 @@ public class api_service {
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Error al obtener estadísticas paginadas", e);
             throw new RuntimeException("No se pudo obtener estadísticas paginadas", e);
+        }
+    }
+
+    /**
+     * Obtiene el total de accesos aprobados desde el backend central
+     *
+     * @return Cantidad de permisos activos
+     */
+    public long obtenerAccesosAprobadosCentral() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            String url = getBackendUrl() + "/reportes/accesos-aprobados";
+
+            HttpGet request = new HttpGet(url);
+            attachAuthorizationHeader(request);
+
+            LOGGER.log(Level.INFO, "Obteniendo accesos aprobados desde central: {0}", url);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = readEntityContent(response);
+                    // Parse JSON: {"count": 123}
+                    try (JsonReader jsonReader = Json.createReader(
+                            new StringReader(responseBody))) {
+                        JsonObject json = jsonReader.readObject();
+                        return json.getJsonNumber("count").longValue();
+                    }
+                }
+                throw new IOException("Error al obtener accesos aprobados: " + response.getCode());
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener accesos aprobados desde central", e);
+            return 0L; // Retornar 0 en caso de error
+        }
+    }
+
+    /**
+     * Obtiene accesos aprobados agrupados por clínica desde el backend central
+     *
+     * @return Map con tenantId como clave y cantidad de accesos como valor
+     */
+    public Map<String, Long> obtenerAccesosPorClinicaCentral() {
+        try (CloseableHttpClient httpClient = createHttpClient()) {
+            String url = getBackendUrl() + "/reportes/accesos-aprobados-por-clinica";
+
+            HttpGet request = new HttpGet(url);
+            attachAuthorizationHeader(request);
+
+            LOGGER.log(Level.INFO, "Obteniendo accesos por clínica desde central: {0}", url);
+
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response.getCode() == 200) {
+                    String responseBody = readEntityContent(response);
+                    // Parse JSON: {"uuid1": 5, "uuid2": 3, ...}
+                    Map<String, Long> resultado = new HashMap<>();
+                    try (JsonReader jsonReader = Json.createReader(
+                            new StringReader(responseBody))) {
+                        JsonObject json = jsonReader.readObject();
+                        for (String tenantId : json.keySet()) {
+                            resultado.put(tenantId, json.getJsonNumber(tenantId).longValue());
+                        }
+                    }
+                    return resultado;
+                }
+                throw new IOException("Error al obtener accesos por clínica: " + response.getCode());
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener accesos por clínica desde central", e);
+            return Collections.emptyMap(); // Retornar mapa vacío en caso de error
         }
     }
 
@@ -1114,10 +1194,13 @@ public class api_service {
                             PoolingHttpClientConnectionManagerBuilder.create()
                                     .setSSLSocketFactory(sslSocketFactory)
                                     .build())
+                    .setDefaultCookieStore(cookieStore)  // Usar CookieStore compartido para persistir JWT
                     .build();
         } catch (GeneralSecurityException e) {
             LOGGER.log(Level.WARNING, "Falling back to default HttpClient without relaxed SSL", e);
-            return HttpClients.createDefault();
+            return HttpClients.custom()
+                    .setDefaultCookieStore(cookieStore)  // Usar CookieStore compartido incluso en fallback
+                    .build();
         }
     }
 
