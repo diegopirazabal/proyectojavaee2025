@@ -283,22 +283,33 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
         }
         try {
             OffsetDateTime offsetDateTime = OffsetDateTime.parse(raw.trim());
-            return offsetDateTime.toLocalDateTime().format(FORMATTER);
+            return offsetDateTime.toLocalDate().format(DATE_ONLY_FORMATTER);
         } catch (DateTimeParseException e) {
             // Ignorado: probamos otros formatos abajo
         }
         try {
             LocalDateTime dateTime = LocalDateTime.parse(raw.trim());
-            return dateTime.format(FORMATTER);
+            return dateTime.toLocalDate().format(DATE_ONLY_FORMATTER);
         } catch (DateTimeParseException e) {
             // Ignorado: probamos formato de fecha sin hora
         }
         try {
             LocalDate localDate = LocalDate.parse(raw.trim());
-            return localDate.atStartOfDay().format(FORMATTER);
+            return localDate.format(DATE_ONLY_FORMATTER);
         } catch (DateTimeParseException e) {
-            // Último recurso: devolver el raw para no mostrar vacío en la UI
+            // Ignorado: probamos formato de array
         }
+        // Intentar parsear formato array [yyyy, mm, dd, hh, mm, ss]
+        LocalDateTime arrayDateTime = parseArrayDateTime(raw.trim());
+        if (arrayDateTime != null) {
+            return arrayDateTime.toLocalDate().format(DATE_ONLY_FORMATTER);
+        }
+        // Intentar parsear formato array de fecha [yyyy, mm, dd]
+        LocalDate arrayDate = parseArrayDate(raw.trim());
+        if (arrayDate != null) {
+            return arrayDate.format(DATE_ONLY_FORMATTER);
+        }
+        // Último recurso: devolver el raw para no mostrar vacío en la UI
         return raw;
     }
 
@@ -337,6 +348,63 @@ public class HistoriaClinicaDocumentoDTO implements Serializable {
         try {
             return LocalDate.parse(value);
         } catch (DateTimeParseException e) {
+            // Ignorado, probamos formato array
+        }
+        // Intentar parsear formato array [yyyy, mm, dd]
+        LocalDate arrayDate = parseArrayDate(value);
+        if (arrayDate != null) {
+            return arrayDate;
+        }
+        return null;
+    }
+
+    /**
+     * Parsea una fecha en formato array [yyyy, mm, dd, hh, mm, ss]
+     * @param raw String con formato array
+     * @return LocalDateTime parseado o null si no es válido
+     */
+    private LocalDateTime parseArrayDateTime(String raw) {
+        String trimmed = raw.trim();
+        if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+            return null;
+        }
+        String[] parts = trimmed.substring(1, trimmed.length() - 1).split(",");
+        if (parts.length < 3) {
+            return null;
+        }
+        try {
+            int year = Integer.parseInt(parts[0].trim());
+            int month = Integer.parseInt(parts[1].trim());
+            int day = Integer.parseInt(parts[2].trim());
+            int hour = parts.length > 3 ? Integer.parseInt(parts[3].trim()) : 0;
+            int minute = parts.length > 4 ? Integer.parseInt(parts[4].trim()) : 0;
+            int second = parts.length > 5 ? Integer.parseInt(parts[5].trim()) : 0;
+            return LocalDateTime.of(year, month, day, hour, minute, second);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Parsea una fecha en formato array [yyyy, mm, dd]
+     * @param raw String con formato array
+     * @return LocalDate parseado o null si no es válido
+     */
+    private LocalDate parseArrayDate(String raw) {
+        String trimmed = raw.trim();
+        if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) {
+            return null;
+        }
+        String[] parts = trimmed.substring(1, trimmed.length() - 1).split(",");
+        if (parts.length < 3) {
+            return null;
+        }
+        try {
+            int year = Integer.parseInt(parts[0].trim());
+            int month = Integer.parseInt(parts[1].trim());
+            int day = Integer.parseInt(parts[2].trim());
+            return LocalDate.of(year, month, day);
+        } catch (NumberFormatException e) {
             return null;
         }
     }
