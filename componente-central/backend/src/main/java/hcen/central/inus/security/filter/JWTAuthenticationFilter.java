@@ -49,7 +49,8 @@ public class JWTAuthenticationFilter implements Filter {
             "/api/fcm/register",              // Registro de token FCM desde mobile
             "/api/fcm/unregister",            // Eliminación de token FCM
             "/api/hash/generate/admin",             // TEMPORAL: Generador de hash BCrypt (ELIMINAR EN PRODUCCIÓN)
-            "/api/hash/verify/admin"                // TEMPORAL: Verificador de hash BCrypt (ELIMINAR EN PRODUCCIÓN)
+            "/api/hash/verify/admin",                // TEMPORAL: Verificador de hash BCrypt (ELIMINAR EN PRODUCCIÓN)
+            "/api/politicas-acceso/validar"
     );
 
     @Override
